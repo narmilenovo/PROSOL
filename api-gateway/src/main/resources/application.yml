@@ -1,0 +1,95 @@
+# Server configuration
+server:
+  port: 9191
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+  application:
+    name: GATEWAY-SERVICE  # The server application name
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        CorsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      discovery:
+        locator:
+          enabled: true
+      # Routing Services
+      routes:
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user/**
+          filters:
+            - RewritePath=/user/(?<path>.*), /$\{path}
+
+        - id: openapi
+          uri: http://localhost:${server.port}
+          predicates:
+            - Path=/v3/api-docs/**
+          filters:
+            - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+#
+#        - id: EUREKA-SERVER
+#          uri: http://localhost:8761
+#          predicates:
+#            - Path=/**
+
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+
+# Actuator endpoints configuration
+management:
+  endpoints:
+    web:
+      base-path: /rest/actuator
+      exposure:
+        include: '*'
+
+# OpenApi Swagger configuration
+springdoc:
+  swagger-ui:
+    display-request-duration: true
+    operationsSorter: method
+    tags-sorter: method
+    try-it-out-enabled: true
+    deep-linking: true
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    display-operation-id: false
+    filter: false
+    show-extensions: false
+    urls:
+      - name: USER-SERVICE
+        url: /v3/api-docs/user
+  cache:
+    disabled: true
+  show-actuator: false
+  writer-with-default-pretty-printer: true
+
+
+
+
+#logging:
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} ${LOG_LEVEL_PATTERN:-%5p} %m%n"
+#  level:
+#    org.springframework.cloud.gateway: TRACE
+#    org.springframework.http.server.reactive: TRACE

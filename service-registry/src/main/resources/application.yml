@@ -1,0 +1,33 @@
+# Server configuration
+server:
+  port: 8761
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+  application:
+    name: EUREKA-SERVER  # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/Prosol
+    password: imu123
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: localhost
+  server:
+    wait-time-in-ms-when-sync-empty: 0
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+
+
+
