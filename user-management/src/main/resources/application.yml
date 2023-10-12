@@ -3,6 +3,10 @@ server:
   port: 8000
   forward-headers-strategy: framework
   shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        name: KSESSION
 
 
 # Spring configuration

@@ -54,6 +54,7 @@ public class UserServiceImpl implements UserService {
                 User user = modelMapper.map(userRequest, User.class);
                 user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
                 user.setStatus(false);
+                user.setDepartmentId(userRequest.getDepartmentId());
                 user.setRoles(setToString(userRequest.getRoles()));
                 userList.add(user);
             }
@@ -92,6 +93,7 @@ public class UserServiceImpl implements UserService {
         User existingUser = this.findUserById(id);
         modelMapper.map(updateUserRequest, existingUser);
         existingUser.setRoles(setToString(updateUserRequest.getRoles()));
+        existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
         User updateUser = userRepository.save(existingUser);
         return mapToUserResponse(updateUser);
     }

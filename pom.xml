@@ -19,6 +19,7 @@
         <module>service-registry</module>
         <module>user-management</module>
         <module>general-service</module>
+        <module>sales_other-service</module>
         <module>api-gateway</module>
     </modules>
 

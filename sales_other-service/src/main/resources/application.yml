@@ -1,0 +1,35 @@
+# Server configuration
+server:
+  port: 8003
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+  application:
+    name: SALES_OTHERS-SERVICE   # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/Prosol
+    password: imu123
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}

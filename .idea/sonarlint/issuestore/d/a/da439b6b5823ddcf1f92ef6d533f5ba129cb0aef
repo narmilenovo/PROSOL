@@ -1,5 +1,2 @@
 
-G	java:S106\"+Replace this use of System.out by a logger.(†Óò¸8¼ä×å­1
-X	java:S125š"<This block of commented-out lines of code should be removed.(Ø¨‚/8Ø»å­1
-½
-java:S1130¡"™Remove the declaration of thrown exception 'com.example.user_management.exceptions.ResourceNotFoundException', as it cannot be thrown from method's body.(¤í¾ƒýÿÿÿÿ8Ø»å­1
+X	java:S125Æ"<This block of commented-out lines of code should be removed.(Ø¨‚/8¤Ì×°1

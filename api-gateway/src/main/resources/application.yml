@@ -31,6 +31,24 @@ spring:
             - Path=/user/**
           filters:
             - RewritePath=/user/(?<path>.*), /$\{path}
+            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+
+        - id: GENERAL-SERVICE
+          uri: lb://GENERAL-SERVICE
+          predicates:
+            - Path=/general/**
+          filters:
+            - RewritePath=/general/(?<path>.*), /$\{path}
+            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+
+        - id: PLANT-SERVICE
+          uri: lb://PLANT-SERVICE
+          predicates:
+            - Path=/plant/**
+          filters:
+            - RewritePath=/plant/(?<path>.*), /$\{path}
+            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+
 
         - id: openapi
           uri: http://localhost:${server.port}
@@ -38,6 +56,7 @@ spring:
             - Path=/v3/api-docs/**
           filters:
             - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+
 #
 #        - id: EUREKA-SERVER
 #          uri: http://localhost:8761
@@ -79,6 +98,15 @@ springdoc:
     urls:
       - name: USER-SERVICE
         url: /v3/api-docs/user
+
+      - name: GENERAL-SERVICE
+        url: /v3/api-docs/general
+
+      - name: PLANT-SERVICE
+        url: /v3/api-docs/plant
+
+      - name: GATEWAY-SERVICE
+        url: /v3/api-docs/
   cache:
     disabled: true
   show-actuator: false

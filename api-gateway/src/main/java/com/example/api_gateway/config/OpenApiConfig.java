@@ -19,19 +19,21 @@ public class OpenApiConfig {
         List<GroupedOpenApi> groups = new ArrayList<>();
         List<RouteDefinition> definitions = locator.getRouteDefinitions().collectList().block();
 
-        if (definitions != null) { // Check if definitions is null
+        if (definitions != null) {
             for (RouteDefinition definition : definitions) {
                 System.out.println("id: " + definition.getId() + "  " + definition.getUri().toString());
             }
 
-            definitions.stream().filter(routeDefinition -> routeDefinition.getId().matches(".*-SERVICE")).forEach(routeDefinition -> {
+            definitions.stream().filter(routeDefinition -> routeDefinition.getId().matches(".*-SERVICE")).forEach(routeDefinition ->
+            {
                 String name = routeDefinition.getId().replace("-SERVICE", ""); // Replace with "replace()" method
-                GroupedOpenApi.builder().pathsToMatch("/" + name + "/**").group(name).build();
+                GroupedOpenApi.builder()
+                        .pathsToMatch("/" + name + "/**")
+                        .group(name)
+                        .build();
             });
         }
 
         return groups;
     }
-
-
 }

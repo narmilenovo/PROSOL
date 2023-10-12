@@ -5,17 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-@EqualsAndHashCode(callSuper = true)
-@Accessors(chain = true)
+@Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Table(name = "users_accounts")
-@Entity
-@EntityListeners(AuditingEntityListener.class)
 public class UserAccount extends BaseEntity<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -15,7 +15,7 @@ import static com.example.user_management.utils.Constants.ROLE_PREFIX;
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
-    private final User user;
+    private final transient User user;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

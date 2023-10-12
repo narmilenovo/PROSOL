@@ -6,19 +6,12 @@ public class Constants {
     private Constants() {
     }
 
-    public static final String SWG_REMOVE_PRIVILEGES_ROLE_OPERATION = "Remove privileges from role";
-    public static final String SWG_REMOVE_ROLE_USER_OPERATION = "Remove roles from user";
-    public static final String SWG_ROLE_REMOVE_PRIVILEGES_MESSAGE = "Privileges Removed successfully !!";
-    public static final String SWG_USER_REMOVE_ROLE_MESSAGE = "Roles Removed successfully !!";
-    public static final String SWG_ASSIGN_PRIVILEGES_ROLE_OPERATION = "Assign privileges to role";
-    public static final String SWG_ASSIGN_ROLE_USER_OPERATION = "Assign role to User";
-    public static final String SWG_ROLE_ASSIGN_PRIVILEGES_MESSAGE = "Privileges added successfully !!";
-    public static final String SWG_USER_ASSIGN_ROLE_MESSAGE = "Roles added successfully !!";
 
     public static final String REPOSITORY_PACKAGE = "com.example.user_management.repository.";
 
     public static final long TOKEN_LIFETIME_SECONDS = 24 * 60 * 60;
     public static final String TOKEN_PREFIX = "Bearer ";
+    public static final String BEARER_AUTH = "bearerAuth";
     public static final String APPLICATION_JSON = "application/json";
     public static final String HEADER_STRING = "Authorization";
     public static final String AUTHORITIES_KEY = "authorities";
@@ -66,7 +59,7 @@ public class Constants {
     public static final String SWG_TOKEN_VALIDATION_OPERATION = "Valid Token Checking ";
     public static final String SWG_AUTH_LOGIN_MESSAGE = "Authenticated successfully!";
     public static final String SWG_AUTH_LOGOUT_MESSAGE = "User successfully Logged Out!";
-    public static final String SWG_TOKEN__MESSAGE = "Token is validated Successfully !!!";
+    public static final String SWG_TOKEN_MESSAGE = "Token is validated Successfully !!!";
     public static final String SWG_AUTH_LOGIN_ERROR = "Bad credentials | The account is deactivated | The account isn't confirmed yet";
     public static final String SWG_AUTH_CONFIRM_ACCOUNT_OPERATION = "Confirm the account of an user";
     public static final String SWG_AUTH_CONFIRM_ACCOUNT_MESSAGE = "Account confirmed successfully!";
@@ -92,11 +85,11 @@ public class Constants {
 
     public static final String SWG_USER_TAG_NAME = "Users";
     public static final String SWG_USER_TAG_DESCRIPTION = "Users manipulation";
+    public static final String SWG_USER_ITEM_OPERATION = "Get one user";
     public static final String SWG_USER_LIST_OPERATION = "Get all users";
     public static final String SWG_USER_LIST_MESSAGE = "List retrieved successfully!";
     public static final String SWG_USER_LOGGED_OPERATION = "Get the authenticated user";
     public static final String SWG_USER_LOGGED_MESSAGE = "User retrieved successfully!";
-    public static final String SWG_USER_ITEM_OPERATION = "Get one user";
     public static final String SWG_USER_ITEM_MESSAGE = "Item retrieved successfully!";
     public static final String SWG_USER_UPDATE_OPERATION = "Update a user";
     public static final String SWG_USER_UPDATE_STATUS_OPERATION = "Update a user status";
@@ -108,42 +101,55 @@ public class Constants {
     public static final String SWG_USER_DELETE_OPERATION = "Delete a user";
     public static final String SWG_USER_BATCH_DELETE_OPERATION = "Delete a batchUser";
     public static final String SWG_USER_DELETE_MESSAGE = "User deleted successfully!";
+    public static final String SWG_REMOVE_ROLE_USER_OPERATION = "Remove roles from user";
+    public static final String SWG_USER_REMOVE_ROLE_MESSAGE = "Roles Removed successfully !!";
+    public static final String SWG_ASSIGN_ROLE_USER_OPERATION = "Assign role to User";
+    public static final String SWG_USER_ASSIGN_ROLE_MESSAGE = "Roles added successfully !!";
+    public static final String USER_FOUND_WITH_EMAIL_MESSAGE = "User email already exist";
+
+
     public static final String SWG_USER_PICTURE_OPERATION = "Change or delete user picture";
     public static final String SWG_USER_PICTURE_MESSAGE = "The picture updated/deleted successfully!";
     public static final String SWG_USER_PICTURE_ERROR = "An IOException occurred!";
+
 
     public static final String SWG_ROLE_TAG_NAME = "Roles";
     public static final String SWG_ROLE_TAG_DESCRIPTION = "Roles manipulation";
     public static final String SWG_ROLE_CREATE_OPERATION = "Create a role";
     public static final String SWG_ROLE_CREATE_MESSAGE = "Role created successfully!";
-    public static final String SWG_PRIVILEGE_CREATE_MESSAGE = "Privilege created successfully!";
+    public static final String SWG_ROLE_ITEM_OPERATION = "Get one role";
     public static final String SWG_ROLE_LIST_OPERATION = "Get all roles";
     public static final String SWG_ROLE_TRUE_LIST_OPERATION = "Get all enabled roles";
     public static final String SWG_ROLE_LIST_MESSAGE = "List retrieved successfully!";
-    public static final String SWG_ROLE_ITEM_OPERATION = "Get one role";
     public static final String SWG_ROLE_ITEM_MESSAGE = "Item retrieved successfully!";
     public static final String SWG_ROLE_UPDATE_OPERATION = "Update a role";
     public static final String SWG_ROLE_UPDATE_STATUS_OPERATION = "Update a role status";
     public static final String SWG_ROLE_UPDATE_BATCH_STATUS_OPERATION = "Update batchRole status";
-    public static final String SWG_PRIVILEGE_UPDATE_OPERATION = "Update a privilege";
     public static final String SWG_ROLE_UPDATE_MESSAGE = "Role updated successfully!";
-    public static final String SWG_PRIVILEGE_UPDATE_MESSAGE = "Privilege updated successfully!";
     public static final String SWG_ROLE_DELETE_OPERATION = "Delete a role";
     public static final String SWG_ROLE_DELETE_BATCH_OPERATION = "Delete a batchRole";
     public static final String SWG_PRIVILEGE_DELETE_OPERATION = "Delete a privilege";
     public static final String SWG_ROLE_DELETE_MESSAGE = "Role deleted successfully!";
-    public static final String SWG_PRIVILEGE_DELETE_MESSAGE = "Privilege deleted successfully!";
+    public static final String SWG_REMOVE_PRIVILEGES_ROLE_OPERATION = "Remove privileges from role";
+    public static final String SWG_ROLE_REMOVE_PRIVILEGES_MESSAGE = "Privileges Removed successfully !!";
+    public static final String SWG_ASSIGN_PRIVILEGES_ROLE_OPERATION = "Assign privileges to role";
+    public static final String SWG_ROLE_ASSIGN_PRIVILEGES_MESSAGE = "Privileges added successfully !!";
+    public static final String ROLE_FOUND_WITH_NAME_MESSAGE = "Role name already exist";
+
 
     public static final String SWG_PRIVILEGE_TAG_NAME = "Privileges";
     public static final String SWG_PRIVILEGE_TAG_DESCRIPTION = "Privileges manipulation";
     public static final String SWG_PRIVILEGE_CREATE_OPERATION = "Create a privilege";
+    public static final String SWG_PRIVILEGE_CREATE_MESSAGE = "Privilege created successfully!";
+    public static final String SWG_PRIVILEGE_ITEM_OPERATION = "Get one privilege";
     public static final String SWG_PRIVILEGE_LIST_OPERATION = "Get all privileges";
     public static final String SWG_PRIVILEGE_LIST_MESSAGE = "List retrieved successfully!";
-    public static final String SWG_PRIVILEGE_ITEM_OPERATION = "Get one privilege";
     public static final String SWG_PRIVILEGE_ITEM_MESSAGE = "Item retrieved successfully!";
+    public static final String SWG_PRIVILEGE_DELETE_MESSAGE = "Privilege deleted successfully!";
+    public static final String SWG_PRIVILEGE_UPDATE_OPERATION = "Update a privilege";
+    public static final String SWG_PRIVILEGE_UPDATE_MESSAGE = "Privilege updated successfully!";
     public static final String NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE = "Privilege not found with this Id";
     public static final String NO_PRIVILEGE_FOUND_WITH_NAME_MESSAGE = "Privilege not found with this Name";
     public static final String PRIVILEGE_FOUND_WITH_NAME_MESSAGE = "Privilege name already exist";
-    public static final String ROLE_FOUND_WITH_NAME_MESSAGE = "Role name already exist";
-    public static final String USER_FOUND_WITH_EMAIL_MESSAGE = "User email already exist";
+
 }

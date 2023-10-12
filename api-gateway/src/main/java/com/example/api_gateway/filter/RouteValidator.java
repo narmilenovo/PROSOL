@@ -10,23 +10,25 @@ import java.util.function.Predicate;
 @Component
 public class RouteValidator {
     protected static final List<String> swagger = List.of(
-            "/v3/api-docs/**",
-            "/swagger-resources/**",
-            "/configuration/ui/**",
-            "/configuration/security/**",
-            "/swagger-ui/**",
-            "/webjars/**",
-            "/swagger-ui.html"
-    );
-    protected static final List<String> eurekaServer = List.of(
-            "/eureka/web/**"
-    );
+            "/v3/api-docs");
+    protected static final List<String> user = List.of(
+            "/auth/login",
+            "/auth/logout",
+            "/auth/validateToken/**",
+            "/auth/refresh-token/**",
+            "/saveUser", "/saveRole", "/savePrivilege",
+            "/forgotPassword**", "/resetPassword**"
 
+    );
+    protected static final List<String> general = List.of(
+            "/getAllUomTrue"
+    );
     protected static final List<String> openApiEndpoints = new ArrayList<>();
 
     static {
         openApiEndpoints.addAll(swagger);
-        openApiEndpoints.addAll(eurekaServer);
+        openApiEndpoints.addAll(user);
+        openApiEndpoints.addAll(general);
     }
 
     protected Predicate<ServerHttpRequest> isSecured =

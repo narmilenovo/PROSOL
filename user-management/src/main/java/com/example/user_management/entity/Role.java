@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.Set;
 
@@ -15,7 +14,6 @@ import java.util.Set;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = "users")
 @Table(name = "roles")
-@EntityListeners(AuditingEntityListener.class)
 public class Role extends BaseEntity<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

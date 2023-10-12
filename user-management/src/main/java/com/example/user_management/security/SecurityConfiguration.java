@@ -15,20 +15,22 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 
-import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(
+        securedEnabled = true,
+        jsr250Enabled = true)
 @RequiredArgsConstructor
-@EnableMethodSecurity
 public class SecurityConfiguration {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;
-    private final DataSource dataSource;
+    private final AuthEntryPoint unauthorizedHandler;
+
 
     private static final List<String> PERMIT_ALL_URLS = Arrays.asList(
             "/auth/**",
@@ -55,6 +57,9 @@ public class SecurityConfiguration {
                         .anyRequest()
                         .fullyAuthenticated()
                 )
+                .exceptionHandling(
+                        exception -> exception.authenticationEntryPoint(unauthorizedHandler)
+                )
                 .rememberMe(remember -> remember.key("imran")
                                 .rememberMeParameter("remember")
                                 .rememberMeCookieName("farhan")
@@ -67,7 +72,7 @@ public class SecurityConfiguration {
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
-                        .logoutUrl("/user/auth/logout")
+                        .logoutUrl("/auth/logout")
                         .addLogoutHandler(logoutHandler)
                         .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
                 );

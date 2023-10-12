@@ -20,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -32,11 +31,9 @@ import static com.example.user_management.utils.Constants.*;
 
 @Tag(name = SWG_USER_TAG_NAME, description = SWG_USER_TAG_DESCRIPTION)
 @RestController
+@SecurityRequirement(name = BEARER_AUTH)
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RequiredArgsConstructor
-//@RequestMapping("/user")
-@SecurityRequirement(name = "bearerAuth")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
-
 public class UserController {
 
     private final UserService userService;
@@ -45,32 +42,32 @@ public class UserController {
 
     @Operation(summary = SWG_AUTH_REGISTER_OPERATION, responses = {
             @ApiResponse(responseCode = "201", description = SWG_AUTH_REGISTER_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "400", description = SWG_AUTH_REGISTER_ERROR, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
 
     @PostMapping("/saveUser")
     public ResponseEntity<Object> saveUser(@Valid @RequestBody UserRequest userRequest) throws ResourceFoundException {
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/saveUser").toUriString());
+        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveUser").toUriString());
         UserResponse user = userService.saveUser(userRequest);
         return ResponseEntity.created(uri).body(user);
     }
 
     @Operation(summary = SWG_AUTH_BULK_OPERATION, responses = {
             @ApiResponse(responseCode = "201", description = SWG_AUTH_REGISTER_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "400", description = SWG_AUTH_REGISTER_ERROR, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
 
@@ -127,16 +124,16 @@ public class UserController {
 
     @Operation(summary = SWG_USER_UPDATE_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_UPDATE_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
     @PutMapping("/updateById/{id}")
@@ -147,16 +144,16 @@ public class UserController {
 
     @Operation(summary = SWG_USER_UPDATE_STATUS_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_UPDATE_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
     @PatchMapping("/updateStatusById/{id}")
@@ -167,16 +164,16 @@ public class UserController {
 
     @Operation(summary = SWG_USER_UPDATE_BATCH_STATUS_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_UPDATE_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
     @PatchMapping("/updateBulkStatusUsingId/{id}")
@@ -187,19 +184,19 @@ public class UserController {
 
     @Operation(summary = SWG_USER_UPDATE_PWD_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_UPDATE_PWD_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "400", description = SWG_USER_UPDATE_PWD_ERROR, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
     @PutMapping("/{id}/changePassword")
@@ -253,16 +250,16 @@ public class UserController {
 
     @Operation(summary = SWG_REMOVE_ROLE_USER_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_REMOVE_ROLE_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
     @DeleteMapping("/removeRolesFromUser/{id}")
@@ -271,23 +268,22 @@ public class UserController {
             UserResponse userResponse = userService.removeRolesFromUser(id, userRoleRequest);
             return ResponseEntity.ok().body(userResponse);
         } catch (ResourceNotFoundException ex) {
-            // Handle the exception appropriately, e.g., return a 404 response
             return ResponseEntity.notFound().build();
         }
     }
 
     @Operation(summary = SWG_ASSIGN_ROLE_USER_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_USER_ASSIGN_ROLE_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserResponse.class))
+                    @Content(schema = @Schema(implementation = UserResponse.class))
             }),
             @ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BadRequestResponse.class))
+                    @Content(schema = @Schema(implementation = BadRequestResponse.class))
             }),
             @ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = InvalidDataResponse.class))
+                    @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
 
@@ -297,7 +293,6 @@ public class UserController {
             UserResponse userResponse = userService.addRolesToUser(id, userRoleRequest);
             return ResponseEntity.ok().body(userResponse);
         } catch (ResourceNotFoundException ex) {
-            // Handle the exception appropriately, e.g., return a 404 response
             return ResponseEntity.notFound().build();
         }
     }
