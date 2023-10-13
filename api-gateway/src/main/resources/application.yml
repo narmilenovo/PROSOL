@@ -31,7 +31,7 @@ spring:
             - Path=/user/**
           filters:
             - RewritePath=/user/(?<path>.*), /$\{path}
-            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+        #            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
 
         - id: GENERAL-SERVICE
           uri: lb://GENERAL-SERVICE
@@ -39,7 +39,7 @@ spring:
             - Path=/general/**
           filters:
             - RewritePath=/general/(?<path>.*), /$\{path}
-            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+        #            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
 
         - id: PLANT-SERVICE
           uri: lb://PLANT-SERVICE
@@ -47,7 +47,7 @@ spring:
             - Path=/plant/**
           filters:
             - RewritePath=/plant/(?<path>.*), /$\{path}
-            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
+        #            - AuthenticationFilter=  # Apply the AuthenticationFilter to this route
 
 
         - id: openapi
@@ -121,3 +121,8 @@ springdoc:
 #  level:
 #    org.springframework.cloud.gateway: TRACE
 #    org.springframework.http.server.reactive: TRACE
+
+
+logging:
+  level:
+    org.springframework.security: DEBUG
