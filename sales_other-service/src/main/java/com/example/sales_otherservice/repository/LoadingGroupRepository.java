@@ -11,5 +11,7 @@ public interface LoadingGroupRepository extends JpaRepository<LoadingGroup, Long
 
     List<LoadingGroup> findAllByLgStatusIsTrue();
 
-    boolean existsByLgCode(String lgCode);
+    boolean existsByLgCodeOrLgName(String lgCode, String lgName);
+
+    boolean existsByLgCodeAndIdNotOrLgNameAndIdNot(String lgCode, Long id1, String lgName, Long id2);
 }

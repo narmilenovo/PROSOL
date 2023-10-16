@@ -21,10 +21,17 @@ public class OrderUnitServiceImpl implements OrderUnitService {
     private final ModelMapper modelMapper;
 
     @Override
-    public OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest) {
-        OrderUnit orderUnit = modelMapper.map(orderUnitRequest, OrderUnit.class);
-        OrderUnit savedUnit = orderUnitRepository.save(orderUnit);
-        return mapToOrderUnitResponse(savedUnit);
+    public OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest) throws ResourceFoundException {
+        String ouCode = orderUnitRequest.getOuCode();
+        String ouName = orderUnitRequest.getOuName();
+        boolean exists = orderUnitRepository.existsByOuCodeOrOuName(ouCode, ouName);
+        if (!exists) {
+
+            OrderUnit orderUnit = modelMapper.map(orderUnitRequest, OrderUnit.class);
+            OrderUnit savedUnit = orderUnitRepository.save(orderUnit);
+            return mapToOrderUnitResponse(savedUnit);
+        }
+        throw new ResourceFoundException("Order Unit Already exists");
     }
 
     @Override
@@ -49,8 +56,9 @@ public class OrderUnitServiceImpl implements OrderUnitService {
     @Override
     public OrderUnitResponse updateOu(Long id, OrderUnitRequest updateOrderUnitRequest) throws ResourceNotFoundException, ResourceFoundException {
         String ouCode = updateOrderUnitRequest.getOuCode();
+        String ouName = updateOrderUnitRequest.getOuName();
         OrderUnit existingOrderUnit = this.findOuById(id);
-        boolean exists = orderUnitRepository.existsByOuCode(ouCode);
+        boolean exists = orderUnitRepository.existsByOuCodeAndIdNotOrOuNameAndIdNot(ouCode, id, ouName, id);
         if (!exists) {
             modelMapper.map(updateOrderUnitRequest, existingOrderUnit);
             OrderUnit updatedOrderUnit = orderUnitRepository.save(existingOrderUnit);

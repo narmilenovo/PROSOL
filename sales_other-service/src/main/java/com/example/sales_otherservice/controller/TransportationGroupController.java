@@ -20,7 +20,7 @@ public class TransportationGroupController {
     private final TransportationGroupService transportationGroupService;
 
     @PostMapping("/saveTg")
-    public ResponseEntity<Object> saveTg(@Valid @RequestBody TransportationGroupRequest transportationGroupRequest) {
+    public ResponseEntity<Object> saveTg(@Valid @RequestBody TransportationGroupRequest transportationGroupRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveTg").toUriString());
         TransportationGroupResponse saveTg = transportationGroupService.saveTg(transportationGroupRequest);
         return ResponseEntity.created(uri).body(saveTg);

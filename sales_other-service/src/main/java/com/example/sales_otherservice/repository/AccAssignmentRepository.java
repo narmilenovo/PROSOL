@@ -11,5 +11,7 @@ public interface AccAssignmentRepository extends JpaRepository<AccAssignment, Lo
 
     List<AccAssignment> findAllByAccStatusIsTrue();
 
-    boolean existsByAccCode(String accCode);
+    boolean existsByAccCodeOrAccName(String accCode, String accName);
+
+    boolean existsByAccCodeAndIdNotOrAccNameAndIdNot(String accCode, Long id1, String accName, Long id2);
 }

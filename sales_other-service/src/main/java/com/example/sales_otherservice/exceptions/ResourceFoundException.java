@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.io.Serial;
 
-@ResponseStatus(value = HttpStatus.FOUND)
+@ResponseStatus(value = HttpStatus.CONFLICT)
 public class ResourceFoundException extends Exception {
 
     @Serial

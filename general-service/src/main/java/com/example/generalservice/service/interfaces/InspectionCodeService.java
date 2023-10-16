@@ -8,7 +8,7 @@ import com.example.generalservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface InspectionCodeService {
-    InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest);
+    InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest) throws ResourceFoundException;
 
     List<InspectionCodeResponse> getAllInCode();
 

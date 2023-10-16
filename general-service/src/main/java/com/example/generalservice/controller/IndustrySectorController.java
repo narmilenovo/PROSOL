@@ -2,6 +2,7 @@ package com.example.generalservice.controller;
 
 import com.example.generalservice.dto.request.IndustrySectorRequest;
 import com.example.generalservice.dto.response.IndustrySectorResponse;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
 import jakarta.validation.Valid;
@@ -21,7 +22,7 @@ public class IndustrySectorController {
 
 
     @PostMapping("/saveSector")
-    public ResponseEntity<Object> saveSector(@Valid @RequestBody IndustrySectorRequest industrySectorRequest) {
+    public ResponseEntity<Object> saveSector(@Valid @RequestBody IndustrySectorRequest industrySectorRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveSector").toUriString());
         IndustrySectorResponse sectorResponse = industrySectorService.saveSector(industrySectorRequest);
         return ResponseEntity.created(uri).body(sectorResponse);
@@ -47,7 +48,7 @@ public class IndustrySectorController {
     }
 
     @PutMapping("/updateSector/{id}")
-    public ResponseEntity<Object> updateSector(@PathVariable Long id, @Valid @RequestBody IndustrySectorRequest updateindustrysectorrequest) throws ResourceNotFoundException {
+    public ResponseEntity<Object> updateSector(@PathVariable Long id, @Valid @RequestBody IndustrySectorRequest updateindustrysectorrequest) throws ResourceNotFoundException, ResourceFoundException {
         IndustrySectorResponse updateSector = industrySectorService.updateSector(id, updateindustrysectorrequest);
         return ResponseEntity.ok(updateSector);
     }

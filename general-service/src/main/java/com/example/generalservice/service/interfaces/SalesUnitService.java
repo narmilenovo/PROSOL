@@ -8,7 +8,7 @@ import com.example.generalservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface SalesUnitService {
-    SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest);
+    SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest) throws ResourceFoundException;
 
     List<SalesUnitResponse> getAllSalesUnit();
 

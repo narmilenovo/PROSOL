@@ -3,6 +3,7 @@ package com.example.generalservice.service;
 import com.example.generalservice.dto.request.DivisionRequest;
 import com.example.generalservice.dto.response.DivisionResponse;
 import com.example.generalservice.entity.Division;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.DivisionRepository;
 import com.example.generalservice.service.interfaces.DivisionService;
@@ -21,10 +22,17 @@ public class DivisionServiceImpl implements DivisionService {
 
 
     @Override
-    public DivisionResponse saveDivision(DivisionRequest divisionRequest) {
-        Division division = modelMapper.map(divisionRequest, Division.class);
-        Division savedDivision = divisionRepository.save(division);
-        return mapToDivisionResponse(savedDivision);
+    public DivisionResponse saveDivision(DivisionRequest divisionRequest) throws ResourceFoundException {
+        String divCode = divisionRequest.getDivCode();
+        String divName = divisionRequest.getDivName();
+        boolean exists = divisionRepository.existsByDivCodeOrDivName(divCode, divName);
+        if (!exists) {
+
+            Division division = modelMapper.map(divisionRequest, Division.class);
+            Division savedDivision = divisionRepository.save(division);
+            return mapToDivisionResponse(savedDivision);
+        }
+        throw new ResourceFoundException("Division Already Exist");
     }
 
     @Override
@@ -46,16 +54,17 @@ public class DivisionServiceImpl implements DivisionService {
     }
 
     @Override
-    public DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest) throws ResourceNotFoundException {
+    public DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest) throws ResourceNotFoundException, ResourceFoundException {
         String divCode = updateDivisionRequest.getDivCode();
+        String divName = updateDivisionRequest.getDivName();
         Division existingDivision = this.findDivisionById(id);
-        boolean exists = divisionRepository.existsByDivCode(divCode);
+        boolean exists = divisionRepository.existsByDivCodeAndIdNotOrDivNameAndIdNot(divCode, id, divName, id);
         if (!exists) {
             modelMapper.map(updateDivisionRequest, existingDivision);
             Division updatedDivision = divisionRepository.save(existingDivision);
             return mapToDivisionResponse(updatedDivision);
         }
-        throw new ResourceNotFoundException("Division Already Exist");
+        throw new ResourceFoundException("Division Already Exist");
     }
 
     @Override

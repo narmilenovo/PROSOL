@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface MaterialStrategicGroupService {
-    MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest);
+    MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest) throws ResourceFoundException;
 
     List<MaterialStrategicGroupResponse> getAllMsg();
 

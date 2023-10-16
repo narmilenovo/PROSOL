@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface SalesOrganizationService {
-    SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest);
+    SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest) throws ResourceFoundException;
 
     List<SalesOrganizationResponse> getAllSo();
 

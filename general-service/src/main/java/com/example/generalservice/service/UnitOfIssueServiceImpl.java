@@ -21,10 +21,17 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
     private final ModelMapper modelMapper;
 
     @Override
-    public UnitOfIssueResponse saveUOI(UnitOfIssueRequest unitOfIssueRequest) {
-        UnitOfIssue unitOfIssue = modelMapper.map(unitOfIssueRequest, UnitOfIssue.class);
-        UnitOfIssue savedUnitOfIssue = unitOfIssueRepository.save(unitOfIssue);
-        return mapToUnitOfIssueResponse(savedUnitOfIssue);
+    public UnitOfIssueResponse saveUOI(UnitOfIssueRequest unitOfIssueRequest) throws ResourceFoundException {
+        String uoiCode = unitOfIssueRequest.getUoiCode();
+        String uoiName = unitOfIssueRequest.getUoiName();
+        boolean exists = unitOfIssueRepository.existsByUoiCodeOrUoiName(uoiCode, uoiName);
+        if (!exists) {
+
+            UnitOfIssue unitOfIssue = modelMapper.map(unitOfIssueRequest, UnitOfIssue.class);
+            UnitOfIssue savedUnitOfIssue = unitOfIssueRepository.save(unitOfIssue);
+            return mapToUnitOfIssueResponse(savedUnitOfIssue);
+        }
+        throw new ResourceFoundException("Unit Of Issue is already exist");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
     @Override
     public UnitOfIssueResponse updateUOI(Long id, UnitOfIssueRequest updateUnitOfIssueRequest) throws ResourceNotFoundException, ResourceFoundException {
         String uoiCode = updateUnitOfIssueRequest.getUoiCode();
+        String uoiName = updateUnitOfIssueRequest.getUoiName();
         UnitOfIssue existingUnitOfIssue = this.findUOIById(id);
-        boolean exists = unitOfIssueRepository.existsByUoiCode(uoiCode);
+        boolean exists = unitOfIssueRepository.existsByUoiCodeAndIdNotOrUoiNameAndIdNot(uoiCode, id, uoiName, id);
         if (!exists) {
             modelMapper.map(updateUnitOfIssueRequest, existingUnitOfIssue);
             UnitOfIssue updatedUnitOfIssue = unitOfIssueRepository.save(existingUnitOfIssue);

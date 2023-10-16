@@ -21,10 +21,17 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
     private final ModelMapper modelMapper;
 
     @Override
-    public InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest) {
-        InspectionCode inspectionCode = modelMapper.map(inspectionCodeRequest, InspectionCode.class);
-        InspectionCode savedInCode = inspectionCodeRepository.save(inspectionCode);
-        return mapToCodeResponse(savedInCode);
+    public InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest) throws ResourceFoundException {
+        String inCode = inspectionCodeRequest.getInCodeCode();
+        String inName = inspectionCodeRequest.getInCodeName();
+        boolean exists = inspectionCodeRepository.existsByInCodeCodeOrInCodeName(inCode, inName);
+        if (!exists) {
+            InspectionCode inspectionCode = modelMapper.map(inspectionCodeRequest, InspectionCode.class);
+            InspectionCode savedInCode = inspectionCodeRepository.save(inspectionCode);
+            return mapToCodeResponse(savedInCode);
+        } else {
+            throw new ResourceFoundException("Inspection Code Already Exist");
+        }
     }
 
     @Override
@@ -48,8 +55,9 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
     @Override
     public InspectionCodeResponse updateInCode(Long id, InspectionCodeRequest updateInspectionCodeRequest) throws ResourceNotFoundException, ResourceFoundException {
         String inCodeCode = updateInspectionCodeRequest.getInCodeCode();
+        String inCodeName = updateInspectionCodeRequest.getInCodeName();
         InspectionCode existingInspectionCode = this.findInCodeById(id);
-        boolean exists = inspectionCodeRepository.existsByInCodeCode(inCodeCode);
+        boolean exists = inspectionCodeRepository.existsByInCodeCodeAndIdNotOrInCodeNameAndIdNot(inCodeCode, id, inCodeName, id);
         if (!exists) {
             modelMapper.map(updateInspectionCodeRequest, existingInspectionCode);
             InspectionCode updatedInspectionCode = inspectionCodeRepository.save(existingInspectionCode);

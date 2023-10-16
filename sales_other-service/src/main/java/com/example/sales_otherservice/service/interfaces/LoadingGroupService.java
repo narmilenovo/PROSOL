@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface LoadingGroupService {
-    LoadingGroupResponse saveLg(LoadingGroupRequest loadingGroupRequest);
+    LoadingGroupResponse saveLg(LoadingGroupRequest loadingGroupRequest) throws ResourceFoundException;
 
     List<LoadingGroupResponse> getAllLg();
 

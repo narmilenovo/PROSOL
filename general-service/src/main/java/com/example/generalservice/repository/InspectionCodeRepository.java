@@ -11,5 +11,7 @@ public interface InspectionCodeRepository extends JpaRepository<InspectionCode, 
 
     List<InspectionCode> findAllByInCodeStatusIsTrue();
 
-    boolean existsByInCodeCode(String inCode);
+    boolean existsByInCodeCodeOrInCodeName(String inCode, String inName);
+
+    boolean existsByInCodeCodeAndIdNotOrInCodeNameAndIdNot(String inCode, Long id1, String inName, Long Id2);
 }

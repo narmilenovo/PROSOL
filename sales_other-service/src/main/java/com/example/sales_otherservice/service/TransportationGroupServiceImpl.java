@@ -21,10 +21,17 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
     private final ModelMapper modelMapper;
 
     @Override
-    public TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest) {
-        TransportationGroup group = modelMapper.map(transportationGroupRequest, TransportationGroup.class);
-        TransportationGroup savedGroup = transportationGroupRepository.save(group);
-        return mapToTransportationGroupResponse(savedGroup);
+    public TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest) throws ResourceFoundException {
+        String tgCode = transportationGroupRequest.getTgCode();
+        String tgName = transportationGroupRequest.getTgName();
+        boolean exists = transportationGroupRepository.existsByTgCodeOrTgName(tgCode, tgName);
+        if (!exists) {
+
+            TransportationGroup group = modelMapper.map(transportationGroupRequest, TransportationGroup.class);
+            TransportationGroup savedGroup = transportationGroupRepository.save(group);
+            return mapToTransportationGroupResponse(savedGroup);
+        }
+        throw new ResourceFoundException("Transportation Group Already Exists");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
     @Override
     public TransportationGroupResponse updateTg(Long id, TransportationGroupRequest updateTransportationGroupRequest) throws ResourceNotFoundException, ResourceFoundException {
         String tgCode = updateTransportationGroupRequest.getTgCode();
+        String tgName = updateTransportationGroupRequest.getTgName();
         TransportationGroup existingTransportationGroup = this.findTgById(id);
-        boolean exists = transportationGroupRepository.existsByTgCode(tgCode);
+        boolean exists = transportationGroupRepository.existsByTgCodeAndIdNotOrTgNameAndIdNot(tgCode, id, tgName, id);
         if (!exists) {
             modelMapper.map(updateTransportationGroupRequest, existingTransportationGroup);
             TransportationGroup updatedGroup = transportationGroupRepository.save(existingTransportationGroup);

@@ -10,5 +10,7 @@ import java.util.List;
 public interface TransportationGroupRepository extends JpaRepository<TransportationGroup, Long> {
     List<TransportationGroup> findAllByTgStatusIsTrue();
 
-    boolean existsByTgCode(String tgCode);
+    boolean existsByTgCodeOrTgName(String tgCode, String tgName);
+
+    boolean existsByTgCodeAndIdNotOrTgNameAndIdNot(String tgCode, Long id1, String tgName, Long id2);
 }

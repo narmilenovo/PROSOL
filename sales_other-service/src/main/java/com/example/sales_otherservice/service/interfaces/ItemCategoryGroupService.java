@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface ItemCategoryGroupService {
-    ItemCategoryGroupResponse saveIcg(ItemCategoryGroupRequest itemCategoryGroupRequest);
+    ItemCategoryGroupResponse saveIcg(ItemCategoryGroupRequest itemCategoryGroupRequest) throws ResourceFoundException;
 
     List<ItemCategoryGroupResponse> getAllIcg();
 

@@ -21,10 +21,17 @@ public class TaxClassificationClassServiceImpl implements TaxClassificationClass
     private final ModelMapper modelMapper;
 
     @Override
-    public TaxClassificationClassResponse saveTcc(TaxClassificationClassRequest taxClassificationClassRequest) {
-        TaxClassificationClass classificationClass = modelMapper.map(taxClassificationClassRequest, TaxClassificationClass.class);
-        TaxClassificationClass savedClassificationClass = taxClassificationClassRepository.save(classificationClass);
-        return mapToTaxClassificationClassResponse(savedClassificationClass);
+    public TaxClassificationClassResponse saveTcc(TaxClassificationClassRequest taxClassificationClassRequest) throws ResourceFoundException {
+        String tccCode = taxClassificationClassRequest.getTccCode();
+        String tccName = taxClassificationClassRequest.getTccName();
+        boolean exists = taxClassificationClassRepository.existsByTccCodeOrTccName(tccCode, tccName);
+        if (!exists) {
+
+            TaxClassificationClass classificationClass = modelMapper.map(taxClassificationClassRequest, TaxClassificationClass.class);
+            TaxClassificationClass savedClassificationClass = taxClassificationClassRepository.save(classificationClass);
+            return mapToTaxClassificationClassResponse(savedClassificationClass);
+        }
+        throw new ResourceFoundException("Tax classification Already exists");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class TaxClassificationClassServiceImpl implements TaxClassificationClass
     @Override
     public TaxClassificationClassResponse updateTcc(Long id, TaxClassificationClassRequest updateTaxClassificationClassRequest) throws ResourceNotFoundException, ResourceFoundException {
         String tccCode = updateTaxClassificationClassRequest.getTccCode();
+        String tccName = updateTaxClassificationClassRequest.getTccName();
         TaxClassificationClass existingClassificationClass = this.findTccById(id);
-        boolean exists = taxClassificationClassRepository.existsByTccCode(tccCode);
+        boolean exists = taxClassificationClassRepository.existsByTccCodeAndIdNotOrTccNameAndIdNot(tccCode, id, tccName, id);
         if (!exists) {
             modelMapper.map(updateTaxClassificationClassRequest, existingClassificationClass);
             TaxClassificationClass updatedClassificationClass = taxClassificationClassRepository.save(existingClassificationClass);

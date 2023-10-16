@@ -20,7 +20,7 @@ public class SalesOrganizationController {
     private final SalesOrganizationService salesOrganizationService;
 
     @PostMapping("/saveSo")
-    public ResponseEntity<Object> saveSo(@Valid @RequestBody SalesOrganizationRequest salesOrganizationRequest) {
+    public ResponseEntity<Object> saveSo(@Valid @RequestBody SalesOrganizationRequest salesOrganizationRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveSo").toUriString());
         SalesOrganizationResponse saveSo = salesOrganizationService.saveSo(salesOrganizationRequest);
         return ResponseEntity.created(uri).body(saveSo);

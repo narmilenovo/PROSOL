@@ -20,7 +20,7 @@ public class OrderUnitController {
     private final OrderUnitService orderUnitService;
 
     @PostMapping("/saveOu")
-    public ResponseEntity<Object> saveOu(@Valid @RequestBody OrderUnitRequest orderUnitRequest) {
+    public ResponseEntity<Object> saveOu(@Valid @RequestBody OrderUnitRequest orderUnitRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveOu").toUriString());
         OrderUnitResponse saveOu = orderUnitService.saveOu(orderUnitRequest);
         return ResponseEntity.created(uri).body(saveOu);

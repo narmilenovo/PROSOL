@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface TransportationGroupService {
-    TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest);
+    TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest) throws ResourceFoundException;
 
     List<TransportationGroupResponse> getAllTg();
 

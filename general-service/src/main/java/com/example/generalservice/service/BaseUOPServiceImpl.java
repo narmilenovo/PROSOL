@@ -3,6 +3,7 @@ package com.example.generalservice.service;
 import com.example.generalservice.dto.request.BaseUOPRequest;
 import com.example.generalservice.dto.response.BaseUOPResponse;
 import com.example.generalservice.entity.BaseUOP;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.BaseUOPRepository;
 import com.example.generalservice.service.interfaces.BaseUOPService;
@@ -20,10 +21,17 @@ public class BaseUOPServiceImpl implements BaseUOPService {
     private final ModelMapper modelMapper;
 
     @Override
-    public BaseUOPResponse saveUop(BaseUOPRequest baseUOPRequest) {
-        BaseUOP baseUOP = modelMapper.map(baseUOPRequest, BaseUOP.class);
-        BaseUOP savedUop = baseUOPRepository.save(baseUOP);
-        return mapToBaseUOPResponse(savedUop);
+    public BaseUOPResponse saveUop(BaseUOPRequest baseUOPRequest) throws ResourceFoundException {
+        String uopCode = baseUOPRequest.getUopCode();
+        String uopName = baseUOPRequest.getUopName();
+        boolean exists = baseUOPRepository.existsByUopCodeOrUopName(uopCode, uopName);
+        if (!exists) {
+
+            BaseUOP baseUOP = modelMapper.map(baseUOPRequest, BaseUOP.class);
+            BaseUOP savedUop = baseUOPRepository.save(baseUOP);
+            return mapToBaseUOPResponse(savedUop);
+        }
+        throw new ResourceFoundException("Uop Already Exists");
     }
 
     @Override
@@ -45,16 +53,17 @@ public class BaseUOPServiceImpl implements BaseUOPService {
     }
 
     @Override
-    public BaseUOPResponse updateUop(Long id, BaseUOPRequest updateBaseUOPRequest) throws ResourceNotFoundException {
+    public BaseUOPResponse updateUop(Long id, BaseUOPRequest updateBaseUOPRequest) throws ResourceNotFoundException, ResourceFoundException {
         String uopCode = updateBaseUOPRequest.getUopCode();
+        String uopName = updateBaseUOPRequest.getUopName();
         BaseUOP existingBaseUOP = this.findUopById(id);
-        boolean exists = baseUOPRepository.existsByUopCode(uopCode);
+        boolean exists = baseUOPRepository.existsByUopCodeAndIdNotOrUopNameAndIdNot(uopCode, id, uopName, id);
         if (!exists) {
             modelMapper.map(updateBaseUOPRequest, existingBaseUOP);
             BaseUOP updatedBaseUOP = baseUOPRepository.save(existingBaseUOP);
             return mapToBaseUOPResponse(updatedBaseUOP);
         }
-        throw new ResourceNotFoundException("Uop Already Exist");
+        throw new ResourceFoundException("Uop Already Exist");
     }
 
     @Override

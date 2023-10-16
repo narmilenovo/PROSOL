@@ -11,5 +11,7 @@ public interface SalesUnitRepository extends JpaRepository<SalesUnit, Long> {
 
     List<SalesUnit> findAllBySalesStatusIsTrue();
 
-    boolean existsBySalesCode(String salesCode);
+    boolean existsBySalesCodeOrSalesName(String salesCode, String salesName);
+
+    boolean existsBySalesCodeAndIdNotOrSalesNameAndIdNot(String salesCode, Long id1, String salesName, Long id2);
 }

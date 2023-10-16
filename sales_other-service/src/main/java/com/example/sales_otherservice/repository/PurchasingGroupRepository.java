@@ -11,5 +11,7 @@ public interface PurchasingGroupRepository extends JpaRepository<PurchasingGroup
 
     List<PurchasingGroup> findAllByPgStatusIsTrue();
 
-    boolean existsByPgCode(String pgCode);
+    boolean existsByPgCodeOrPgName(String pgCode, String pgName);
+
+    boolean existsByPgCodeAndIdNotOrPgNameAndIdNot(String pgCode, Long id1, String pgName, Long id2);
 }

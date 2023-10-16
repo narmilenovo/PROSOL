@@ -20,7 +20,7 @@ public class PurchasingGroupController {
     private final PurchasingGroupService purchasingGroupService;
 
     @PostMapping("/savePg")
-    public ResponseEntity<Object> savePg(@Valid @RequestBody PurchasingGroupRequest purchasingGroupRequest) {
+    public ResponseEntity<Object> savePg(@Valid @RequestBody PurchasingGroupRequest purchasingGroupRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/savePg").toUriString());
         PurchasingGroupResponse savePg = purchasingGroupService.savePg(purchasingGroupRequest);
         return ResponseEntity.created(uri).body(savePg);

@@ -3,6 +3,7 @@ package com.example.generalservice.service;
 import com.example.generalservice.dto.request.AlternateUOMRequest;
 import com.example.generalservice.dto.response.AlternateUOMResponse;
 import com.example.generalservice.entity.AlternateUOM;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.AlternateUOMRepository;
 import com.example.generalservice.service.interfaces.AlternateUOMService;
@@ -20,10 +21,17 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
     private final ModelMapper modelMapper;
 
     @Override
-    public AlternateUOMResponse saveUom(AlternateUOMRequest alternateUOMRequest) {
-        AlternateUOM alternateUOM = modelMapper.map(alternateUOMRequest, AlternateUOM.class);
-        AlternateUOM savedUom = alternateUOMRepository.save(alternateUOM);
-        return mapToAlternateUOMResponse(savedUom);
+    public AlternateUOMResponse saveUom(AlternateUOMRequest alternateUOMRequest) throws ResourceFoundException {
+        String uomCode = alternateUOMRequest.getUomCode();
+        String uomName = alternateUOMRequest.getUomName();
+        boolean exists = alternateUOMRepository.existsByUomCodeOrUomName(uomCode, uomName);
+        if (!exists) {
+            AlternateUOM alternateUOM = modelMapper.map(alternateUOMRequest, AlternateUOM.class);
+            AlternateUOM savedUom = alternateUOMRepository.save(alternateUOM);
+            return mapToAlternateUOMResponse(savedUom);
+
+        }
+        throw new ResourceFoundException("Uom Already Exist");
     }
 
     @Override
@@ -45,16 +53,17 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
     }
 
     @Override
-    public AlternateUOMResponse updateUom(Long id, AlternateUOMRequest updateAlternateUOMRequest) throws ResourceNotFoundException {
+    public AlternateUOMResponse updateUom(Long id, AlternateUOMRequest updateAlternateUOMRequest) throws ResourceNotFoundException, ResourceFoundException {
         String uomCode = updateAlternateUOMRequest.getUomCode();
+        String uomName = updateAlternateUOMRequest.getUomName();
         AlternateUOM existingUom = this.findUomById(id);
-        boolean exists = alternateUOMRepository.existsByUomCode(uomCode);
+        boolean exists = alternateUOMRepository.existsByUomCodeAndIdNotOrUomNameAndIdNot(uomCode, id, uomName, id);
         if (!exists) {
             modelMapper.map(updateAlternateUOMRequest, existingUom);
             AlternateUOM updatedUom = alternateUOMRepository.save(existingUom);
             return mapToAlternateUOMResponse(updatedUom);
         }
-        throw new ResourceNotFoundException("Uom Already Exist");
+        throw new ResourceFoundException("Uom Already Exist");
     }
 
     @Override

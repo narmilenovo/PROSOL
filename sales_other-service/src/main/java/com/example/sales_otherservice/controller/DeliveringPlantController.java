@@ -20,7 +20,7 @@ public class DeliveringPlantController {
     private final DeliveringPlantService deliveringPlantService;
 
     @PostMapping("/saveDp")
-    public ResponseEntity<Object> saveDp(@Valid @RequestBody DeliveringPlantRequest deliveringPlantRequest) {
+    public ResponseEntity<Object> saveDp(@Valid @RequestBody DeliveringPlantRequest deliveringPlantRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDp").toUriString());
         DeliveringPlantResponse saveDp = deliveringPlantService.saveDp(deliveringPlantRequest);
         return ResponseEntity.created(uri).body(saveDp);

@@ -2,9 +2,9 @@ package com.example.generalservice.controller;
 
 import com.example.generalservice.dto.request.AlternateUOMRequest;
 import com.example.generalservice.dto.response.AlternateUOMResponse;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.service.interfaces.AlternateUOMService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +22,14 @@ public class AlternateUOMController {
 
 
     @PostMapping("/saveUom")
-    public ResponseEntity<Object> saveUom(@Valid @RequestBody AlternateUOMRequest alternateUOMRequest) {
+    public ResponseEntity<Object> saveUom(@Valid @RequestBody AlternateUOMRequest alternateUOMRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveUom").toUriString());
         AlternateUOMResponse alternateUOMResponse = alternateUOMService.saveUom(alternateUOMRequest);
         return ResponseEntity.created(uri).body(alternateUOMResponse);
     }
 
     @GetMapping("/getAllUom")
-    public ResponseEntity<Object> getAllUom(HttpServletRequest request) {
+    public ResponseEntity<Object> getAllUom() {
         List<AlternateUOMResponse> allUom = alternateUOMService.getAllUom();
         return ResponseEntity.ok(allUom);
     }
@@ -48,7 +48,7 @@ public class AlternateUOMController {
     }
 
     @PutMapping("/updateUom/{id}")
-    public ResponseEntity<Object> updateUom(@PathVariable Long id, @Valid @RequestBody AlternateUOMRequest updateAlternateUOMRequest) throws ResourceNotFoundException {
+    public ResponseEntity<Object> updateUom(@PathVariable Long id, @Valid @RequestBody AlternateUOMRequest updateAlternateUOMRequest) throws ResourceNotFoundException, ResourceFoundException {
         AlternateUOMResponse uomResponse = alternateUOMService.updateUom(id, updateAlternateUOMRequest);
         return ResponseEntity.ok(uomResponse);
     }

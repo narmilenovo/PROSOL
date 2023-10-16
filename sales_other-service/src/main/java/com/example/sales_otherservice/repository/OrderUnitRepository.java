@@ -11,5 +11,7 @@ public interface OrderUnitRepository extends JpaRepository<OrderUnit, Long> {
 
     List<OrderUnit> findAllByOuStatusIsTrue();
 
-    boolean existsByOuCode(String ouCode);
+    boolean existsByOuCodeOrOuName(String ouCode, String ouName);
+
+    boolean existsByOuCodeAndIdNotOrOuNameAndIdNot(String ouCode, Long id1, String ouName, Long id2);
 }

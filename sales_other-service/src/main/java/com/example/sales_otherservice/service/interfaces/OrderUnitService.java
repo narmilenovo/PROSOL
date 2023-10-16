@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface OrderUnitService {
-    OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest);
+    OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest) throws ResourceFoundException;
 
     List<OrderUnitResponse> getAllOu();
 

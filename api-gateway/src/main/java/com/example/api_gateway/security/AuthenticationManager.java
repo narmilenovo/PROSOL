@@ -24,13 +24,11 @@ public class AuthenticationManager implements ReactiveAuthenticationManager {
     public Mono<Authentication> authenticate(Authentication authentication) {
         String authToken = authentication.getCredentials().toString();
         String email = jwtUtil.extractUsername(authToken);
-        log.info("Email--------------- {}", email);
         return Mono.just(jwtUtil.validateToken(authToken))
                 .filter(valid -> valid)
                 .switchIfEmpty(Mono.empty())
                 .map(valid -> {
                     List<String> authorities = jwtUtil.extractAuthorities(authToken);
-                    log.info("Auth    --------------- {}", authorities);
                     return new UsernamePasswordAuthenticationToken(
                             email,
                             null,

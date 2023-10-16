@@ -3,6 +3,7 @@ package com.example.sales_otherservice.service;
 import com.example.sales_otherservice.dto.request.PurchasingValueKeyRequest;
 import com.example.sales_otherservice.dto.response.PurchasingValueKeyResponse;
 import com.example.sales_otherservice.entity.PurchasingValueKey;
+import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.PurchasingValueKeyRepository;
 import com.example.sales_otherservice.service.interfaces.PurchasingValueKeyService;
@@ -20,10 +21,17 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
     private final ModelMapper modelMapper;
 
     @Override
-    public PurchasingValueKeyResponse savePvk(PurchasingValueKeyRequest purchasingValueKeyRequest) {
-        PurchasingValueKey valueKey = modelMapper.map(purchasingValueKeyRequest, PurchasingValueKey.class);
-        PurchasingValueKey savedValueKey = purchasingValueKeyRepository.save(valueKey);
-        return mapToPurchasingValueKeyResponse(savedValueKey);
+    public PurchasingValueKeyResponse savePvk(PurchasingValueKeyRequest purchasingValueKeyRequest) throws ResourceFoundException {
+        String pvkCode = purchasingValueKeyRequest.getPvkCode();
+        String pvkName = purchasingValueKeyRequest.getPvkName();
+        boolean exists = purchasingValueKeyRepository.existsByPvkCodeOrPvkName(pvkCode, pvkName);
+        if (!exists) {
+
+            PurchasingValueKey valueKey = modelMapper.map(purchasingValueKeyRequest, PurchasingValueKey.class);
+            PurchasingValueKey savedValueKey = purchasingValueKeyRepository.save(valueKey);
+            return mapToPurchasingValueKeyResponse(savedValueKey);
+        }
+        throw new ResourceFoundException("Purchasing Value Key Already exist");
     }
 
     @Override
@@ -45,16 +53,17 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
     }
 
     @Override
-    public PurchasingValueKeyResponse updatePvk(Long id, PurchasingValueKeyRequest updatePurchasingValueKeyRequest) throws ResourceNotFoundException {
+    public PurchasingValueKeyResponse updatePvk(Long id, PurchasingValueKeyRequest updatePurchasingValueKeyRequest) throws ResourceNotFoundException, ResourceFoundException {
         String pvkCode = updatePurchasingValueKeyRequest.getPvkCode();
+        String pvkName = updatePurchasingValueKeyRequest.getPvkName();
         PurchasingValueKey existingValueKey = this.findPvkById(id);
-        boolean exists = purchasingValueKeyRepository.existsByPvkCode(pvkCode);
+        boolean exists = purchasingValueKeyRepository.existsByPvkCodeAndIdNotOrPvkNameAndIdNot(pvkCode, id, pvkName, id);
         if (!exists) {
             modelMapper.map(updatePurchasingValueKeyRequest, existingValueKey);
             PurchasingValueKey updatedValueKey = purchasingValueKeyRepository.save(existingValueKey);
             return mapToPurchasingValueKeyResponse(updatedValueKey);
         }
-        throw new ResourceNotFoundException("Purchasing Value Key Already exist");
+        throw new ResourceFoundException("Purchasing Value Key Already exist");
     }
 
     @Override

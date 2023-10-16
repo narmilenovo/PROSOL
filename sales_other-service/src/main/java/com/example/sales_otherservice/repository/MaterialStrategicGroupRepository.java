@@ -11,5 +11,7 @@ public interface MaterialStrategicGroupRepository extends JpaRepository<Material
 
     List<MaterialStrategicGroup> findAllByMsStatusIsTrue();
 
-    boolean existsByMsCode(String msCode);
+    boolean existsByMsCodeOrMsName(String msCode, String msName);
+
+    boolean existsByMsCodeAndIdNotOrMsNameAndIdNot(String msCode, Long id1, String msName, Long id2);
 }

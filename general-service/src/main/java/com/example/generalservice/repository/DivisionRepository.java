@@ -11,5 +11,7 @@ public interface DivisionRepository extends JpaRepository<Division, Long> {
 
     List<Division> findAllByDivStatusIsTrue();
 
-    boolean existsByDivCode(String divCode);
+    boolean existsByDivCodeOrDivName(String divCode, String divName);
+
+    boolean existsByDivCodeAndIdNotOrDivNameAndIdNot(String divCode, Long id1, String divName, Long id2);
 }

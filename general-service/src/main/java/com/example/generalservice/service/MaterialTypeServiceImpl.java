@@ -3,6 +3,7 @@ package com.example.generalservice.service;
 import com.example.generalservice.dto.request.MaterialTypeRequest;
 import com.example.generalservice.dto.response.MaterialTypeResponse;
 import com.example.generalservice.entity.MaterialType;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.MaterialTypeRepository;
 import com.example.generalservice.service.interfaces.MaterialTypeService;
@@ -20,10 +21,17 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
     private final ModelMapper modelMapper;
 
     @Override
-    public MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest) {
-        MaterialType materialType = modelMapper.map(alternateUOMRequest, MaterialType.class);
-        MaterialType savedType = materialTypeRepository.save(materialType);
-        return mapToMaterialTypeResponse(savedType);
+    public MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest) throws ResourceFoundException {
+        String materialCode = alternateUOMRequest.getMaterialCode();
+        String materialName = alternateUOMRequest.getMaterialName();
+        boolean exists = materialTypeRepository.existsByMaterialCodeOrMaterialName(materialCode, materialName);
+        if (!exists) {
+
+            MaterialType materialType = modelMapper.map(alternateUOMRequest, MaterialType.class);
+            MaterialType savedType = materialTypeRepository.save(materialType);
+            return mapToMaterialTypeResponse(savedType);
+        }
+        throw new ResourceFoundException("Division Already Exist");
     }
 
     @Override
@@ -45,16 +53,17 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
     }
 
     @Override
-    public MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest) throws ResourceNotFoundException {
+    public MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest) throws ResourceFoundException, ResourceNotFoundException {
         String materialCode = updateMaterialTypeRequest.getMaterialCode();
+        String materialName = updateMaterialTypeRequest.getMaterialName();
         MaterialType existingMaterialType = this.findMaterialById(id);
-        boolean exists = materialTypeRepository.existsByMaterialCode(materialCode);
+        boolean exists = materialTypeRepository.existsByMaterialCodeAndIdNotOrMaterialNameAndIdNot(materialCode, id, materialName, id);
         if (!exists) {
             modelMapper.map(updateMaterialTypeRequest, existingMaterialType);
             MaterialType updatedMaterialType = materialTypeRepository.save(existingMaterialType);
             return mapToMaterialTypeResponse(updatedMaterialType);
         }
-        throw new ResourceNotFoundException("Material Already Exist");
+        throw new ResourceFoundException("Material Already Exist");
     }
 
     @Override

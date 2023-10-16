@@ -20,7 +20,7 @@ public class DistributionChannelController {
     private final DistributionChannelService distributionChannelService;
 
     @PostMapping("/saveDc")
-    public ResponseEntity<Object> saveDc(@Valid @RequestBody DistributionChannelRequest deliveringPlantRequest) {
+    public ResponseEntity<Object> saveDc(@Valid @RequestBody DistributionChannelRequest deliveringPlantRequest) throws ResourceFoundException, ResourceNotFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDc").toUriString());
         DistributionChannelResponse saveDc = distributionChannelService.saveDc(deliveringPlantRequest);
         return ResponseEntity.created(uri).body(saveDc);

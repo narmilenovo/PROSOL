@@ -34,6 +34,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ResourceFoundException.class)
+    public ResponseEntity<Object> resourceFoundException(ResourceFoundException ex) {
+        BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
+
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(FileNotFoundException.class)
     public ResponseEntity<Object> fileNotFoundException(FileNotFoundException ex) {
         BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));

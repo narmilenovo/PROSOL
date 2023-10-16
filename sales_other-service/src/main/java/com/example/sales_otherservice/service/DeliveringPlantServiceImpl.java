@@ -21,10 +21,17 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     private final ModelMapper modelMapper;
 
     @Override
-    public DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest) {
-        DeliveringPlant deliveringPlant = modelMapper.map(deliveringPlantRequest, DeliveringPlant.class);
-        DeliveringPlant savedPlant = deliveringPlantRepository.save(deliveringPlant);
-        return mapToDeliveringPlantResponse(savedPlant);
+    public DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest) throws ResourceFoundException {
+        String dpCode = deliveringPlantRequest.getDpCode();
+        String dpName = deliveringPlantRequest.getDpName();
+        boolean exists = deliveringPlantRepository.existsByDpCodeOrDpName(dpCode, dpName);
+        if (!exists) {
+
+            DeliveringPlant deliveringPlant = modelMapper.map(deliveringPlantRequest, DeliveringPlant.class);
+            DeliveringPlant savedPlant = deliveringPlantRepository.save(deliveringPlant);
+            return mapToDeliveringPlantResponse(savedPlant);
+        }
+        throw new ResourceFoundException("Delivering Plant already exist");
     }
 
     @Override
@@ -47,9 +54,10 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 
     @Override
     public DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest) throws ResourceNotFoundException, ResourceFoundException {
-        DeliveringPlant existingDeliveringPlant = this.findDpById(id);
         String dpCode = updateDeliveringPlantRequest.getDpCode();
-        boolean exist = deliveringPlantRepository.existsByDpCode(dpCode);
+        String dpName = updateDeliveringPlantRequest.getDpName();
+        DeliveringPlant existingDeliveringPlant = this.findDpById(id);
+        boolean exist = deliveringPlantRepository.existsByDpCodeAndIdNotOrDpNameAndIdNot(dpCode, id, dpName, id);
         if (!exist) {
             modelMapper.map(updateDeliveringPlantRequest, existingDeliveringPlant);
             DeliveringPlant updatedDeliveringPlant = deliveringPlantRepository.save(existingDeliveringPlant);

@@ -20,7 +20,7 @@ public class InspectionCodeController {
     private final InspectionCodeService inspectionCodeService;
 
     @PostMapping("/saveInCode")
-    public ResponseEntity<Object> saveInCode(@Valid @RequestBody InspectionCodeRequest inspectionCodeRequest) {
+    public ResponseEntity<Object> saveInCode(@Valid @RequestBody InspectionCodeRequest inspectionCodeRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveInCode").toUriString());
         InspectionCodeResponse inCode = inspectionCodeService.saveInCode(inspectionCodeRequest);
         return ResponseEntity.created(uri).body(inCode);

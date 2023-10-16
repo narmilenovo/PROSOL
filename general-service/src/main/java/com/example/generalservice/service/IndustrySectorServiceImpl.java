@@ -3,6 +3,7 @@ package com.example.generalservice.service;
 import com.example.generalservice.dto.request.IndustrySectorRequest;
 import com.example.generalservice.dto.response.IndustrySectorResponse;
 import com.example.generalservice.entity.IndustrySector;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.IndustrySectorRepository;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
@@ -20,10 +21,17 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
     private final ModelMapper modelMapper;
 
     @Override
-    public IndustrySectorResponse saveSector(IndustrySectorRequest industrySectorRequest) {
-        IndustrySector industrySector = modelMapper.map(industrySectorRequest, IndustrySector.class);
-        IndustrySector savedSector = sectorRepository.save(industrySector);
-        return mapToIndustrySectorResponse(savedSector);
+    public IndustrySectorResponse saveSector(IndustrySectorRequest industrySectorRequest) throws ResourceFoundException {
+        String sectorCode = industrySectorRequest.getSectorCode();
+        String sectorName = industrySectorRequest.getSectorName();
+        boolean exists = sectorRepository.existsBySectorCodeOrSectorName(sectorCode, sectorName);
+        if (!exists) {
+
+            IndustrySector industrySector = modelMapper.map(industrySectorRequest, IndustrySector.class);
+            IndustrySector savedSector = sectorRepository.save(industrySector);
+            return mapToIndustrySectorResponse(savedSector);
+        }
+        throw new ResourceFoundException("Industry Sector Already Exist");
     }
 
     @Override
@@ -46,16 +54,17 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
     }
 
     @Override
-    public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateindustrysectorrequest) throws ResourceNotFoundException {
+    public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateindustrysectorrequest) throws ResourceNotFoundException, ResourceFoundException {
         String sectorCode = updateindustrysectorrequest.getSectorCode();
+        String sectorName = updateindustrysectorrequest.getSectorName();
         IndustrySector existingIndustrySector = this.findSectorById(id);
-        boolean exists = sectorRepository.existsBySectorCode(sectorCode);
+        boolean exists = sectorRepository.existsBySectorCodeAndIdNotOrSectorNameAndIdNot(sectorCode, id, sectorName, id);
         if (!exists) {
             modelMapper.map(updateindustrysectorrequest, existingIndustrySector);
             IndustrySector updatedIndustrySector = sectorRepository.save(existingIndustrySector);
             return mapToIndustrySectorResponse(updatedIndustrySector);
         }
-        throw new ResourceNotFoundException("Sector Already Exist");
+        throw new ResourceFoundException("Industry Sector Already Exist");
     }
 
     @Override

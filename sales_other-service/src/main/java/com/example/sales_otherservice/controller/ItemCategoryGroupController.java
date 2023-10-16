@@ -20,7 +20,7 @@ public class ItemCategoryGroupController {
     private final ItemCategoryGroupService itemCategoryGroupService;
 
     @PostMapping("/saveIcg")
-    public ResponseEntity<Object> saveIcg(@Valid @RequestBody ItemCategoryGroupRequest itemCategoryGroupRequest) {
+    public ResponseEntity<Object> saveIcg(@Valid @RequestBody ItemCategoryGroupRequest itemCategoryGroupRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveIcg").toUriString());
         ItemCategoryGroupResponse saveIcg = itemCategoryGroupService.saveIcg(itemCategoryGroupRequest);
         return ResponseEntity.created(uri).body(saveIcg);

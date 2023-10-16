@@ -11,5 +11,7 @@ public interface AlternateUOMRepository extends JpaRepository<AlternateUOM, Long
 
     List<AlternateUOM> findAllByUomStatusIsTrue();
 
-    boolean existsByUomCode(String uomCode);
+    boolean existsByUomCodeOrUomName(String uomCode, String uomName);
+
+    boolean existsByUomCodeAndIdNotOrUomNameAndIdNot(String uomCode, Long id1, String uomName, Long id2);
 }

@@ -11,5 +11,7 @@ public interface TaxClassificationClassRepository extends JpaRepository<TaxClass
 
     List<TaxClassificationClass> findAllByTccStatusIsTrue();
 
-    boolean existsByTccCode(String tccCode);
+    boolean existsByTccCodeOrTccName(String tccCode, String tccName);
+
+    boolean existsByTccCodeAndIdNotOrTccNameAndIdNot(String tccCode, Long id1, String tccName, Long id2);
 }

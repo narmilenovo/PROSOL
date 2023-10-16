@@ -21,10 +21,17 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
     private final ModelMapper modelMapper;
 
     @Override
-    public AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest) {
-        AccAssignment accAssignment = modelMapper.map(accAssignmentRequest, AccAssignment.class);
-        AccAssignment savedAssignment = accAssignmentRepository.save(accAssignment);
-        return mapToAccAssignmentResponse(savedAssignment);
+    public AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest) throws ResourceFoundException {
+        String accCode = accAssignmentRequest.getAccCode();
+        String accName = accAssignmentRequest.getAccName();
+        boolean exists = accAssignmentRepository.existsByAccCodeOrAccName(accCode, accName);
+        if (!exists) {
+
+            AccAssignment accAssignment = modelMapper.map(accAssignmentRequest, AccAssignment.class);
+            AccAssignment savedAssignment = accAssignmentRepository.save(accAssignment);
+            return mapToAccAssignmentResponse(savedAssignment);
+        }
+        throw new ResourceFoundException("Acc assignment already exist");
     }
 
     @Override
@@ -49,7 +56,8 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
     public AccAssignmentResponse updateAcc(Long id, AccAssignmentRequest updateAccAssignmentRequest) throws ResourceNotFoundException, ResourceFoundException {
         AccAssignment existingAssignment = this.findAccById(id);
         String accCode = updateAccAssignmentRequest.getAccCode();
-        boolean exists = accAssignmentRepository.existsByAccCode(accCode);
+        String accName = updateAccAssignmentRequest.getAccName();
+        boolean exists = accAssignmentRepository.existsByAccCodeAndIdNotOrAccNameAndIdNot(accCode, id, accName, id);
         if (!exists) {
             modelMapper.map(updateAccAssignmentRequest, existingAssignment);
             AccAssignment updatedAssignment = accAssignmentRepository.save(existingAssignment);

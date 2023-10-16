@@ -8,7 +8,7 @@ import com.example.generalservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface UnitOfIssueService {
-    UnitOfIssueResponse saveUOI(UnitOfIssueRequest unitOfIssueRequest);
+    UnitOfIssueResponse saveUOI(UnitOfIssueRequest unitOfIssueRequest) throws ResourceFoundException;
 
     List<UnitOfIssueResponse> getAllUOI();
 

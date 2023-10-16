@@ -16,7 +16,7 @@ public class DistributionChannel {
     private String dcCode;
     private String dcName;
     private Boolean dcStatus;
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "sales_organization_id")
     private SalesOrganization salesOrganization;
 }

@@ -551,3 +551,9 @@ fsales_other-service/src/main/java/com/example/sales_otherservice/dto/response/I
 Ssales_other-service/src/main/java/com/example/sales_otherservice/utils/Helpers.java,d\a\dad4259317cc3cd0ca0f65b80d0ce0e72683e77c
 —
 gsales_other-service/src/main/java/com/example/sales_otherservice/exceptions/GlobalExceptionHandler.java,e\6\e64c62329c1ecc4d74d2591be090c0e930721864
+|
+Lapi-gateway/src/main/java/com/example/api_gateway/config/SecurityConfig.java,2\9\299b72139b5bd51a589de911f0fc34037889a359
+…
+Uapi-gateway/src/main/java/com/example/api_gateway/security/AuthenticationManager.java,3\0\30fca86bea51fd4de1b1fc21f6a5a2ed3aaaca69
+‰
+Yapi-gateway/src/main/java/com/example/api_gateway/security/SecurityContextRepository.java,0\7\07608fc9e00b50dba81b3acfc5d54cd23a3b02ce

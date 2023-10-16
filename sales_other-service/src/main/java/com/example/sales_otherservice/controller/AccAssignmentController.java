@@ -20,7 +20,7 @@ public class AccAssignmentController {
     private final AccAssignmentService accAssignmentService;
 
     @PostMapping("/saveAcc")
-    public ResponseEntity<Object> saveAcc(@Valid @RequestBody AccAssignmentRequest accAssignmentRequest) {
+    public ResponseEntity<Object> saveAcc(@Valid @RequestBody AccAssignmentRequest accAssignmentRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveAcc").toUriString());
         AccAssignmentResponse accAssignmentResponse = accAssignmentService.saveAcc(accAssignmentRequest);
         return ResponseEntity.created(uri).body(accAssignmentResponse);

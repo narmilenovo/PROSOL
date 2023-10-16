@@ -20,7 +20,7 @@ public class PurchasingValueKeyController {
     private final PurchasingValueKeyService purchasingValueKeyService;
 
     @PostMapping("/savePvk")
-    public ResponseEntity<Object> savePvk(@Valid @RequestBody PurchasingValueKeyRequest purchasingValueKeyRequest) {
+    public ResponseEntity<Object> savePvk(@Valid @RequestBody PurchasingValueKeyRequest purchasingValueKeyRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/savePvk").toUriString());
         PurchasingValueKeyResponse savePvk = purchasingValueKeyService.savePvk(purchasingValueKeyRequest);
         return ResponseEntity.created(uri).body(savePvk);

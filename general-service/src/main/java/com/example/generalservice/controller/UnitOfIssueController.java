@@ -20,7 +20,7 @@ public class UnitOfIssueController {
     private final UnitOfIssueService unitOfIssueService;
 
     @PostMapping("/saveUOI")
-    public ResponseEntity<Object> saveUOI(@Valid @RequestBody UnitOfIssueRequest unitOfIssueRequest) {
+    public ResponseEntity<Object> saveUOI(@Valid @RequestBody UnitOfIssueRequest unitOfIssueRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveUOI").toUriString());
         UnitOfIssueResponse unitOfIssueResponse = unitOfIssueService.saveUOI(unitOfIssueRequest);
         return ResponseEntity.created(uri).body(unitOfIssueResponse);

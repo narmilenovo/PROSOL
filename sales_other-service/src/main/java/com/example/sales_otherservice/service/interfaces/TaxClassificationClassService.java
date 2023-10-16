@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface TaxClassificationClassService {
-    TaxClassificationClassResponse saveTcc(TaxClassificationClassRequest taxClassificationClassRequest);
+    TaxClassificationClassResponse saveTcc(TaxClassificationClassRequest taxClassificationClassRequest) throws ResourceFoundException;
 
     List<TaxClassificationClassResponse> getAllTcc();
 

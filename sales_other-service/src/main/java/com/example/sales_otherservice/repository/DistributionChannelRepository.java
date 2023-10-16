@@ -11,5 +11,7 @@ public interface DistributionChannelRepository extends JpaRepository<Distributio
 
     List<DistributionChannel> findAllByDcStatusIsTrue();
 
-    boolean existsByDcCode(String dcCode);
+    boolean existsByDcCodeOrDcName(String dcCode, String dcName);
+
+    boolean existsByDcCodeAndIdNotOrDcNameAndIdNot(String dcCode, Long id1, String dcName, Long id2);
 }

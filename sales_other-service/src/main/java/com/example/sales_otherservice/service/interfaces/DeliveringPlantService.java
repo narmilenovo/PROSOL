@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface DeliveringPlantService {
-    DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest);
+    DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest) throws ResourceFoundException;
 
     List<DeliveringPlantResponse> getAllDp();
 

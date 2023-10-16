@@ -21,10 +21,17 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
     private final ModelMapper modelMapper;
 
     @Override
-    public LoadingGroupResponse saveLg(LoadingGroupRequest loadingGroupRequest) {
-        LoadingGroup loadingGroup = modelMapper.map(loadingGroupRequest, LoadingGroup.class);
-        LoadingGroup savedGroup = loadingGroupRepository.save(loadingGroup);
-        return mapToLoadingGroupResponse(savedGroup);
+    public LoadingGroupResponse saveLg(LoadingGroupRequest loadingGroupRequest) throws ResourceFoundException {
+        String lgCode = loadingGroupRequest.getLgCode();
+        String lgName = loadingGroupRequest.getLgName();
+        boolean exists = loadingGroupRepository.existsByLgCodeOrLgName(lgCode, lgName);
+        if (!exists) {
+
+            LoadingGroup loadingGroup = modelMapper.map(loadingGroupRequest, LoadingGroup.class);
+            LoadingGroup savedGroup = loadingGroupRepository.save(loadingGroup);
+            return mapToLoadingGroupResponse(savedGroup);
+        }
+        throw new ResourceFoundException("Loading Group already Exists !!!");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
     @Override
     public LoadingGroupResponse updateLg(Long id, LoadingGroupRequest updateLoadingGroupRequest) throws ResourceNotFoundException, ResourceFoundException {
         String lgCode = updateLoadingGroupRequest.getLgCode();
+        String lgName = updateLoadingGroupRequest.getLgName();
         LoadingGroup existingLoadingGroup = this.findLgById(id);
-        boolean exists = loadingGroupRepository.existsByLgCode(lgCode);
+        boolean exists = loadingGroupRepository.existsByLgCodeAndIdNotOrLgNameAndIdNot(lgCode, id, lgName, id);
         if (!exists) {
             modelMapper.map(updateLoadingGroupRequest, existingLoadingGroup);
             LoadingGroup updatedLoadingGroup = loadingGroupRepository.save(existingLoadingGroup);

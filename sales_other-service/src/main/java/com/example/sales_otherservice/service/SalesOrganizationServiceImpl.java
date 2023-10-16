@@ -21,10 +21,17 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
     private final ModelMapper modelMapper;
 
     @Override
-    public SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest) {
-        SalesOrganization salesOrganization = modelMapper.map(salesOrganizationRequest, SalesOrganization.class);
-        SalesOrganization savedSalesOrganization = salesOrganizationRepository.save(salesOrganization);
-        return mapToSalesOrganizationResponse(savedSalesOrganization);
+    public SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest) throws ResourceFoundException {
+        String soCode = salesOrganizationRequest.getSoCode();
+        String soName = salesOrganizationRequest.getSoName();
+        boolean exists = salesOrganizationRepository.existsBySoCodeOrSoName(soCode, soName);
+        if (!exists) {
+
+            SalesOrganization salesOrganization = modelMapper.map(salesOrganizationRequest, SalesOrganization.class);
+            SalesOrganization savedSalesOrganization = salesOrganizationRepository.save(salesOrganization);
+            return mapToSalesOrganizationResponse(savedSalesOrganization);
+        }
+        throw new ResourceFoundException("Sales Organization Already exists");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
     @Override
     public SalesOrganizationResponse updateSo(Long id, SalesOrganizationRequest updateSalesOrganizationRequest) throws ResourceNotFoundException, ResourceFoundException {
         String soCode = updateSalesOrganizationRequest.getSoCode();
+        String soName = updateSalesOrganizationRequest.getSoName();
         SalesOrganization existingSalesOrganization = this.findSoById(id);
-        boolean exists = salesOrganizationRepository.existsBySoCode(soCode);
+        boolean exists = salesOrganizationRepository.existsBySoCodeAndIdNotOrSoNameAndIdNot(soCode, id, soName, id);
         if (!exists) {
             modelMapper.map(updateSalesOrganizationRequest, existingSalesOrganization);
             SalesOrganization updatedSalesOrganization = salesOrganizationRepository.save(existingSalesOrganization);

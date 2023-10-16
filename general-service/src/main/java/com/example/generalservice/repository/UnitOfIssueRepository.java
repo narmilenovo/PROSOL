@@ -11,5 +11,7 @@ public interface UnitOfIssueRepository extends JpaRepository<UnitOfIssue, Long> 
 
     List<UnitOfIssue> findAllByUoiStatusIsTrue();
 
-    boolean existsByUoiCode(String uoiCode);
+    boolean existsByUoiCodeOrUoiName(String uoiCode, String uoiName);
+
+    boolean existsByUoiCodeAndIdNotOrUoiNameAndIdNot(String uoiCode, Long id1, String uoiName, Long id2);
 }

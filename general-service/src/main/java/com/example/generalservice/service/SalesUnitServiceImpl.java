@@ -21,10 +21,17 @@ public class SalesUnitServiceImpl implements SalesUnitService {
     private final ModelMapper modelMapper;
 
     @Override
-    public SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest) {
-        SalesUnit salesUnit = modelMapper.map(salesUnitRequest, SalesUnit.class);
-        SalesUnit savedSalesUnit = salesUnitRepository.save(salesUnit);
-        return mapToSalesUnitResponse(savedSalesUnit);
+    public SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest) throws ResourceFoundException {
+        String salesCode = salesUnitRequest.getSalesCode();
+        String salesName = salesUnitRequest.getSalesName();
+        boolean exists = salesUnitRepository.existsBySalesCodeOrSalesName(salesCode, salesName);
+        if (!exists) {
+
+            SalesUnit salesUnit = modelMapper.map(salesUnitRequest, SalesUnit.class);
+            SalesUnit savedSalesUnit = salesUnitRepository.save(salesUnit);
+            return mapToSalesUnitResponse(savedSalesUnit);
+        }
+        throw new ResourceFoundException("Sales Unit already exists");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class SalesUnitServiceImpl implements SalesUnitService {
     @Override
     public SalesUnitResponse updateSalesUnit(Long id, SalesUnitRequest updateSalesUnitRequest) throws ResourceNotFoundException, ResourceFoundException {
         String salesCode = updateSalesUnitRequest.getSalesCode();
+        String salesName = updateSalesUnitRequest.getSalesName();
         SalesUnit existingSalesUnit = this.findSalesUnitById(id);
-        boolean exists = salesUnitRepository.existsBySalesCode(salesCode);
+        boolean exists = salesUnitRepository.existsBySalesCodeAndIdNotOrSalesNameAndIdNot(salesCode, id, salesName, id);
         if (!exists) {
             modelMapper.map(updateSalesUnitRequest, existingSalesUnit);
             SalesUnit updatedSalesUnit = salesUnitRepository.save(existingSalesUnit);

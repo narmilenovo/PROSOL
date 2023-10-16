@@ -20,7 +20,7 @@ public class TaxClassificationClassController {
     private final TaxClassificationClassService taxClassificationClassService;
 
     @PostMapping("/saveTcc")
-    public ResponseEntity<Object> saveTcc(@Valid @RequestBody TaxClassificationClassRequest taxClassificationClassRequest) {
+    public ResponseEntity<Object> saveTcc(@Valid @RequestBody TaxClassificationClassRequest taxClassificationClassRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveTcc").toUriString());
         TaxClassificationClassResponse saveTcc = taxClassificationClassService.saveTcc(taxClassificationClassRequest);
         return ResponseEntity.created(uri).body(saveTcc);

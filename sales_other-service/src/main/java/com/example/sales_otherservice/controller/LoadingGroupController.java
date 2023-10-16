@@ -20,7 +20,7 @@ public class LoadingGroupController {
     private final LoadingGroupService loadingGroupService;
 
     @PostMapping("/saveLg")
-    public ResponseEntity<Object> saveLg(@Valid @RequestBody LoadingGroupRequest loadingGroupRequest) {
+    public ResponseEntity<Object> saveLg(@Valid @RequestBody LoadingGroupRequest loadingGroupRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveLg").toUriString());
         LoadingGroupResponse saveLg = loadingGroupService.saveLg(loadingGroupRequest);
         return ResponseEntity.created(uri).body(saveLg);

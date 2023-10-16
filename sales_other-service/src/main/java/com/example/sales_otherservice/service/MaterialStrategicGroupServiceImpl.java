@@ -21,10 +21,17 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
     private final ModelMapper modelMapper;
 
     @Override
-    public MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest) {
-        MaterialStrategicGroup strategicGroup = modelMapper.map(materialStrategicGroupRequest, MaterialStrategicGroup.class);
-        MaterialStrategicGroup savedMaterialStrategicGroup = materialStrategicGroupRepository.save(strategicGroup);
-        return mapToStrategicGroupResponse(savedMaterialStrategicGroup);
+    public MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest) throws ResourceFoundException {
+        String msCode = materialStrategicGroupRequest.getMsCode();
+        String msName = materialStrategicGroupRequest.getMsName();
+        boolean exists = materialStrategicGroupRepository.existsByMsCodeOrMsName(msCode, msName);
+        if (!exists) {
+
+            MaterialStrategicGroup strategicGroup = modelMapper.map(materialStrategicGroupRequest, MaterialStrategicGroup.class);
+            MaterialStrategicGroup savedMaterialStrategicGroup = materialStrategicGroupRepository.save(strategicGroup);
+            return mapToStrategicGroupResponse(savedMaterialStrategicGroup);
+        }
+        throw new ResourceFoundException("Material Strategic Already exists");
     }
 
     @Override
@@ -48,8 +55,9 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
     @Override
     public MaterialStrategicGroupResponse updateMsg(Long id, MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest) throws ResourceNotFoundException, ResourceFoundException {
         String msgCode = updateMaterialStrategicGroupRequest.getMsCode();
+        String msgName = updateMaterialStrategicGroupRequest.getMsName();
         MaterialStrategicGroup existingStrategicGroup = this.findMsgById(id);
-        boolean exists = materialStrategicGroupRepository.existsByMsCode(msgCode);
+        boolean exists = materialStrategicGroupRepository.existsByMsCodeAndIdNotOrMsNameAndIdNot(msgCode, id, msgName, id);
         if (!exists) {
             modelMapper.map(updateMaterialStrategicGroupRequest, existingStrategicGroup);
             MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository.save(existingStrategicGroup);

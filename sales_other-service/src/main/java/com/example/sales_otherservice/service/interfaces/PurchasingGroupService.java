@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface PurchasingGroupService {
-    PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest);
+    PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest) throws ResourceFoundException;
 
     List<PurchasingGroupResponse> getAllPg();
 

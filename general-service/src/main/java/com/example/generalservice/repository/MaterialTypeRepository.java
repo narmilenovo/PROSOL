@@ -11,5 +11,7 @@ public interface MaterialTypeRepository extends JpaRepository<MaterialType, Long
 
     List<MaterialType> findAllByMaterialStatusIsTrue();
 
-    boolean existsByMaterialCode(String materialCode);
+    boolean existsByMaterialCodeOrMaterialName(String materialCode, String materialName);
+
+    boolean existsByMaterialCodeAndIdNotOrMaterialNameAndIdNot(String materialCode, Long id1, String materialName, Long id2);
 }

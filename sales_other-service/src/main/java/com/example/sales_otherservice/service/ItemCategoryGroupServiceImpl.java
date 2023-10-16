@@ -21,10 +21,17 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
     private final ModelMapper modelMapper;
 
     @Override
-    public ItemCategoryGroupResponse saveIcg(ItemCategoryGroupRequest itemCategoryGroupRequest) {
-        ItemCategoryGroup categoryGroup = modelMapper.map(itemCategoryGroupRequest, ItemCategoryGroup.class);
-        ItemCategoryGroup savedGroup = itemCategoryGroupRepository.save(categoryGroup);
-        return mapToItemCategoryGroupResponse(savedGroup);
+    public ItemCategoryGroupResponse saveIcg(ItemCategoryGroupRequest itemCategoryGroupRequest) throws ResourceFoundException {
+        String icgCode = itemCategoryGroupRequest.getIcgCode();
+        String icgName = itemCategoryGroupRequest.getIcgName();
+        boolean exists = itemCategoryGroupRepository.existsByIcgCodeOrIcgName(icgCode, icgName);
+        if (!exists) {
+
+            ItemCategoryGroup categoryGroup = modelMapper.map(itemCategoryGroupRequest, ItemCategoryGroup.class);
+            ItemCategoryGroup savedGroup = itemCategoryGroupRepository.save(categoryGroup);
+            return mapToItemCategoryGroupResponse(savedGroup);
+        }
+        throw new ResourceFoundException("Item Category Group Already Exist");
     }
 
     @Override
@@ -47,9 +54,10 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 
     @Override
     public ItemCategoryGroupResponse updateIcg(Long id, ItemCategoryGroupRequest updateItemCategoryGroupRequest) throws ResourceNotFoundException, ResourceFoundException {
-        ItemCategoryGroup existingCategoryGroup = this.findIcgById(id);
         String icgCode = updateItemCategoryGroupRequest.getIcgCode();
-        boolean exists = itemCategoryGroupRepository.existsByIcgCode(icgCode);
+        String icgName = updateItemCategoryGroupRequest.getIcgName();
+        ItemCategoryGroup existingCategoryGroup = this.findIcgById(id);
+        boolean exists = itemCategoryGroupRepository.existsByIcgCodeAndIdNotOrIcgNameAndIdNot(icgCode, id, icgName, id);
         if (!exists) {
             modelMapper.map(updateItemCategoryGroupRequest, existingCategoryGroup);
             ItemCategoryGroup updatedGroup = itemCategoryGroupRepository.save(existingCategoryGroup);

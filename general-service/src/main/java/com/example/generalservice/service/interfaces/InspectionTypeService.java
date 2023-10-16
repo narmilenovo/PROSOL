@@ -8,7 +8,7 @@ import com.example.generalservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface InspectionTypeService {
-    InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest);
+    InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest) throws ResourceFoundException;
 
     List<InspectionTypeResponse> getAllInType();
 

@@ -11,5 +11,7 @@ public interface IndustrySectorRepository extends JpaRepository<IndustrySector, 
 
     List<IndustrySector> findAllBySectorStatusIsTrue();
 
-    boolean existsBySectorCode(String sectorCode);
+    boolean existsBySectorCodeOrSectorName(String sectorCode, String sectorName);
+
+    boolean existsBySectorCodeAndIdNotOrSectorNameAndIdNot(String sectorCode, Long id1, String sectorName, Long id2);
 }

@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface AccAssignmentService {
-    AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest);
+    AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest) throws ResourceFoundException;
 
     List<AccAssignmentResponse> getAllAcc();
 

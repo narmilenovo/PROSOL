@@ -11,5 +11,8 @@ public interface PurchasingValueKeyRepository extends JpaRepository<PurchasingVa
 
     List<PurchasingValueKey> findAllByPvkStatusIsTrue();
 
-    boolean existsByPvkCode(String pvkCode);
+    boolean existsByPvkCodeOrPvkName(String pvkCode, String pvkName);
+
+    boolean existsByPvkCodeAndIdNotOrPvkNameAndIdNot(String pvkCode, Long id1, String pvkName, Long id2);
+
 }

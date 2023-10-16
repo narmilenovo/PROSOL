@@ -11,5 +11,7 @@ public interface ItemCategoryGroupRepository extends JpaRepository<ItemCategoryG
 
     List<ItemCategoryGroup> findAllByIcgStatusIsTrue();
 
-    boolean existsByIcgCode(String icgCode);
+    boolean existsByIcgCodeOrIcgName(String icgCode, String icgName);
+
+    boolean existsByIcgCodeAndIdNotOrIcgNameAndIdNot(String icgCode, Long id1, String icgName, Long id2);
 }

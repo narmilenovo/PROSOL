@@ -10,5 +10,7 @@ import java.util.List;
 public interface BaseUOPRepository extends JpaRepository<BaseUOP, Long> {
     List<BaseUOP> findAllByUopStatusIsTrue();
 
-    boolean existsByUopCode(String uopCode);
+    boolean existsByUopCodeOrUopName(String uopCode, String uopName);
+
+    boolean existsByUopCodeAndIdNotOrUopNameAndIdNot(String uopCode, Long id1, String uopName, Long id2);
 }

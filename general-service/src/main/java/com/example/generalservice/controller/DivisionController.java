@@ -2,6 +2,7 @@ package com.example.generalservice.controller;
 
 import com.example.generalservice.dto.request.DivisionRequest;
 import com.example.generalservice.dto.response.DivisionResponse;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.service.interfaces.DivisionService;
 import jakarta.validation.Valid;
@@ -20,7 +21,7 @@ public class DivisionController {
     private final DivisionService divisionService;
 
     @PostMapping("/saveDivision")
-    public ResponseEntity<Object> saveDivision(@Valid @RequestBody DivisionRequest divisionRequest) {
+    public ResponseEntity<Object> saveDivision(@Valid @RequestBody DivisionRequest divisionRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDivision").toUriString());
         DivisionResponse divisionResponse = divisionService.saveDivision(divisionRequest);
         return ResponseEntity.created(uri).body(divisionResponse);
@@ -46,7 +47,7 @@ public class DivisionController {
     }
 
     @PutMapping("/updateDivision/{id}")
-    public ResponseEntity<Object> updateDivision(@PathVariable Long id, @Valid @RequestBody DivisionRequest updateDivisionRequest) throws ResourceNotFoundException {
+    public ResponseEntity<Object> updateDivision(@PathVariable Long id, @Valid @RequestBody DivisionRequest updateDivisionRequest) throws ResourceNotFoundException, ResourceFoundException {
         DivisionResponse divisionResponse = divisionService.updateDivision(id, updateDivisionRequest);
         return ResponseEntity.ok(divisionResponse);
     }

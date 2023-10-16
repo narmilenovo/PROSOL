@@ -21,10 +21,17 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
     private final ModelMapper modelMapper;
 
     @Override
-    public PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest) {
-        PurchasingGroup purchasingGroup = modelMapper.map(purchasingGroupRequest, PurchasingGroup.class);
-        PurchasingGroup savedPurchasingGroup = purchasingGroupRepository.save(purchasingGroup);
-        return mapToPurchasingGroupResponse(savedPurchasingGroup);
+    public PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest) throws ResourceFoundException {
+        String pgCode = purchasingGroupRequest.getPgCode();
+        String pgName = purchasingGroupRequest.getPgName();
+        boolean exists = purchasingGroupRepository.existsByPgCodeOrPgName(pgCode, pgName);
+        if (!exists) {
+
+            PurchasingGroup purchasingGroup = modelMapper.map(purchasingGroupRequest, PurchasingGroup.class);
+            PurchasingGroup savedPurchasingGroup = purchasingGroupRepository.save(purchasingGroup);
+            return mapToPurchasingGroupResponse(savedPurchasingGroup);
+        }
+        throw new ResourceFoundException("Purchasing Group Already exist");
     }
 
     @Override
@@ -49,8 +56,9 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
     @Override
     public PurchasingGroupResponse updatePg(Long id, PurchasingGroupRequest updatePurchasingGroupRequest) throws ResourceNotFoundException, ResourceFoundException {
         String pgCode = updatePurchasingGroupRequest.getPgCode();
+        String pgName = updatePurchasingGroupRequest.getPgName();
         PurchasingGroup existingPurchasingGroup = this.findPgById(id);
-        boolean exists = purchasingGroupRepository.existsByPgCode(pgCode);
+        boolean exists = purchasingGroupRepository.existsByPgCodeAndIdNotOrPgNameAndIdNot(pgCode, id, pgName, id);
         if (!exists) {
             modelMapper.map(updatePurchasingGroupRequest, existingPurchasingGroup);
             PurchasingGroup updatedPurchasingGroup = purchasingGroupRepository.save(existingPurchasingGroup);

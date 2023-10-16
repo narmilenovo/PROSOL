@@ -2,12 +2,13 @@ package com.example.generalservice.service.interfaces;
 
 import com.example.generalservice.dto.request.MaterialTypeRequest;
 import com.example.generalservice.dto.response.MaterialTypeResponse;
+import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 
 import java.util.List;
 
 public interface MaterialTypeService {
-    MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest);
+    MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest) throws ResourceFoundException;
 
     List<MaterialTypeResponse> getAllMaterial();
 
@@ -15,7 +16,7 @@ public interface MaterialTypeService {
 
     List<MaterialTypeResponse> findAllStatusTrue();
 
-    MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest) throws ResourceNotFoundException;
+    MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest) throws ResourceNotFoundException, ResourceFoundException;
 
     void deleteMaterialId(Long id) throws ResourceNotFoundException;
 }

@@ -8,7 +8,7 @@ import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import java.util.List;
 
 public interface DistributionChannelService {
-    DistributionChannelResponse saveDc(DistributionChannelRequest deliveringPlantRequest);
+    DistributionChannelResponse saveDc(DistributionChannelRequest deliveringPlantRequest) throws ResourceFoundException, ResourceNotFoundException;
 
     List<DistributionChannelResponse> getAllDc();
 

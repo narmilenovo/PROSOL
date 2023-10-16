@@ -21,10 +21,18 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
     private final ModelMapper modelMapper;
 
     @Override
-    public InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest) {
-        InspectionType inspectionType = modelMapper.map(inspectionTypeRequest, InspectionType.class);
-        InspectionType savedInspectionType = inspectionTypeRepository.save(inspectionType);
-        return mapToInspectionTypeResponse(savedInspectionType);
+    public InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest) throws ResourceFoundException {
+        String inTypeCode = inspectionTypeRequest.getInTypeCode();
+        String inTypeName = inspectionTypeRequest.getInTypeName();
+        boolean exists = inspectionTypeRepository.existsByInTypeCodeOrInTypeName(inTypeCode, inTypeName);
+        if (!exists) {
+
+            InspectionType inspectionType = modelMapper.map(inspectionTypeRequest, InspectionType.class);
+            InspectionType savedInspectionType = inspectionTypeRepository.save(inspectionType);
+            return mapToInspectionTypeResponse(savedInspectionType);
+        }
+        throw new ResourceFoundException("Inspection type Already exist");
+
     }
 
     @Override
@@ -48,8 +56,9 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
     @Override
     public InspectionTypeResponse updateInType(Long id, InspectionTypeRequest updateInspectionTypeRequest) throws ResourceNotFoundException, ResourceFoundException {
         String inTypeCode = updateInspectionTypeRequest.getInTypeCode();
+        String inTypeName = updateInspectionTypeRequest.getInTypeName();
         InspectionType existingInspectionType = this.findInTypeById(id);
-        boolean exists = inspectionTypeRepository.existsByInTypeCode(inTypeCode);
+        boolean exists = inspectionTypeRepository.existsByInTypeCodeAndIdNotOrInTypeNameAndIdNot(inTypeCode, id, inTypeName, id);
         if (!exists) {
             modelMapper.map(updateInspectionTypeRequest, existingInspectionType);
             InspectionType updatedInspectionType = inspectionTypeRepository.save(existingInspectionType);

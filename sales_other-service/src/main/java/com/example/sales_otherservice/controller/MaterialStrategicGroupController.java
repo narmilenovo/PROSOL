@@ -20,7 +20,7 @@ public class MaterialStrategicGroupController {
     private final MaterialStrategicGroupService materialStrategicGroupService;
 
     @PostMapping("/saveMsg")
-    public ResponseEntity<Object> saveMsg(@Valid @RequestBody MaterialStrategicGroupRequest materialStrategicGroupRequest) {
+    public ResponseEntity<Object> saveMsg(@Valid @RequestBody MaterialStrategicGroupRequest materialStrategicGroupRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveMsg").toUriString());
         MaterialStrategicGroupResponse saveMsg = materialStrategicGroupService.saveMsg(materialStrategicGroupRequest);
         return ResponseEntity.created(uri).body(saveMsg);
