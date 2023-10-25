@@ -57,10 +57,9 @@ public class JwtService {
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-
+    
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
-        claims.get(AUTHORITIES_KEY);
         return claimsResolver.apply(claims);
     }
 

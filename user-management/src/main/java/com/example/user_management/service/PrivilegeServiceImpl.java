@@ -10,13 +10,16 @@ import com.example.user_management.service.interfaces.PrivilegeService;
 import com.example.user_management.utils.Helpers;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import static com.example.user_management.utils.Constants.*;
+import static com.example.user_management.utils.Constants.NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE;
+import static com.example.user_management.utils.Constants.PRIVILEGE_FOUND_WITH_NAME_MESSAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 
 
     @Override
+    @Cacheable("privileges")
     public PrivilegeResponse getPrivilegeById(Long id) throws ResourceNotFoundException {
         Privilege privilege = this.findPrivilegeById(id);
         return mapToPrivilegeResponse(privilege);
@@ -46,9 +50,13 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 
 
     @Override
+    @Cacheable("privileges")
     public List<PrivilegeResponse> getAllPrivileges() {
         List<Privilege> privileges = privilegeRepository.findAll();
-        return privileges.stream().map(this::mapToPrivilegeResponse).toList();
+        return privileges.stream()
+                .sorted(Comparator.comparing(Privilege::getId))
+                .map(this::mapToPrivilegeResponse)
+                .toList();
     }
 
     @Override
@@ -56,7 +64,7 @@ public class PrivilegeServiceImpl implements PrivilegeService {
     public PrivilegeResponse updatePrivilege(Long id, PrivilegeRequest updatePrivilegeRequest) throws ResourceNotFoundException, ResourceFoundException {
         String privilegeName = Helpers.capitalize(updatePrivilegeRequest.getName());
         Privilege existingPrivilege = this.findPrivilegeById(id);
-        boolean exists = privilegeRepository.existsByName(privilegeName);
+        boolean exists = privilegeRepository.existsByNameAndIdNot(privilegeName, id);
         if (!exists) {
             modelMapper.map(updatePrivilegeRequest, existingPrivilege);
             existingPrivilege.setName(privilegeName);
@@ -77,6 +85,7 @@ public class PrivilegeServiceImpl implements PrivilegeService {
         return modelMapper.map(privilege, PrivilegeResponse.class);
     }
 
+
     private Privilege findPrivilegeById(Long id) throws ResourceNotFoundException {
         Optional<Privilege> privilege = privilegeRepository.findById(id);
         if (privilege.isEmpty()) {
@@ -84,16 +93,6 @@ public class PrivilegeServiceImpl implements PrivilegeService {
         }
         return privilege.get();
     }
-
-    public Privilege findPrivilegeByName(String name) throws ResourceNotFoundException {
-        Optional<Privilege> privilege = privilegeRepository.findByName(name);
-        if (privilege.isEmpty()) {
-            throw new ResourceNotFoundException(NO_PRIVILEGE_FOUND_WITH_NAME_MESSAGE);
-        }
-        return privilege.get();
-    }
-
-
 }
 
 

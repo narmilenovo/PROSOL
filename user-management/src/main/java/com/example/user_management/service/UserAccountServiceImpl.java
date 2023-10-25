@@ -8,12 +8,10 @@ import com.example.user_management.repository.UserAccountRepository;
 import com.example.user_management.service.interfaces.UserAccountService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static com.example.user_management.utils.Constants.INVALID_TOKEN_MESSAGE;
 import static com.example.user_management.utils.Constants.RESOURCE_NOT_FOUND_MESSAGE;
@@ -45,9 +43,13 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
+    @Cacheable("userAccount")
     public List<UserAccountRequest> findAll() {
         List<UserAccount> userAccounts = userAccountRepository.findAll();
-        return userAccounts.stream().map(this::mapToUserAccountRequest).toList();
+        return userAccounts.stream()
+                .sorted(Comparator.comparing(UserAccount::getId))
+                .map(this::mapToUserAccountRequest)
+                .toList();
     }
 
     @Override
@@ -67,6 +69,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
+    @Cacheable("userAccount")
     public UserAccountRequest findById(Long id) throws ResourceNotFoundException {
         Optional<UserAccount> userAccount = userAccountRepository.findById(id);
 
@@ -78,6 +81,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
+    @Cacheable("userAccount")
     public List<UserAccountRequest> findExpiredTokens(long currentTimestamp) {
         List<UserAccount> userAccount = userAccountRepository.findExpiredTokens(currentTimestamp);
         return userAccount.stream().map(this::mapToUserAccountRequest).toList();

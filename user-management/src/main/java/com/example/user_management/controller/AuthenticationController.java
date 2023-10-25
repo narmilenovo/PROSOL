@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,7 +40,6 @@ import static com.example.user_management.utils.Constants.*;
 
 @Tag(name = SWG_AUTH_TAG_NAME, description = SWG_AUTH_TAG_DESCRIPTION)
 @RestController
-@SecurityRequirement(name = BEARER_AUTH)
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RequiredArgsConstructor
 @Slf4j
@@ -195,8 +193,6 @@ public class AuthenticationController {
     public ResponseEntity<Object> currentUser() throws ResourceNotFoundException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
-//        Object principal = authentication.getPrincipal();
-//        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         return ResponseEntity.ok(userService.findByEmail(email));
     }
 

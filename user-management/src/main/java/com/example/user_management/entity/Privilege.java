@@ -14,7 +14,7 @@ import java.util.Set;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = "roles")
 @Table(name = "privileges")
-public class Privilege extends BaseEntity<String> {
+public class Privilege extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

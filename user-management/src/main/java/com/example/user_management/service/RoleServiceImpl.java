@@ -13,14 +13,13 @@ import com.example.user_management.service.interfaces.RoleService;
 import com.example.user_management.utils.Helpers;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
-import static com.example.user_management.utils.Constants.*;
+import static com.example.user_management.utils.Constants.NO_ROLE_FOUND_WITH_ID_MESSAGE;
+import static com.example.user_management.utils.Constants.ROLE_FOUND_WITH_NAME_MESSAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -44,12 +43,17 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Cacheable("roles")
     public List<RoleResponse> getAllRoles() {
         List<Role> list = roleRepository.findAll();
-        return list.stream().map(this::mapToRoleResponse).toList();
+        return list.stream()
+                .sorted(Comparator.comparing(Role::getId))
+                .map(this::mapToRoleResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("roles")
     public RoleResponse getRoleById(Long id) throws ResourceNotFoundException {
         Role role = this.findRoleById(id);
         return mapToRoleResponse(role);
@@ -59,7 +63,7 @@ public class RoleServiceImpl implements RoleService {
     public RoleResponse updateRole(Long id, RoleRequest updateRoleRequest) throws ResourceNotFoundException, ResourceFoundException {
         String roleName = Helpers.capitalize(updateRoleRequest.getName());
         Role existingRole = this.findRoleById(id);
-        boolean exists = roleRepository.existsByName(roleName);
+        boolean exists = roleRepository.existsByNameAndIdNot(roleName, id);
         if (!exists) {
             modelMapper.map(updateRoleRequest, existingRole);
             existingRole.setName(roleName);
@@ -102,16 +106,19 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Cacheable("roles")
     public List<RoleResponse> findAllStatusTrue() {
         List<Role> roles = roleRepository.findAllByStatusIsTrue();
-        return roles.stream().map(this::mapToRoleResponse).toList();
+        return roles.stream()
+                .sorted(Comparator.comparing(Role::getId))
+                .map(this::mapToRoleResponse)
+                .toList();
     }
 
-
-    public Set<Privilege> setToString(String[] privileges) {
+    public Set<Privilege> setToString(Long[] privileges) {
         Set<Privilege> rolesPrivileges = new HashSet<>();
-        for (String privilegeName : privileges) {
-            Optional<Privilege> fetchedPrivilege = privilegeRepository.findByName(Helpers.capitalize(privilegeName));
+        for (Long privilegeId : privileges) {
+            Optional<Privilege> fetchedPrivilege = privilegeRepository.findById(privilegeId);
             fetchedPrivilege.ifPresent(rolesPrivileges::add);
         }
         return rolesPrivileges;
@@ -131,17 +138,6 @@ public class RoleServiceImpl implements RoleService {
         return role.get();
     }
 
-    private Role findRoleByName(String name) throws ResourceNotFoundException {
-        Optional<Role> role = roleRepository.findByName(name);
-
-        if (role.isEmpty()) {
-            throw new ResourceNotFoundException(NO_ROLE_FOUND_WITH_NAME_MESSAGE);
-        }
-
-        return role.get();
-    }
-
-
     @Override
     public RoleResponse removePrivilegesFromRole(Long roleId, RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
         return modifyPrivileges(roleId, rolePrivilegeRequest, "remove");
@@ -156,8 +152,8 @@ public class RoleServiceImpl implements RoleService {
     private RoleResponse modifyPrivileges(Long roleId, RolePrivilegeRequest rolePrivilegeRequest, String operation) throws ResourceNotFoundException {
         Role role = this.findRoleById(roleId);
         Set<Privilege> existingPrivileges = role.getPrivileges();
-        for (String privilegeName : rolePrivilegeRequest.getPrivileges()) {
-            Optional<Privilege> privilege = privilegeRepository.findByName(Helpers.capitalize(privilegeName));
+        for (Long privilegeId : rolePrivilegeRequest.getPrivileges()) {
+            Optional<Privilege> privilege = privilegeRepository.findById(privilegeId);
             privilege.ifPresent(p -> {
                 if (operation.equals("remove")) {
                     existingPrivileges.remove(p);

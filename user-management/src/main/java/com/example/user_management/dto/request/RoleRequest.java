@@ -24,5 +24,5 @@ public class RoleRequest {
     private Boolean status = true;
 
     @Schema(description = "Set Privileges to Role")
-    private String[] privileges;
+    private Long[] privileges;
 }

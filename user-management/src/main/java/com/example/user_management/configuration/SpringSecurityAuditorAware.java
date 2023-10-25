@@ -21,7 +21,6 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof CustomUserDetails customuserdetails) {
-//            return Optional.ofNullable(customuserdetails.getFullName());
             return Optional.ofNullable(customuserdetails.getUsername());
         } else {
             // Handle the case where the principal is not a CustomUserDetails

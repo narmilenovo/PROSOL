@@ -29,7 +29,7 @@ public interface RoleService {
 
     List<RoleResponse> findAllStatusTrue();
 
-    Set<Privilege> setToString(String[] privileges);
+    Set<Privilege> setToString(Long[] privileges);
 
     RoleResponse removePrivilegesFromRole(Long id, RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException;
 

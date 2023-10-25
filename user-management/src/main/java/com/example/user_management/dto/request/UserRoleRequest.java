@@ -13,5 +13,5 @@ import lombok.NoArgsConstructor;
 public class UserRoleRequest {
     @Schema(description = "Array of role to add or remove")
     @NotEmpty(message = "The field must have at least one item")
-    private String[] roles;
+    private Long[] roles;
 }

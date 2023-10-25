@@ -37,7 +37,7 @@ public interface UserService {
 
     UserResponse findByEmail(String email) throws ResourceNotFoundException;
 
-    Set<Role> setToString(String[] roles);
+    Set<Role> setToString(Long[] roles);
 
     UserResponse addRolesToUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
 

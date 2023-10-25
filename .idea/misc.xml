@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="MavenProjectsManager">
@@ -9,13 +10,16 @@
         <option value="$PROJECT_DIR$/general-service/pom.xml" />
         <option value="$PROJECT_DIR$/salesothers-service/pom.xml" />
         <option value="$PROJECT_DIR$/sales_other-service/pom.xml" />
+        <option value="$PROJECT_DIR$/plant-service/pom.xml" />
+        <option value="$PROJECT_DIR$/vendor_master-service/pom.xml" />
+        <option value="$PROJECT_DIR$/MRPData/pom.xml" />
+        <option value="$PROJECT_DIR$/authserver/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/api_gateway/pom.xml" />
         <option value="$PROJECT_DIR$/department/pom.xml" />
-        <option value="$PROJECT_DIR$/plant-service/pom.xml" />
         <option value="$PROJECT_DIR$/salesothers-service/pom.xml" />
         <option value="$PROJECT_DIR$/user_service/pom.xml" />
       </set>

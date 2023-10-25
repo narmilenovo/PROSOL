@@ -1,10 +1,8 @@
 package com.example.user_management.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.MappedSuperclass;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -14,25 +12,23 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.Date;
 
 @MappedSuperclass
-@Data
+@Getter
+@Setter
 @EntityListeners(AuditingEntityListener.class)
-public abstract class BaseEntity<U> {
+public abstract class BaseEntity {
     @CreatedBy
     @Column(updatable = false)
-    protected U createdBy;
+    protected String createdBy;
 
     @LastModifiedBy
-    protected U updatedBy;
+    protected String updatedBy;
 
     @CreatedDate
-//    @Temporal(TIMESTAMP)
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd MM yyyy hh:mm a")
     @Column(updatable = false)
+    @Temporal(TemporalType.TIMESTAMP) // insert both time and date.
     protected Date createdAt;
 
-
     @LastModifiedDate
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd MM yyyy hh:mm a")
-//    @Temporal(TIMESTAMP)
+    @Temporal(TemporalType.TIMESTAMP) // insert both time and date.
     protected Date updatedAt;
 }

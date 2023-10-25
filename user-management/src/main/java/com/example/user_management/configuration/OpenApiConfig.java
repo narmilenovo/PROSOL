@@ -1,5 +1,6 @@
 package com.example.user_management.configuration;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -11,25 +12,27 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+import static com.example.user_management.utils.Constants.BEARER_AUTH;
+
+@OpenAPIDefinition
 @Configuration
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI customOpenApi(
-            @Value("${springdoc.title}") String serviceTitle,
-            @Value("${springdoc.version}") String serviceVersion) {
-        final String securitySchemeName = "bearerAuth";
+    public OpenAPI customOpenAPI(
+            @Value("${springdoc.service.title}") String serviceTitle,
+            @Value("${springdoc.service.version}") String serviceVersion) {
+        final String securitySchemeName = BEARER_AUTH;
         return new OpenAPI()
-                .components(new Components()
-                        .addSecuritySchemes(
-                                securitySchemeName,
-                                new SecurityScheme()
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")))
+                .components(
+                        new Components()
+                                .addSecuritySchemes(
+                                        securitySchemeName,
+                                        new SecurityScheme()
+                                                .type(SecurityScheme.Type.HTTP)
+                                                .scheme("bearer")
+                                                .bearerFormat("JWT")))
                 .security(List.of(new SecurityRequirement().addList(securitySchemeName)))
-                .info(new Info().title(serviceTitle).version(serviceVersion)
-                );
+                .info(new Info().title(serviceTitle).version(serviceVersion));
     }
-
 }

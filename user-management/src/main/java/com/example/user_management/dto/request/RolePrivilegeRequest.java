@@ -13,5 +13,5 @@ import lombok.NoArgsConstructor;
 public class RolePrivilegeRequest {
     @Schema(description = "Array of privileges to give or remove to a role")
     @NotEmpty(message = "The field must have at least one item")
-    private String[] privileges;
+    private Long[] privileges;
 }

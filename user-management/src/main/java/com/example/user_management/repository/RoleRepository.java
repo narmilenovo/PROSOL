@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository(value = "com.example.user_management.repository.RoleRepository")
 public interface RoleRepository extends JpaRepository<Role, Long> {
@@ -13,6 +12,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     boolean existsByName(String roleName);
 
+    boolean existsByNameAndIdNot(String roleName, Long id);
 
-    Optional<Role> findByName(String name);
 }

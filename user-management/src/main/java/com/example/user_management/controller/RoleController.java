@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ import static com.example.user_management.utils.Constants.*;
 
 @Tag(name = SWG_ROLE_TAG_NAME, description = SWG_ROLE_TAG_DESCRIPTION)
 @RestController
-@SecurityRequirement(name = BEARER_AUTH)
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RequiredArgsConstructor
 public class RoleController {
@@ -105,13 +103,7 @@ public class RoleController {
         List<RoleResponse> responseList = roleService.findAllStatusTrue();
         return ResponseEntity.ok(responseList);
     }
-
-/*    @GetMapping("/getAllRoleUserEmail")
-    public ResponseEntity<Object> getAllRoleUserEmail() {
-        List<RoleUserDto> roleUserDtos = roleService.getAllRoleUserEmail();
-        return ResponseEntity.ok(roleUserDtos);
-    }*/
-
+    
     @Operation(summary = SWG_ROLE_UPDATE_OPERATION, responses = {
             @ApiResponse(responseCode = "200", description = SWG_ROLE_UPDATE_MESSAGE, content = {
                     @Content(schema = @Schema(implementation = RoleResponse.class))

@@ -26,5 +26,5 @@ public class UpdateUserRequest {
 
     private Boolean status = true;
 
-    private String[] roles;
+    private Long[] roles;
 }

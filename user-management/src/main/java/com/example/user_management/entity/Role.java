@@ -14,14 +14,13 @@ import java.util.Set;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = "users")
 @Table(name = "roles")
-public class Role extends BaseEntity<String> {
+public class Role extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
     private String description;
     private String plantName;
-    //    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean status;
 
 

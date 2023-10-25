@@ -12,9 +12,9 @@ import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
-import com.example.user_management.utils.Helpers;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -59,18 +59,22 @@ public class UserServiceImpl implements UserService {
                 userList.add(user);
             }
         }
-        userRepository.saveAll(userList);
-        return userList.stream().map(this::mapToUserResponse).toList();
+        List<User> savedList = userRepository.saveAll(userList);
+        return savedList.stream().map(this::mapToUserResponse).toList();
     }
 
     @Override
+    @Cacheable("users")
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
-        return users.stream().map(this::mapToUserResponse).toList();
-
+        return users.stream()
+                .sorted(Comparator.comparing(User::getId))
+                .map(this::mapToUserResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("users")
     public UserResponse getUserById(Long id) throws ResourceNotFoundException {
         User user = findUserById(id);
         return mapToUserResponse(user);
@@ -145,10 +149,10 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    public Set<Role> setToString(String[] roles) {
+    public Set<Role> setToString(Long[] roles) {
         Set<Role> userRoles = new HashSet<>();
-        for (String role : roles) {
-            Optional<Role> fetchedPrivilege = roleRepository.findByName(Helpers.capitalize(role));
+        for (Long roleId : roles) {
+            Optional<Role> fetchedPrivilege = roleRepository.findById(roleId);
             fetchedPrivilege.ifPresent(userRoles::add);
         }
         return userRoles;
@@ -177,11 +181,11 @@ public class UserServiceImpl implements UserService {
         return user.get();
     }
 
-    private UserResponse modifyRole(Long roleId, UserRoleRequest userRoleRequest, String operation) throws ResourceNotFoundException {
-        User user = this.findUserById(roleId);
+    private UserResponse modifyRole(Long userId, UserRoleRequest userRoleRequest, String operation) throws ResourceNotFoundException {
+        User user = this.findUserById(userId);
         Set<Role> existingRoles = user.getRoles();
-        for (String roleName : userRoleRequest.getRoles()) {
-            Optional<Role> role = roleRepository.findByName(Helpers.capitalize(roleName));
+        for (Long roleId : userRoleRequest.getRoles()) {
+            Optional<Role> role = roleRepository.findById(roleId);
             role.ifPresent(p -> {
                 if (operation.equals("remove")) {
                     existingRoles.remove(p);

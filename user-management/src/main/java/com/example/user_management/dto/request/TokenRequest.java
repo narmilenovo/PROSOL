@@ -12,14 +12,14 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TokenRequest {
 
-    public String tokenValue;
+    private String tokenValue;
 
-    public TokenType tokenType = TokenType.BEARER;
+    private TokenType tokenType = TokenType.BEARER;
 
-    public boolean revoked;
+    private boolean revoked;
 
-    public boolean expired;
+    private boolean expired;
 
-    public UserResponse user;
+    private UserResponse user;
 
 }

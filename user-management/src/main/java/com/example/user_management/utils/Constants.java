@@ -8,8 +8,6 @@ public class Constants {
 
 
     public static final String REPOSITORY_PACKAGE = "com.example.user_management.repository.";
-
-    public static final long TOKEN_LIFETIME_SECONDS = 24 * 60 * 60;
     public static final String TOKEN_PREFIX = "Bearer ";
     public static final String BEARER_AUTH = "bearerAuth";
     public static final String APPLICATION_JSON = "application/json";
@@ -32,10 +30,7 @@ public class Constants {
     public static final String DATA_KEY = "message";
     public static final String INVALID_TOKEN_MESSAGE = "The token is invalid!";
     public static final String TOKEN_EXPIRED_MESSAGE = "You token has been expired!";
-    public static final String ALREADY_CONFIRMED_MESSAGE = "User Already been confirmed!";
     public static final String ACCOUNT_DEACTIVATED_MESSAGE = "Your account has been deactivated!";
-    public static final String ACCOUNT_NOT_CONFIRMED_MESSAGE = "Your account isn't confirmed yet!";
-    public static final String ACCOUNT_CONFIRMED_MESSAGE = "Your account confirmed successfully!";
     public static final String PASSWORD_LINK_SENT_MESSAGE = "A password reset link has been sent to your email box!";
     public static final String RESET_PASSWORD_SUCCESS_MESSAGE = "Your password has been reset successfully!";
     public static final String VALIDATE_TOKEN_SUCCESS_MESSAGE = "valid";
@@ -43,7 +38,6 @@ public class Constants {
     public static final String PASSWORD_NOT_MATCH_MESSAGE = "The current password don't match!";
     public static final String USER_PICTURE_NO_ACTION_MESSAGE = "Unknown action!";
     public static final String NO_ROLE_FOUND_WITH_ID_MESSAGE = "Role not found with this id !!";
-    public static final String NO_ROLE_FOUND_WITH_NAME_MESSAGE = "Role not found with this Name !!";
     public static final String NO_USER_FOUND_WITH_ID_MESSAGE = "No user found with this id!";
     public static final String NO_USER_FOUND_WITH_EMAIL_MESSAGE = "No user found with this email!";
 
@@ -61,8 +55,6 @@ public class Constants {
     public static final String SWG_AUTH_LOGOUT_MESSAGE = "User successfully Logged Out!";
     public static final String SWG_TOKEN_MESSAGE = "Token is validated Successfully !!!";
     public static final String SWG_AUTH_LOGIN_ERROR = "Bad credentials | The account is deactivated | The account isn't confirmed yet";
-    public static final String SWG_AUTH_CONFIRM_ACCOUNT_OPERATION = "Confirm the account of an user";
-    public static final String SWG_AUTH_CONFIRM_ACCOUNT_MESSAGE = "Account confirmed successfully!";
     public static final String SWG_AUTH_CONFIRM_ACCOUNT_ERROR = "The token is invalid | The token has been expired";
 
     public static final String SWG_RES_PWD_TAG_NAME = "Password Reset";
@@ -149,7 +141,6 @@ public class Constants {
     public static final String SWG_PRIVILEGE_UPDATE_OPERATION = "Update a privilege";
     public static final String SWG_PRIVILEGE_UPDATE_MESSAGE = "Privilege updated successfully!";
     public static final String NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE = "Privilege not found with this Id";
-    public static final String NO_PRIVILEGE_FOUND_WITH_NAME_MESSAGE = "Privilege not found with this Name";
     public static final String PRIVILEGE_FOUND_WITH_NAME_MESSAGE = "Privilege name already exist";
 
 }

@@ -20,6 +20,7 @@
         <module>user-management</module>
         <module>general-service</module>
         <module>sales_other-service</module>
+        <module>vendor_master-service</module>
         <module>api-gateway</module>
     </modules>
 

@@ -52,7 +52,7 @@ public class TemplateEngineConfig implements WebMvcConfigurer {
         templateResolver.setPrefix("templates/");
         templateResolver.setSuffix(".html");
         templateResolver.setTemplateMode(TemplateMode.HTML);
-        templateResolver.setCharacterEncoding("UTF-8");
+        templateResolver.setCharacterEncoding(EMAIL_TEMPLATE_ENCODING);
 
         // Template cache is true by default.
         // Set to false if you want templates to be automatically updated when modified.
