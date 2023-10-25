@@ -9,8 +9,10 @@ import com.example.generalservice.repository.BaseUOPRepository;
 import com.example.generalservice.service.interfaces.BaseUOPService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class BaseUOPServiceImpl implements BaseUOPService {
     }
 
     @Override
+    @Cacheable("uop")
     public List<BaseUOPResponse> getAllUop() {
         List<BaseUOP> uopList = baseUOPRepository.findAll();
-        return uopList.stream().map(this::mapToBaseUOPResponse).toList();
+        return uopList.stream()
+                .sorted(Comparator.comparing(BaseUOP::getId))
+                .map(this::mapToBaseUOPResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("uop")
     public BaseUOPResponse getUopById(Long id) throws ResourceNotFoundException {
         BaseUOP baseUOP = this.findUopById(id);
         return mapToBaseUOPResponse(baseUOP);
     }
 
     @Override
+    @Cacheable("uop")
     public List<BaseUOPResponse> findAllStatusTrue() {
         List<BaseUOP> uopList = baseUOPRepository.findAllByUopStatusIsTrue();
-        return uopList.stream().map(this::mapToBaseUOPResponse).toList();
+        return uopList.stream()
+                .sorted(Comparator.comparing(BaseUOP::getId))
+                .map(this::mapToBaseUOPResponse)
+                .toList();
     }
 
     @Override

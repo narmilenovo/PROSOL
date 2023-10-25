@@ -9,8 +9,10 @@ import com.example.generalservice.repository.IndustrySectorRepository;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,12 +37,17 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
     }
 
     @Override
+    @Cacheable("sector")
     public List<IndustrySectorResponse> getAllSector() {
         List<IndustrySector> sectorResponses = sectorRepository.findAll();
-        return sectorResponses.stream().map(this::mapToIndustrySectorResponse).toList();
+        return sectorResponses.stream()
+                .sorted(Comparator.comparing(IndustrySector::getId))
+                .map(this::mapToIndustrySectorResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("sector")
     public IndustrySectorResponse getSectorById(Long id) throws ResourceNotFoundException {
         IndustrySector industrySector = this.findSectorById(id);
         return mapToIndustrySectorResponse(industrySector);
@@ -48,9 +55,13 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
     }
 
     @Override
+    @Cacheable("sector")
     public List<IndustrySectorResponse> findAllStatusTrue() {
         List<IndustrySector> sectorResponses = sectorRepository.findAllBySectorStatusIsTrue();
-        return sectorResponses.stream().map(this::mapToIndustrySectorResponse).toList();
+        return sectorResponses.stream()
+                .sorted(Comparator.comparing(IndustrySector::getId))
+                .map(this::mapToIndustrySectorResponse)
+                .toList();
     }
 
     @Override

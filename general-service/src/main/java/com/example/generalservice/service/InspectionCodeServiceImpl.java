@@ -9,8 +9,10 @@ import com.example.generalservice.repository.InspectionCodeRepository;
 import com.example.generalservice.service.interfaces.InspectionCodeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
     }
 
     @Override
+    @Cacheable("inCode")
     public List<InspectionCodeResponse> getAllInCode() {
         List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAll();
-        return inspectionCodes.stream().map(this::mapToCodeResponse).toList();
+        return inspectionCodes.stream()
+                .sorted(Comparator.comparing(InspectionCode::getId))
+                .map(this::mapToCodeResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("inCode")
     public InspectionCodeResponse getInCodeById(Long id) throws ResourceNotFoundException {
         InspectionCode inspectionCode = this.findInCodeById(id);
         return mapToCodeResponse(inspectionCode);
     }
 
     @Override
+    @Cacheable("inCode")
     public List<InspectionCodeResponse> findAllStatusTrue() {
         List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAllByInCodeStatusIsTrue();
-        return inspectionCodes.stream().map(this::mapToCodeResponse).toList();
+        return inspectionCodes.stream()
+                .sorted(Comparator.comparing(InspectionCode::getId))
+                .map(this::mapToCodeResponse)
+                .toList();
     }
 
     @Override

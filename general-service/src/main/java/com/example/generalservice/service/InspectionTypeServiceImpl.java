@@ -9,8 +9,10 @@ import com.example.generalservice.repository.InspectionTypeRepository;
 import com.example.generalservice.service.interfaces.InspectionTypeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,21 +38,30 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
     }
 
     @Override
+    @Cacheable("inType")
     public List<InspectionTypeResponse> getAllInType() {
         List<InspectionType> inspectionTypes = inspectionTypeRepository.findAll();
-        return inspectionTypes.stream().map(this::mapToInspectionTypeResponse).toList();
+        return inspectionTypes.stream()
+                .sorted(Comparator.comparing(InspectionType::getId))
+                .map(this::mapToInspectionTypeResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("inType")
     public InspectionTypeResponse getInTypeById(Long id) throws ResourceNotFoundException {
         InspectionType inspectionType = this.findInTypeById(id);
         return mapToInspectionTypeResponse(inspectionType);
     }
 
     @Override
+    @Cacheable("inType")
     public List<InspectionTypeResponse> findAllStatusTrue() {
         List<InspectionType> inspectionTypes = inspectionTypeRepository.findAllByInTypeStatusIsTrue();
-        return inspectionTypes.stream().map(this::mapToInspectionTypeResponse).toList();
+        return inspectionTypes.stream()
+                .sorted(Comparator.comparing(InspectionType::getId))
+                .map(this::mapToInspectionTypeResponse)
+                .toList();
     }
 
     @Override

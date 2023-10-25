@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.PurchasingValueKeyRepository;
 import com.example.sales_otherservice.service.interfaces.PurchasingValueKeyService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
     }
 
     @Override
+    @Cacheable("pvk")
     public List<PurchasingValueKeyResponse> getAllPvk() {
         List<PurchasingValueKey> purchasingValueKeys = purchasingValueKeyRepository.findAll();
-        return purchasingValueKeys.stream().map(this::mapToPurchasingValueKeyResponse).toList();
+        return purchasingValueKeys.stream()
+                .sorted(Comparator.comparing(PurchasingValueKey::getId))
+                .map(this::mapToPurchasingValueKeyResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("pvk")
     public PurchasingValueKeyResponse getPvkById(Long id) throws ResourceNotFoundException {
         PurchasingValueKey valueKey = this.findPvkById(id);
         return mapToPurchasingValueKeyResponse(valueKey);
     }
 
     @Override
+    @Cacheable("pvk")
     public List<PurchasingValueKeyResponse> findAllStatusTrue() {
         List<PurchasingValueKey> purchasingValueKeys = purchasingValueKeyRepository.findAllByPvkStatusIsTrue();
-        return purchasingValueKeys.stream().map(this::mapToPurchasingValueKeyResponse).toList();
+        return purchasingValueKeys.stream()
+                .sorted(Comparator.comparing(PurchasingValueKey::getId))
+                .map(this::mapToPurchasingValueKeyResponse)
+                .toList();
     }
 
     @Override

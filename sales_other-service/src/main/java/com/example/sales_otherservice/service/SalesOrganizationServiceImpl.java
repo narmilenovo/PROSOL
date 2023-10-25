@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.SalesOrganizationRepository;
 import com.example.sales_otherservice.service.interfaces.SalesOrganizationService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
     }
 
     @Override
+    @Cacheable("so")
     public List<SalesOrganizationResponse> getAllSo() {
         List<SalesOrganization> salesOrganizations = salesOrganizationRepository.findAll();
-        return salesOrganizations.stream().map(this::mapToSalesOrganizationResponse).toList();
+        return salesOrganizations.stream()
+                .sorted(Comparator.comparing(SalesOrganization::getId))
+                .map(this::mapToSalesOrganizationResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("so")
     public SalesOrganizationResponse getSoById(Long id) throws ResourceNotFoundException {
         SalesOrganization salesOrganization = this.findSoById(id);
         return mapToSalesOrganizationResponse(salesOrganization);
     }
 
     @Override
+    @Cacheable("so")
     public List<SalesOrganizationResponse> findAllStatusTrue() {
         List<SalesOrganization> salesOrganizations = salesOrganizationRepository.findAllBySoStatusIsTrue();
-        return salesOrganizations.stream().map(this::mapToSalesOrganizationResponse).toList();
+        return salesOrganizations.stream()
+                .sorted(Comparator.comparing(SalesOrganization::getId))
+                .map(this::mapToSalesOrganizationResponse)
+                .toList();
     }
 
     @Override

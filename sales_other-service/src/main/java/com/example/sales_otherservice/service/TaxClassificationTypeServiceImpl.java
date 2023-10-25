@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.TaxClassificationTypeRepository
 import com.example.sales_otherservice.service.interfaces.TaxClassificationTypeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
     }
 
     @Override
+    @Cacheable("tct")
     public List<TaxClassificationTypeResponse> getAllTct() {
         List<TaxClassificationType> classificationTypes = taxClassificationTypeRepository.findAll();
-        return classificationTypes.stream().map(this::mapToTaxClassificationClassResponse).toList();
+        return classificationTypes.stream()
+                .sorted(Comparator.comparing(TaxClassificationType::getId))
+                .map(this::mapToTaxClassificationClassResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("tct")
     public TaxClassificationTypeResponse getTctById(Long id) throws ResourceNotFoundException {
         TaxClassificationType classificationType = this.findTctById(id);
         return mapToTaxClassificationClassResponse(classificationType);
     }
 
     @Override
+    @Cacheable("tct")
     public List<TaxClassificationTypeResponse> findAllStatusTrue() {
         List<TaxClassificationType> classificationTypes = taxClassificationTypeRepository.findAllByTctStatusIsTrue();
-        return classificationTypes.stream().map(this::mapToTaxClassificationClassResponse).toList();
+        return classificationTypes.stream()
+                .sorted(Comparator.comparing(TaxClassificationType::getId))
+                .map(this::mapToTaxClassificationClassResponse)
+                .toList();
     }
 
     @Override

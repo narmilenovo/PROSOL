@@ -9,8 +9,10 @@ import com.example.generalservice.repository.UnitOfIssueRepository;
 import com.example.generalservice.service.interfaces.UnitOfIssueService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
     }
 
     @Override
+    @Cacheable("uoi")
     public List<UnitOfIssueResponse> getAllUOI() {
         List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAll();
-        return unitOfIssues.stream().map(this::mapToUnitOfIssueResponse).toList();
+        return unitOfIssues.stream()
+                .sorted(Comparator.comparing(UnitOfIssue::getId))
+                .map(this::mapToUnitOfIssueResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("uoi")
     public UnitOfIssueResponse getUOIById(Long id) throws ResourceNotFoundException {
         UnitOfIssue unitOfIssue = this.findUOIById(id);
         return mapToUnitOfIssueResponse(unitOfIssue);
     }
 
     @Override
+    @Cacheable("uoi")
     public List<UnitOfIssueResponse> findAllStatusTrue() {
         List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAllByUoiStatusIsTrue();
-        return unitOfIssues.stream().map(this::mapToUnitOfIssueResponse).toList();
+        return unitOfIssues.stream()
+                .sorted(Comparator.comparing(UnitOfIssue::getId))
+                .map(this::mapToUnitOfIssueResponse)
+                .toList();
     }
 
     @Override

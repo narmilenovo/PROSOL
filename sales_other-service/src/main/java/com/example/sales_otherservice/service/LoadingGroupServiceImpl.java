@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.LoadingGroupRepository;
 import com.example.sales_otherservice.service.interfaces.LoadingGroupService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
     }
 
     @Override
+    @Cacheable("lg")
     public List<LoadingGroupResponse> getAllLg() {
         List<LoadingGroup> loadingGroups = loadingGroupRepository.findAll();
-        return loadingGroups.stream().map(this::mapToLoadingGroupResponse).toList();
+        return loadingGroups.stream()
+                .sorted(Comparator.comparing(LoadingGroup::getId))
+                .map(this::mapToLoadingGroupResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("lg")
     public LoadingGroupResponse getLgById(Long id) throws ResourceNotFoundException {
         LoadingGroup loadingGroup = this.findLgById(id);
         return mapToLoadingGroupResponse(loadingGroup);
     }
 
     @Override
+    @Cacheable("lg")
     public List<LoadingGroupResponse> findAllStatusTrue() {
         List<LoadingGroup> loadingGroups = loadingGroupRepository.findAllByLgStatusIsTrue();
-        return loadingGroups.stream().map(this::mapToLoadingGroupResponse).toList();
+        return loadingGroups.stream()
+                .sorted(Comparator.comparing(LoadingGroup::getId))
+                .map(this::mapToLoadingGroupResponse)
+                .toList();
     }
 
     @Override

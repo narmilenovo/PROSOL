@@ -12,7 +12,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -23,14 +23,8 @@ public class SecurityConfig {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
-
-    private static final List<String> PERMIT_ALL_URLS = Arrays.asList(
-            "/user/auth/**",
-            "/actuator/**",
-            "/v3/api-docs",
+    protected static final List<String> SWAGGER = List.of(
             "/v3/api-docs/**",
-            "/v3/api-docs/user",
-            "/user/v3/api-docs",
             "/swagger-resources/**",
             "/configuration/ui/**",
             "/configuration/security/**",
@@ -38,6 +32,40 @@ public class SecurityConfig {
             "/webjars/**",
             "/swagger-ui.html"
     );
+    protected static final List<String> USER = List.of(
+            "/user/auth/**",
+            "/user/v3/api-docs",
+            "/actuator/**"
+
+    );
+    private static final List<String> GENERAL = List.of(
+            "/general/v3/api-docs"
+    );
+
+    private static final List<String> SALES = List.of(
+            "/sales/v3/api-docs"
+    );
+    private static final List<String> PLANT = List.of(
+            "/plant/v3/api-docs"
+    );
+
+    private static final List<String> MRP = List.of(
+            "/mrp/v3/api-docs"
+    );
+    private static final List<String> VENDOR = List.of(
+            "/vendor/v3/api-docs"
+    );
+    protected static final List<String> PERMIT_ALL_URLS = new ArrayList<>();
+
+    static {
+        PERMIT_ALL_URLS.addAll(SWAGGER);
+        PERMIT_ALL_URLS.addAll(USER);
+        PERMIT_ALL_URLS.addAll(GENERAL);
+        PERMIT_ALL_URLS.addAll(PLANT);
+        PERMIT_ALL_URLS.addAll(SALES);
+        PERMIT_ALL_URLS.addAll(VENDOR);
+        PERMIT_ALL_URLS.addAll(MRP);
+    }
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
@@ -57,9 +85,7 @@ public class SecurityConfig {
                         .pathMatchers(PERMIT_ALL_URLS.toArray(new String[0])).permitAll()
                         .pathMatchers("/user/getAllUsers").hasRole("Admin")
                         .anyExchange().authenticated()
-                )
-//                .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-        ;
+                );
         return http.build();
     }
 }

@@ -11,8 +11,10 @@ import com.example.sales_otherservice.repository.SalesOrganizationRepository;
 import com.example.sales_otherservice.service.interfaces.DistributionChannelService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,15 +33,15 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
         if (!exists) {
 
             DistributionChannel channel = modelMapper.map(deliveringPlantRequest, DistributionChannel.class);
-            channel.setSalesOrganization(setSalesOrg(deliveringPlantRequest.getSalesOrganizationName()));
+            channel.setSalesOrganization(setSalesOrg(deliveringPlantRequest.getSalesOrganizationId()));
             DistributionChannel savedChannel = distributionChannelRepository.save(channel);
             return mapToDistributionChannelResponse(savedChannel);
         }
         throw new ResourceFoundException("Distributed Channel Already Exists");
     }
 
-    private SalesOrganization setSalesOrg(String salesOrganizationName) throws ResourceNotFoundException {
-        Optional<SalesOrganization> organization = organizationRepository.findBySoName(salesOrganizationName);
+    private SalesOrganization setSalesOrg(Long salesOrganizationId) throws ResourceNotFoundException {
+        Optional<SalesOrganization> organization = organizationRepository.findById(salesOrganizationId);
         if (organization.isEmpty()) {
             throw new ResourceNotFoundException("No organization Found");
         }
@@ -47,21 +49,30 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
     }
 
     @Override
+    @Cacheable("dc")
     public List<DistributionChannelResponse> getAllDc() {
         List<DistributionChannel> distributionChannels = distributionChannelRepository.findAll();
-        return distributionChannels.stream().map(this::mapToDistributionChannelResponse).toList();
+        return distributionChannels.stream()
+                .sorted(Comparator.comparing(DistributionChannel::getId))
+                .map(this::mapToDistributionChannelResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("dc")
     public DistributionChannelResponse getDcById(Long id) throws ResourceNotFoundException {
         DistributionChannel channel = this.findDCById(id);
         return mapToDistributionChannelResponse(channel);
     }
 
     @Override
+    @Cacheable("dc")
     public List<DistributionChannelResponse> findAllStatusTrue() {
         List<DistributionChannel> distributionChannels = distributionChannelRepository.findAllByDcStatusIsTrue();
-        return distributionChannels.stream().map(this::mapToDistributionChannelResponse).toList();
+        return distributionChannels.stream()
+                .sorted(Comparator.comparing(DistributionChannel::getId))
+                .map(this::mapToDistributionChannelResponse)
+                .toList();
     }
 
     @Override
@@ -72,7 +83,7 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
         boolean exists = distributionChannelRepository.existsByDcCodeAndIdNotOrDcNameAndIdNot(dcCode, id, dcName, id);
         if (!exists) {
             modelMapper.map(updateDistributionChannelRequest, existingChannel);
-            existingChannel.setSalesOrganization(setSalesOrg(updateDistributionChannelRequest.getSalesOrganizationName()));
+            existingChannel.setSalesOrganization(setSalesOrg(updateDistributionChannelRequest.getSalesOrganizationId()));
             DistributionChannel updatedChannel = distributionChannelRepository.save(existingChannel);
             return mapToDistributionChannelResponse(updatedChannel);
         }

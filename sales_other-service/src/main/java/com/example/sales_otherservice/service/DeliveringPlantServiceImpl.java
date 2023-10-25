@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import com.example.sales_otherservice.clients.PlantClient;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
 import com.example.sales_otherservice.entity.DeliveringPlant;
@@ -9,8 +10,10 @@ import com.example.sales_otherservice.repository.DeliveringPlantRepository;
 import com.example.sales_otherservice.service.interfaces.DeliveringPlantService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     private final DeliveringPlantRepository deliveringPlantRepository;
+    private final PlantClient plantClient;
     private final ModelMapper modelMapper;
 
     @Override
@@ -26,8 +30,8 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
         String dpName = deliveringPlantRequest.getDpName();
         boolean exists = deliveringPlantRepository.existsByDpCodeOrDpName(dpCode, dpName);
         if (!exists) {
-
             DeliveringPlant deliveringPlant = modelMapper.map(deliveringPlantRequest, DeliveringPlant.class);
+            deliveringPlant.setId(null);
             DeliveringPlant savedPlant = deliveringPlantRepository.save(deliveringPlant);
             return mapToDeliveringPlantResponse(savedPlant);
         }
@@ -35,21 +39,30 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     }
 
     @Override
+    @Cacheable("dp")
     public List<DeliveringPlantResponse> getAllDp() {
         List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAll();
-        return deliveringPlants.stream().map(this::mapToDeliveringPlantResponse).toList();
+        return deliveringPlants.stream()
+                .sorted(Comparator.comparing(DeliveringPlant::getId))
+                .map(this::mapToDeliveringPlantResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("dp")
     public DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException {
         DeliveringPlant deliveringPlant = this.findDpById(id);
         return mapToDeliveringPlantResponse(deliveringPlant);
     }
 
     @Override
+    @Cacheable("dp")
     public List<DeliveringPlantResponse> findAllStatusTrue() {
         List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAllByDpStatusIsTrue();
-        return deliveringPlants.stream().map(this::mapToDeliveringPlantResponse).toList();
+        return deliveringPlants.stream()
+                .sorted(Comparator.comparing(DeliveringPlant::getId))
+                .map(this::mapToDeliveringPlantResponse)
+                .toList();
     }
 
     @Override
@@ -73,8 +86,14 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     }
 
     private DeliveringPlantResponse mapToDeliveringPlantResponse(DeliveringPlant deliveringPlant) {
-        return modelMapper.map(deliveringPlant, DeliveringPlantResponse.class);
+        DeliveringPlantResponse deliveringPlantResponse = modelMapper.map(deliveringPlant, DeliveringPlantResponse.class);
+        // Check if the id is null before getting the plant information
+        if (deliveringPlant.getPlantId() != null) {
+            deliveringPlantResponse.setPlant(plantClient.getPlantById(deliveringPlant.getPlantId()));
+        }
+        return deliveringPlantResponse;
     }
+
 
     private DeliveringPlant findDpById(Long id) throws ResourceNotFoundException {
         Optional<DeliveringPlant> deliveringPlant = deliveringPlantRepository.findById(id);

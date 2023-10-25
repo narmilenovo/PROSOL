@@ -11,5 +11,5 @@ public class DistributionChannelRequest {
     private String dcCode;
     private String dcName;
     private Boolean dcStatus;
-    private String salesOrganizationName;
+    private Long salesOrganizationId;
 }

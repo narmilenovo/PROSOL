@@ -9,8 +9,10 @@ import com.example.generalservice.repository.MaterialTypeRepository;
 import com.example.generalservice.service.interfaces.MaterialTypeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
     }
 
     @Override
+    @Cacheable("material")
     public List<MaterialTypeResponse> getAllMaterial() {
         List<MaterialType> materialTypes = materialTypeRepository.findAll();
-        return materialTypes.stream().map(this::mapToMaterialTypeResponse).toList();
+        return materialTypes.stream()
+                .sorted(Comparator.comparing(MaterialType::getId))
+                .map(this::mapToMaterialTypeResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("material")
     public MaterialTypeResponse getMaterialById(Long id) throws ResourceNotFoundException {
         MaterialType materialType = this.findMaterialById(id);
         return mapToMaterialTypeResponse(materialType);
     }
 
     @Override
+    @Cacheable("material")
     public List<MaterialTypeResponse> findAllStatusTrue() {
         List<MaterialType> materialTypes = materialTypeRepository.findAllByMaterialStatusIsTrue();
-        return materialTypes.stream().map(this::mapToMaterialTypeResponse).toList();
+        return materialTypes.stream()
+                .sorted(Comparator.comparing(MaterialType::getId))
+                .map(this::mapToMaterialTypeResponse)
+                .toList();
     }
 
     @Override

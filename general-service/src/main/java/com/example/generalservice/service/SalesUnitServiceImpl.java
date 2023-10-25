@@ -9,8 +9,10 @@ import com.example.generalservice.repository.SalesUnitRepository;
 import com.example.generalservice.service.interfaces.SalesUnitService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class SalesUnitServiceImpl implements SalesUnitService {
     }
 
     @Override
+    @Cacheable("salesUnit")
     public List<SalesUnitResponse> getAllSalesUnit() {
         List<SalesUnit> salesUnitList = salesUnitRepository.findAll();
-        return salesUnitList.stream().map(this::mapToSalesUnitResponse).toList();
+        return salesUnitList.stream()
+                .sorted(Comparator.comparing(SalesUnit::getId))
+                .map(this::mapToSalesUnitResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("salesUnit")
     public SalesUnitResponse getSalesUnitById(Long id) throws ResourceNotFoundException {
         SalesUnit salesUnit = this.findSalesUnitById(id);
         return mapToSalesUnitResponse(salesUnit);
     }
 
     @Override
+    @Cacheable("salesUnit")
     public List<SalesUnitResponse> findAllStatusTrue() {
         List<SalesUnit> salesUnits = salesUnitRepository.findAllBySalesStatusIsTrue();
-        return salesUnits.stream().map(this::mapToSalesUnitResponse).toList();
+        return salesUnits.stream()
+                .sorted(Comparator.comparing(SalesUnit::getId))
+                .map(this::mapToSalesUnitResponse)
+                .toList();
     }
 
     @Override

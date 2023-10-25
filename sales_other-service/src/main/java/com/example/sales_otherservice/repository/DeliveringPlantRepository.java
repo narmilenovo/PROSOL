@@ -14,4 +14,6 @@ public interface DeliveringPlantRepository extends JpaRepository<DeliveringPlant
     boolean existsByDpCodeOrDpName(String dpCode, String dpName);
 
     boolean existsByDpCodeAndIdNotOrDpNameAndIdNot(String dpCode, Long id1, String dpName, Long id2);
+
+    List<DeliveringPlant> findAllByPlantId(Long plantId);
 }

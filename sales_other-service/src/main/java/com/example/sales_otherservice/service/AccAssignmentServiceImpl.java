@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.AccAssignmentRepository;
 import com.example.sales_otherservice.service.interfaces.AccAssignmentService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
     }
 
     @Override
+    @Cacheable("acc")
     public List<AccAssignmentResponse> getAllAcc() {
         List<AccAssignment> accAssignments = accAssignmentRepository.findAll();
-        return accAssignments.stream().map(this::mapToAccAssignmentResponse).toList();
+        return accAssignments.stream()
+                .sorted(Comparator.comparing(AccAssignment::getId))
+                .map(this::mapToAccAssignmentResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("acc")
     public AccAssignmentResponse getAccById(Long id) throws ResourceNotFoundException {
         AccAssignment accAssignment = this.findAccById(id);
         return mapToAccAssignmentResponse(accAssignment);
     }
 
     @Override
+    @Cacheable("acc")
     public List<AccAssignmentResponse> findAllStatusTrue() {
         List<AccAssignment> list = accAssignmentRepository.findAllByAccStatusIsTrue();
-        return list.stream().map(this::mapToAccAssignmentResponse).toList();
+        return list.stream()
+                .sorted(Comparator.comparing(AccAssignment::getId))
+                .map(this::mapToAccAssignmentResponse)
+                .toList();
     }
 
     @Override

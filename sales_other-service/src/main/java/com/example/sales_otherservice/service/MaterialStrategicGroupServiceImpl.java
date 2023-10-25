@@ -9,8 +9,10 @@ import com.example.sales_otherservice.repository.MaterialStrategicGroupRepositor
 import com.example.sales_otherservice.service.interfaces.MaterialStrategicGroupService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
     }
 
     @Override
+    @Cacheable("msg")
     public List<MaterialStrategicGroupResponse> getAllMsg() {
         List<MaterialStrategicGroup> strategicGroups = materialStrategicGroupRepository.findAll();
-        return strategicGroups.stream().map(this::mapToStrategicGroupResponse).toList();
+        return strategicGroups.stream()
+                .sorted(Comparator.comparing(MaterialStrategicGroup::getId))
+                .map(this::mapToStrategicGroupResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("msg")
     public MaterialStrategicGroupResponse getMsgById(Long id) throws ResourceNotFoundException {
         MaterialStrategicGroup strategicGroup = this.findMsgById(id);
         return mapToStrategicGroupResponse(strategicGroup);
     }
 
     @Override
+    @Cacheable("msg")
     public List<MaterialStrategicGroupResponse> findAllStatusTrue() {
         List<MaterialStrategicGroup> strategicGroups = materialStrategicGroupRepository.findAllByMsStatusIsTrue();
-        return strategicGroups.stream().map(this::mapToStrategicGroupResponse).toList();
+        return strategicGroups.stream()
+                .sorted(Comparator.comparing(MaterialStrategicGroup::getId))
+                .map(this::mapToStrategicGroupResponse)
+                .toList();
     }
 
     @Override

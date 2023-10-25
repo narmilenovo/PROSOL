@@ -9,8 +9,10 @@ import com.example.generalservice.repository.AlternateUOMRepository;
 import com.example.generalservice.service.interfaces.AlternateUOMService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,21 +37,30 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
     }
 
     @Override
+    @Cacheable("uom")
     public List<AlternateUOMResponse> getAllUom() {
         List<AlternateUOM> uomList = alternateUOMRepository.findAll();
-        return uomList.stream().map(this::mapToAlternateUOMResponse).toList();
+        return uomList.stream()
+                .sorted(Comparator.comparing(AlternateUOM::getId))
+                .map(this::mapToAlternateUOMResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("uom")
     public AlternateUOMResponse getUomById(Long id) throws ResourceNotFoundException {
         AlternateUOM uom = this.findUomById(id);
         return mapToAlternateUOMResponse(uom);
     }
 
     @Override
+    @Cacheable("uom")
     public List<AlternateUOMResponse> findAllStatusTrue() {
         List<AlternateUOM> uomList = alternateUOMRepository.findAllByUomStatusIsTrue();
-        return uomList.stream().map(this::mapToAlternateUOMResponse).toList();
+        return uomList.stream()
+                .sorted(Comparator.comparing(AlternateUOM::getId))
+                .map(this::mapToAlternateUOMResponse)
+                .toList();
     }
 
     @Override

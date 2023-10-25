@@ -24,6 +24,8 @@ spring:
         locator:
           enabled: true
       # Routing Services
+
+      # User Service
       routes:
         - id: USER-SERVICE
           uri: lb://USER-SERVICE
@@ -32,13 +34,7 @@ spring:
           filters:
             - RewritePath=/user/(?<path>.*), /$\{path}
 
-        - id: GENERAL-SERVICE
-          uri: lb://GENERAL-SERVICE
-          predicates:
-            - Path=/general/**
-          filters:
-            - RewritePath=/general/(?<path>.*), /$\{path}
-
+        # Plant Service
         - id: PLANT-SERVICE
           uri: lb://PLANT-SERVICE
           predicates:
@@ -46,15 +42,39 @@ spring:
           filters:
             - RewritePath=/plant/(?<path>.*), /$\{path}
 
+        # General Service
+        - id: GENERAL-SERVICE
+          uri: lb://GENERAL-SERVICE
+          predicates:
+            - Path=/general/**
+          filters:
+            - RewritePath=/general/(?<path>.*), /$\{path}
 
-        - id: SALES_OTHERS-SERVICE
-          uri: lb://SALES_OTHERS-SERVICE
+        # MrpData Service
+        - id: MRP-SERVICE
+          uri: lb://MRP-SERVICE
+          predicates:
+            - Path=/mrp/**
+          filters:
+            - RewritePath=/mrp/(?<path>.*), /$\{path}
+
+        # Sales Service
+        - id: SALES-SERVICE
+          uri: lb://SALES-SERVICE
           predicates:
             - Path=/sales/**
           filters:
             - RewritePath=/sales/(?<path>.*), /$\{path}
 
+        # Vendor Service
+        - id: VENDOR-SERVICE
+          uri: lb://VENDOR-SERVICE
+          predicates:
+            - Path=/vendor/**
+          filters:
+            - RewritePath=/vendor/(?<path>.*), /$\{path}
 
+        # Common OpenApi
         - id: openapi
           uri: http://localhost:${server.port}
           predicates:
@@ -73,6 +93,7 @@ spring:
 eureka:
   instance:
     hostname: localhost
+    lease-renewal-interval-in-seconds: 30
   client:
     registerWithEureka: true
     fetchRegistry: true
@@ -89,6 +110,13 @@ management:
 
 # OpenApi Swagger configuration
 springdoc:
+  service:
+    title: Gateway-Service doc
+    version: 1.0.1
+  api-docs:
+    groups:
+      enabled: true
+    enabled: true
   swagger-ui:
     display-request-duration: true
     operationsSorter: method
@@ -101,22 +129,40 @@ springdoc:
     filter: false
     show-extensions: false
     urls:
+      - name: GATEWAY-SERVICE
+        url: /v3/api-docs
+        display-name: Gateway
+
       - name: USER-SERVICE
         url: /v3/api-docs/user
-
-      - name: GENERAL-SERVICE
-        url: /v3/api-docs/general
+        display-name: User
 
       - name: PLANT-SERVICE
         url: /v3/api-docs/plant
+        display-name: Plant
 
-      - name: SALES_OTHERS-SERVICE
+      - name: GENERAL-SERVICE
+        url: /v3/api-docs/general
+        display-name: General
+
+      - name: MRP-SERVICE
+        url: /v3/api-docs/mrp
+        display-name: Mrp Data
+
+      - name: SALES-SERVICE
         url: /v3/api-docs/sales
+        display-name: Sales
+
+      - name: VENDOR-SERVICE
+        url: /v3/api-docs/vendor
+        display-name: Vendor
+
+    use-root-path: true
+
   cache:
-    disabled: true
+    disabled: off
   show-actuator: false
   writer-with-default-pretty-printer: true
-
 
 
 

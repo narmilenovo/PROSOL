@@ -9,8 +9,10 @@ import com.example.generalservice.repository.DivisionRepository;
 import com.example.generalservice.service.interfaces.DivisionService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,21 +38,30 @@ public class DivisionServiceImpl implements DivisionService {
     }
 
     @Override
+    @Cacheable("div")
     public DivisionResponse getDivisionById(Long id) throws ResourceNotFoundException {
         Division division = this.findDivisionById(id);
         return mapToDivisionResponse(division);
     }
 
     @Override
+    @Cacheable("div")
     public List<DivisionResponse> getAllDivision() {
         List<Division> divisionList = divisionRepository.findAll();
-        return divisionList.stream().map(this::mapToDivisionResponse).toList();
+        return divisionList.stream()
+                .sorted(Comparator.comparing(Division::getId))
+                .map(this::mapToDivisionResponse)
+                .toList();
     }
 
     @Override
+    @Cacheable("div")
     public List<DivisionResponse> findAllStatusTrue() {
         List<Division> divisionList = divisionRepository.findAllByDivStatusIsTrue();
-        return divisionList.stream().map(this::mapToDivisionResponse).toList();
+        return divisionList.stream()
+                .sorted(Comparator.comparing(Division::getId))
+                .map(this::mapToDivisionResponse)
+                .toList();
     }
 
     @Override

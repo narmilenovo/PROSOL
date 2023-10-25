@@ -1,8 +1,11 @@
 package com.example.sales_otherservice.dto.response;
 
+import com.example.sales_otherservice.clients.PlantResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -12,5 +15,9 @@ public class DeliveringPlantResponse {
     private String dpCode;
     private String dpName;
     private Boolean dpStatus;
-    private Long plantId;
+    private PlantResponse plant;
+    private String createdBy;
+    private String updatedBy;
+    private Date createdAt;
+    private Date updatedAt;
 }

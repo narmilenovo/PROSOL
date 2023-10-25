@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -14,4 +15,8 @@ public class AlternateUOMResponse implements Serializable {
     private String uomCode;
     private String uomName;
     private Boolean uomStatus;
+    private String createdBy;
+    private String updatedBy;
+    private Date createdAt;
+    private Date updatedAt;
 }

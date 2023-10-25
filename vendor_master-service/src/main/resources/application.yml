@@ -1,0 +1,66 @@
+# Server configuration
+server:
+  port: 8005
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+  application:
+    name: VENDOR-SERVICE   # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/Prosol?rewriteBatchedStatements=true
+    password: imu123
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 1000
+        order_inserts: true
+        generate_statistics: true
+        format_sql: true
+    show-sql: true
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: localhost
+    lease-renewal-interval-in-seconds: 30
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+
+# OpenApi Swagger configuration
+springdoc:
+  service:
+    title: Vendor-Service doc
+    version: 1.0.1
+  api-docs:
+    groups:
+      enabled: true
+  swagger-ui:
+    display-request-duration: true
+    operationsSorter: method
+    tags-sorter: method
+    try-it-out-enabled: true
+    deep-linking: true
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    display-operation-id: false
+    filter: false
+    show-extensions: false
+  cache:
+    disabled: false
+  show-actuator: false
+  writer-with-default-pretty-printer: true

@@ -1,5 +1,6 @@
 package com.example.api_gateway.security;
 
+import com.example.api_gateway.util.Jwt;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +21,7 @@ import java.util.Collection;
 public class SecurityContextRepository implements ServerSecurityContextRepository {
 
     private final AuthenticationManager authenticationManager;
+    private final Jwt jwtUtil;
 
     @Override
     public Mono<Void> save(ServerWebExchange swe, SecurityContext sc) {
@@ -48,8 +50,8 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
                 .filter(authHeader -> authHeader.startsWith("Bearer "))
                 .flatMap(authHeader -> {
                     String authToken = authHeader.substring(7);
+                    String email = jwtUtil.extractUsername(authToken);
                     Authentication auth = new UsernamePasswordAuthenticationToken(authToken, authToken);
-                    String email = auth.getName();
                     Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
 
                     // Create a new ServerWebExchange with modified headers
@@ -59,7 +61,6 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
                                     .header("X-User-Authorities", authorities.toString())
                                     .build())
                             .build();
-
                     return this.authenticationManager.authenticate(auth).map(SecurityContextImpl::new)
                             .contextWrite(Context.of(ServerWebExchange.class, exchangeWithHeaders));
                 });
