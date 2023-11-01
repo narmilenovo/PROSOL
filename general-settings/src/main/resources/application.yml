@@ -1,0 +1,43 @@
+# Server configuration
+server:
+  port: 8006
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+  application:
+    name: SETTING-SERVICE   # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/SETTING-SERVICE
+    password: banu
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+    instance:
+    preferIpAddress: true
+
+  servlet:
+    multipart:
+      enabled:true
+      max-file-size:20MB
+      request-size:20MB
+      file-size-threshold:0
+
+
+
+
