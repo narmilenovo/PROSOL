@@ -12,11 +12,10 @@ public class Helpers {
     public static String capitalize(String str) {
         char[] chars = str.toCharArray();
         chars[0] = Character.toUpperCase(chars[0]);
-
         return String.valueOf(chars);
     }
 
-    public static String toTitleCase(String input) {
+    public static String titleCaseWithSpace(String input) {
         if (input == null || input.isEmpty()) {
             return input;
         }
@@ -34,6 +33,18 @@ public class Helpers {
 
         return titleCase.toString().trim();
     }
+
+    public static String toTitleCaseWithoutSpace(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+
+        String firstChar = input.charAt(0) + "";
+        String remainingChars = input.substring(1);
+
+        return firstChar.toUpperCase() + remainingChars.toLowerCase();
+    }
+
 
     public static String generateRandomString(int length) {
         String possibleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

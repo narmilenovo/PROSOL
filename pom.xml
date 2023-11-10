@@ -21,6 +21,8 @@
         <module>general-service</module>
         <module>sales_other-service</module>
         <module>vendor_master-service</module>
+        <module>create-template-service</module>
+        <module>value-service</module>
         <module>api-gateway</module>
     </modules>
 

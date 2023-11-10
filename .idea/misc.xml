@@ -14,6 +14,8 @@
         <option value="$PROJECT_DIR$/vendor_master-service/pom.xml" />
         <option value="$PROJECT_DIR$/MRPData/pom.xml" />
         <option value="$PROJECT_DIR$/authserver/pom.xml" />
+        <option value="$PROJECT_DIR$/create-template-service/pom.xml" />
+        <option value="$PROJECT_DIR$/value-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
