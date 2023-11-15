@@ -2,15 +2,19 @@ package com.example.valueservice.controller;
 
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
+import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceFoundException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.example.valueservice.service.interfaces.ValueMasterService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -26,6 +30,13 @@ public class ValueMasterController {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveValue").toUriString());
         ValueMasterResponse savedValue = valueMasterService.saveValue(valueMasterRequest);
         return ResponseEntity.created(uri).body(savedValue);
+    }
+
+    @PostMapping(value = "/uploadFile", consumes = "multipart/form-data")
+    public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) throws IOException, ExcelFileException {
+        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/uploadFile").toUriString());
+        valueMasterService.uploadData(file);
+        return ResponseEntity.created(uri).build();
     }
 
     @GetMapping("/getAllValue")
@@ -53,4 +64,13 @@ public class ValueMasterController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/downloadTemplate/value")
+    public void excelValueTemplate(HttpServletResponse httpServletResponse) throws IOException {
+        valueMasterService.downloadTemplate(httpServletResponse);
+    }
+
+    @GetMapping("/export/AllData")
+    public void excelAll(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException {
+        valueMasterService.downloadAllData(httpServletResponse);
+    }
 }

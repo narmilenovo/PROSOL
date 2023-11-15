@@ -44,8 +44,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileNotFoundException.class)
     public ResponseEntity<Object> fileNotFoundException(FileNotFoundException ex) {
         BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
-        ex.printStackTrace();
-
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
@@ -117,10 +115,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> globalExceptionHandler(Exception ex) {
-        ex.printStackTrace();
-
         BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
-
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ExcelFileException.class)
+    public ResponseEntity<Object> excelFileExceptionHandler(ExcelFileException ex) {
+        BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

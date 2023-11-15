@@ -16,6 +16,49 @@ public class Helpers {
         return String.valueOf(chars);
     }
 
+    public static String camelCaseWordsWithSpace(String str) {
+        String[] words = str.split("\\s+");
+        StringBuilder camelCase = new StringBuilder(words[0].toLowerCase());
+
+        for (int i = 1; i < words.length; i++) {
+            String word = words[i];
+            if (!word.isEmpty()) {
+                camelCase.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1).toLowerCase());
+            }
+        }
+        return camelCase.toString();
+    }
+
+
+    public static String capitalizeWordsWithSpace(String str) {
+        str = splitCamelCase(str);
+        char[] chars = str.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            if (i == 0 || chars[i - 1] == ' ') {
+                chars[i] = Character.toUpperCase(chars[i]);
+            }
+        }
+        return String.valueOf(chars);
+    }
+
+    public static String splitCamelCase(String str) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            char currentChar = str.charAt(i);
+            if (i > 0) {
+                char previousChar = str.charAt(i - 1);
+                boolean isUpperCase = Character.isUpperCase(currentChar);
+                boolean isDigit = Character.isDigit(currentChar);
+
+                if ((isUpperCase && !Character.isUpperCase(previousChar)) || (isDigit && !Character.isDigit(previousChar))) {
+                    result.append(' ');
+                }
+            }
+            result.append(currentChar);
+        }
+        return result.toString();
+    }
+
     public static String toTitleCase(String input) {
         if (input == null || input.isEmpty()) {
             return input;

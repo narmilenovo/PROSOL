@@ -12,8 +12,8 @@ public class ValueMasterResponse {
     private Long id;
     private String value;
     private String abbreviation;
-    private String equivalent;
-    private String likelyWords;
     private String abbreviationUnit;
+    private String equivalent;
     private String equivalentUnit;
+    private String likelyWords;
 }
