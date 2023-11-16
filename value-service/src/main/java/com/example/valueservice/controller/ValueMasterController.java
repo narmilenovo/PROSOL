@@ -6,6 +6,7 @@ import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceFoundException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.example.valueservice.service.interfaces.ValueMasterService;
+import com.itextpdf.text.DocumentException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -72,5 +73,10 @@ public class ValueMasterController {
     @GetMapping("/export/AllData")
     public void excelAll(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException {
         valueMasterService.downloadAllData(httpServletResponse);
+    }
+
+    @GetMapping("/exportPdf/AllData")
+    public void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
+        valueMasterService.exportPdf(httpServletResponse);
     }
 }

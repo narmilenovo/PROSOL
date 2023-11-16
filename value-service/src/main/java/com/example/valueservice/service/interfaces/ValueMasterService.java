@@ -4,6 +4,7 @@ import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
+import com.itextpdf.text.DocumentException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,4 +28,6 @@ public interface ValueMasterService {
     void downloadAllData(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException;
 
     void uploadData(MultipartFile file) throws IOException, ExcelFileException;
+
+    void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException, ExcelFileException, DocumentException;
 }

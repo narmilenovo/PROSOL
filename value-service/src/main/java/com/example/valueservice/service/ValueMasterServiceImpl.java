@@ -8,6 +8,8 @@ import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.example.valueservice.repository.ValueMasterRepository;
 import com.example.valueservice.service.interfaces.ValueMasterService;
 import com.example.valueservice.utils.ExcelFileHelper;
+import com.example.valueservice.utils.PdfFileHelper;
+import com.itextpdf.text.DocumentException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -29,6 +31,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
     private final ModelMapper modelMapper;
     @Lazy
     private final ExcelFileHelper excelFileHelper;
+    private final PdfFileHelper pdfFileHelper;
 
     @Override
     public ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) {
@@ -76,6 +79,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
         excelFileHelper.exportTemplate(response, sheetName, clazz, contentType, extension, prefix);
     }
 
+    @Override
     public void downloadAllData(HttpServletResponse response) throws IOException, ExcelFileException {
         String sheetName = "ValueMaster";
         Class<?> clazz = ValueMasterResponse.class;
@@ -84,6 +88,17 @@ public class ValueMasterServiceImpl implements ValueMasterService {
         String prefix = "ValueMaster_";
         List<ValueMasterResponse> allValues = getAllValue();
         excelFileHelper.exportData(response, sheetName, clazz, contentType, extension, prefix, allValues);
+    }
+
+    @Override
+    public void exportPdf(HttpServletResponse response) throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
+        String headerName = "List Of Values";
+        Class<?> clazz = ValueMasterResponse.class;
+        String contentType = "application/pdf";
+        String extension = ".pdf";
+        String prefix = "ValueMaster_";
+        List<ValueMasterResponse> allValues = getAllValue();
+        pdfFileHelper.export(response, headerName, clazz, contentType, extension, prefix, allValues);
     }
 
     @Override
