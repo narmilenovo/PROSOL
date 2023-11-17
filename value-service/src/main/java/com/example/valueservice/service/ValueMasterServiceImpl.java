@@ -92,7 +92,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     @Override
     public void exportPdf(HttpServletResponse response) throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
-        String headerName = "List Of Values";
+        String headerName = "list Of values";
         Class<?> clazz = ValueMasterResponse.class;
         String contentType = "application/pdf";
         String extension = ".pdf";

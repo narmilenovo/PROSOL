@@ -15,15 +15,17 @@ import java.util.Map;
 @Component
 public class PdfFileHelper extends AbstractExporter {
 
-    private final Map<Class<?>, List<Field>> fieldCache = new HashMap<>();
-    Document document;
+    private static final Font TITLE_FONT = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, Font.UNDERLINE, BaseColor.BLACK);
+    private static final Font HEADER_FONT = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Font.BOLD, BaseColor.LIGHT_GRAY);
+    private static final Font DATA_FONT = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.UNDEFINED, BaseColor.BLACK);
+    private static final Map<Class<?>, List<Field>> fieldCache = new HashMap<>();
+    private Document document;
 
-    public void export(HttpServletResponse response, String headerName, Class<?> clazz, String contentType, String extension, String prefix, List<?> list) throws IllegalAccessException, IOException, DocumentException {
+    public void export(HttpServletResponse response, String headerName, Class<?> clazz, String contentType, String extension, String prefix, List<?> list) throws IOException, DocumentException {
         super.setResponseHeader(response, contentType, extension, prefix);
-        Rectangle pageSize = PageSize.A3;
-        document = new Document(pageSize);
-        PdfWriter writer = PdfWriter.getInstance(document, response.getOutputStream());
-        writer.setPageEvent(new PageNumberEventHandler());  // Set the PageNumberEventHandler
+
+        setUpDocument(response);
+
         document.open();
 
         writeTitle(headerName);
@@ -33,8 +35,14 @@ public class PdfFileHelper extends AbstractExporter {
         document.close();
     }
 
+    private void setUpDocument(HttpServletResponse response) throws IOException, DocumentException {
+        document = new Document(PageSize.A4);
+        PdfWriter writer = PdfWriter.getInstance(document, response.getOutputStream());
+        writer.setPageEvent(new PageNumberEventHandler());  // Set the PageNumberEventHandler
+    }
+
     private void writeTitle(String title) throws DocumentException {
-        Paragraph paragraph = new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+        Paragraph paragraph = new Paragraph(Helpers.toTitleCase(title), TITLE_FONT);
         paragraph.setAlignment(Element.ALIGN_CENTER);
         addEmptyLine(paragraph, 1);
         document.add(paragraph);
@@ -42,57 +50,61 @@ public class PdfFileHelper extends AbstractExporter {
 
     private void writeHeaderLine(Class<?> clazz) throws DocumentException {
         List<Field> fields = getCachedFields(clazz);
-
-        PdfPTable table = new PdfPTable(fields.size());
-        table.setWidthPercentage(100);
-        // Set RGB values for blue color (you can adjust these values as needed)
-        int red = 255;
-        int green = 255;
-        int blue = 255;
-
-        // Create a BaseColor with the specified RGB values
-        BaseColor blueColor = new BaseColor(red, green, blue);
-
-        // Create a Font with Helvetica-Bold, size 12, and the specified blue color
-        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Font.UNDEFINED, blueColor);
-
-//        // Set the RGB color using HEX value (e.g., #0000FF for blue)
-//        BaseColor blueColor = new BaseColor(Integer.parseInt("0000FF", 16));
-//
-//        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, blueColor);
-
+        PdfPTable table = createPdfPTable(fields.size());
         for (Field field : fields) {
             String headerName = field.getName();
-            PdfPCell cell = new PdfPCell(new Phrase(Helpers.capitalizeWordsWithSpace(headerName), headerFont));
-            // Set horizontal alignment to center
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setBackgroundColor(BaseColor.BLACK);
-            cell.setUseBorderPadding(true);
+            PdfPCell cell = createPdfPCell(Helpers.capitalizeWordsWithSpace(headerName), HEADER_FONT, true);
             table.addCell(cell);
         }
-
         document.add(table);
     }
 
-    private void writeDataLines(List<?> list) throws DocumentException, IllegalAccessException {
+    @SuppressWarnings("squid:S3011")
+    private void writeDataLines(List<?> list) throws DocumentException {
         List<Field> fields = getCachedFields(list.get(0).getClass());
-
-        PdfPTable table = new PdfPTable(fields.size());
-        table.setWidthPercentage(100);
-
+        PdfPTable table = createPdfPTable(fields.size());
         for (Object obj : list) {
             for (Field field : fields) {
-                field.setAccessible(true);
-                Object value = field.get(obj);
-                PdfPCell cell = new PdfPCell(new Phrase(value != null ? value.toString() : ""));
-                // Set horizontal alignment to center
-                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                cell.setUseBorderPadding(true);
-                table.addCell(cell);
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(obj);
+                    PdfPCell cell = createPdfPCell(value != null ? value.toString() : "", DATA_FONT, false);
+                    table.addCell(cell);
+                } catch (IllegalAccessException e) {
+                    throw new DocumentException("Error accessing field: " + field.getName(), e);
+                } finally {
+                    field.setAccessible(false);
+                }
             }
         }
-
         document.add(table);
+    }
+
+    private PdfPTable createPdfPTable(int columns) {
+        PdfPTable table = new PdfPTable(columns);
+        table.setWidthPercentage(100);
+        return table;
+    }
+
+    private PdfPCell createPdfPCell(String text, Font font, boolean isHeader) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cellPadding(cell, isHeader);
+        return cell;
+    }
+
+
+    private void cellPadding(PdfPCell cell, boolean isHeader) {
+        cell.setPaddingTop(7);
+        cell.setPaddingBottom(7);
+        cell.setPaddingLeft(10);
+        cell.setPaddingRight(10);
+        cell.setUseBorderPadding(true);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setBackgroundColor(BaseColor.WHITE);
+        if (isHeader) {
+            cell.setBackgroundColor(BaseColor.BLACK);
+        }
     }
 
     private List<Field> getCachedFields(Class<?> clazz) {
