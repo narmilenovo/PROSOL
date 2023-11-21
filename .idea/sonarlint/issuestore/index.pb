@@ -941,3 +941,5 @@ Wvalue-service/src/main/java/com/example/valueservice/configuration/WebClientCon
 avalue-service/src/main/java/com/example/valueservice/configuration/FeignDecoderConfiguration.java,3\0\30c8181d000c1e01daab5941c530c515acbe7266
 ~
 Nvalue-service/src/main/java/com/example/valueservice/client/SettingClient.java,a\7\a7d00b1aed16c384dee98428b038215ba2dcf4b7
+x
+Hvalue-service/src/main/java/com/example/valueservice/client/FeignCl.java,e\1\e11a787690011d0bd29f7e6ed5ff57ccd3d31ffb
