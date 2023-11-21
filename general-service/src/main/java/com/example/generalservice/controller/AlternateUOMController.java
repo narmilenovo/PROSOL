@@ -35,7 +35,7 @@ public class AlternateUOMController {
     }
 
 
-    @GetMapping("/getUomById/{id}")
+    @GetMapping(value = "/getUomById/{id}")
     public ResponseEntity<Object> getUomById(@PathVariable Long id) throws ResourceNotFoundException {
         AlternateUOMResponse uomResponse = alternateUOMService.getUomById(id);
         return ResponseEntity.ok(uomResponse);

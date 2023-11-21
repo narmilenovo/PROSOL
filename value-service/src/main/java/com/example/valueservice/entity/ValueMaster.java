@@ -4,7 +4,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
@@ -16,8 +18,8 @@ public class ValueMaster {
     private Long id;
     private String value;
     private String abbreviation;
-    private String abbreviationUnit;
+    private Long abbreviationUnit;
     private String equivalent;
-    private String equivalentUnit;
+    private Long equivalentUnit;
     private String likelyWords;
 }

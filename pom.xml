@@ -24,6 +24,7 @@
         <module>create-template-service</module>
         <module>value-service</module>
         <module>api-gateway</module>
+        <module>general-settings</module>
     </modules>
 
 </project>

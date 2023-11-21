@@ -1,5 +1,5 @@
 
 ¶
-java:S1130"“Remove the declaration of thrown exception 'com.example.valueservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(õĞ¾¼ÿÿÿÿÿ8Ÿˆ’Ü½1
+java:S1130 "“Remove the declaration of thrown exception 'com.example.valueservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(õĞ¾¼ÿÿÿÿÿ8‹ÅÙ‹¿1
 ±
-java:S11309"“Remove the declaration of thrown exception 'com.example.valueservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(Ï®ÅÖ8­ˆ’Ü½1
+java:S1130;"“Remove the declaration of thrown exception 'com.example.valueservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(Ï®ÅÖ8ÅÙ‹¿1

@@ -1,5 +1,6 @@
 package com.example.valueservice.dto.response;
 
+import com.example.valueservice.client.AttributeUomResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,8 +13,8 @@ public class ValueMasterResponse {
     private Long id;
     private String value;
     private String abbreviation;
-    private String abbreviationUnit;
+    private AttributeUomResponse abbreviationUnit;
     private String equivalent;
-    private String equivalentUnit;
+    private AttributeUomResponse equivalentUnit;
     private String likelyWords;
 }

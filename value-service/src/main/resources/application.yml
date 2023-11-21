@@ -19,16 +19,23 @@ spring:
     password: imu123
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           batch_size: 1000
         order_inserts: true
-        generate_statistics: true
+        #        generate_statistics: true
         format_sql: true
     show-sql: true
+
+  # Feign request/response compression
+  cloud:
+    openfeign:
+      encoder:
+        charset-from-content-type: true
+
 
 # Eureka Server configuration
 eureka:
@@ -65,3 +72,4 @@ springdoc:
     disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
+

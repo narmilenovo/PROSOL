@@ -1,8 +1,8 @@
 package com.example.api_gateway.config;
 
-import com.example.api_gateway.security.AuthenticationManager;
-import com.example.api_gateway.security.SecurityContextRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -10,10 +10,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.example.api_gateway.security.AuthenticationManager;
+import com.example.api_gateway.security.SecurityContextRepository;
+
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -55,6 +57,9 @@ public class SecurityConfig {
     private static final List<String> VENDOR = List.of(
             "/vendor/v3/api-docs"
     );
+    private static final List<String> SETTINGS = List.of(
+            "/setting/v3/api-docs"
+    );
     protected static final List<String> PERMIT_ALL_URLS = new ArrayList<>();
 
     static {
@@ -65,6 +70,7 @@ public class SecurityConfig {
         PERMIT_ALL_URLS.addAll(SALES);
         PERMIT_ALL_URLS.addAll(VENDOR);
         PERMIT_ALL_URLS.addAll(MRP);
+        PERMIT_ALL_URLS.addAll(SETTINGS);
     }
 
     @Bean

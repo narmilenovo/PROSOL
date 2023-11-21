@@ -7,16 +7,16 @@ server:
 # Spring configuration
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: GATEWAY-SERVICE  # The server application name
+    name: GATEWAY-SERVICE # The server application name
   cloud:
     gateway:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       globalcors:
         CorsConfigurations:
-          '[/**]':
+          "[/**]":
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
@@ -74,6 +74,14 @@ spring:
           filters:
             - RewritePath=/vendor/(?<path>.*), /$\{path}
 
+          # Setting Service
+        - id: SETTING-SERVICE
+          uri: lb://SETTING-SERVICE
+          predicates:
+            - Path=/setting/**
+          filters:
+            - RewritePath=/setting/(?<path>.*), /$\{path}
+
         # Common OpenApi
         - id: openapi
           uri: http://localhost:${server.port}
@@ -87,7 +95,6 @@ spring:
 #          uri: http://localhost:8761
 #          predicates:
 #            - Path=/**
-
 
 # Eureka Server configuration
 eureka:
@@ -106,7 +113,7 @@ management:
     web:
       base-path: /rest/actuator
       exposure:
-        include: '*'
+        include: "*"
 
 # OpenApi Swagger configuration
 springdoc:
@@ -157,14 +164,16 @@ springdoc:
         url: /v3/api-docs/vendor
         display-name: Vendor
 
+      - name: SETTING-SERVICE
+        url: /v3/api-docs/setting
+        display-name: General Setting
+
     use-root-path: true
 
   cache:
-    disabled: off
+    disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
-
-
 
 #logging:
 #  pattern:
@@ -172,7 +181,6 @@ springdoc:
 #  level:
 #    org.springframework.cloud.gateway: TRACE
 #    org.springframework.http.server.reactive: TRACE
-
 
 logging:
   level:

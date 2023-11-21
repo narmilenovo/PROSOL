@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 public class ValueMasterRequest {
     private String value;
     private String abbreviation;
-    private String abbreviationUnit;
+    private Long abbreviationUnit;
     private String equivalent;
-    private String equivalentUnit;
+    private Long equivalentUnit;
     private String likelyWords;
 }

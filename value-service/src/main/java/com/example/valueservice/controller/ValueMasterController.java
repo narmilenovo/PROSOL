@@ -1,5 +1,7 @@
 package com.example.valueservice.controller;
 
+import com.example.valueservice.client.AttributeUomResponse;
+import com.example.valueservice.client.SettingsClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
@@ -24,7 +26,7 @@ import java.util.List;
 public class ValueMasterController {
 
     private final ValueMasterService valueMasterService;
-
+    private final SettingsClient settingsClient;
 
     @PostMapping("/saveValue")
     public ResponseEntity<Object> saveValue(@Valid @RequestBody ValueMasterRequest valueMasterRequest) throws ResourceFoundException {
@@ -79,4 +81,15 @@ public class ValueMasterController {
     public void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
         valueMasterService.exportPdf(httpServletResponse);
     }
+
+    @GetMapping("/getAttributeUomById/{id}")
+    public ResponseEntity<Object> getAttributeUomById(@PathVariable Long id) {
+        return ResponseEntity.ok(settingsClient.getAttributeUomById(id));
+    }
+
+    @GetMapping(value = "/getAllAttributeUom/{uomId}", produces = "application/json")
+    public AttributeUomResponse getUomById(@PathVariable Long uomId) {
+        return settingsClient.getUomById(uomId);
+    }
+
 }
