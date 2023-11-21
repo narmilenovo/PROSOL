@@ -1,7 +1,7 @@
 package com.example.valueservice.controller;
 
 import com.example.valueservice.client.AttributeUomResponse;
-import com.example.valueservice.client.SettingsClient;
+import com.example.valueservice.client.SettingClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
@@ -26,7 +26,7 @@ import java.util.List;
 public class ValueMasterController {
 
     private final ValueMasterService valueMasterService;
-    private final SettingsClient settingsClient;
+    private final SettingClient settingsClient;
 
     @PostMapping("/saveValue")
     public ResponseEntity<Object> saveValue(@Valid @RequestBody ValueMasterRequest valueMasterRequest) throws ResourceFoundException {

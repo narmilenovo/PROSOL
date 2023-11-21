@@ -1,7 +1,7 @@
 package com.example.valueservice.service;
 
 import com.example.valueservice.client.AttributeUomResponse;
-import com.example.valueservice.client.SettingsClient;
+import com.example.valueservice.client.SettingClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.entity.ValueMaster;
@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,7 +33,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     private final ValueMasterRepository valueMasterRepository;
     private final ModelMapper modelMapper;
-    private final SettingsClient client;
+    private final SettingClient client;
     @Lazy
     private final ExcelFileHelper excelFileHelper;
     @Lazy
@@ -130,19 +129,10 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     private ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster) {
         ValueMasterResponse valueMasterResponse = modelMapper.map(valueMaster, ValueMasterResponse.class);
-        // Assuming that the Feign client returns ResponseEntity<Object>
-        ResponseEntity<Object> responseEntityAbbreviationUnit = client.getAttributeUomById(valueMaster.getAbbreviationUnit());
-        ResponseEntity<Object> responseEntityEquivalentUnit = client.getAttributeUomById(valueMaster.getEquivalentUnit());
 
-        // Extract the actual response body from ResponseEntity
-        Object bodyAbbreviationUnit = responseEntityAbbreviationUnit.getBody();
-        Object bodyEquivalentUnit = responseEntityEquivalentUnit.getBody();
+        AttributeUomResponse abbreviationUnit = client.getAttributeUomById(valueMaster.getAbbreviationUnit());
+        AttributeUomResponse equivalentUnit = client.getAttributeUomById(valueMaster.getEquivalentUnit());
 
-        // Map the response body to AttributeUomResponse
-        AttributeUomResponse abbreviationUnit = modelMapper.map(bodyAbbreviationUnit, AttributeUomResponse.class);
-        AttributeUomResponse equivalentUnit = modelMapper.map(bodyEquivalentUnit, AttributeUomResponse.class);
-
-        // Set the mapped objects in the ValueMasterResponse
         valueMasterResponse.setAbbreviationUnit(abbreviationUnit);
         valueMasterResponse.setEquivalentUnit(equivalentUnit);
         return valueMasterResponse;
