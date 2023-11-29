@@ -26,12 +26,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
-    private final LogoutHandler logoutHandler;
-    private final AuthEntryPoint unauthorizedHandler;
-
-
     private static final List<String> PERMIT_ALL_URLS = Arrays.asList(
             "/auth/**",
             "/saveUser", "/saveRole", "/savePrivilege",
@@ -45,6 +39,10 @@ public class SecurityConfiguration {
             "/webjars/**",
             "/swagger-ui.html"
     );
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final AuthenticationProvider authenticationProvider;
+    private final LogoutHandler logoutHandler;
+    private final AuthEntryPoint unauthorizedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -60,12 +58,12 @@ public class SecurityConfiguration {
                 .exceptionHandling(
                         exception -> exception.authenticationEntryPoint(unauthorizedHandler)
                 )
-                .rememberMe(remember -> remember.key("imran")
+                /*.rememberMe(remember -> remember.key("imran")
                                 .rememberMeParameter("remember")
                                 .rememberMeCookieName("farhan")
                                 .tokenValiditySeconds(7 * 24 * 60 * 60)
 //                        .tokenRepository(persistentTokenRepository())
-                )
+                )*/
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

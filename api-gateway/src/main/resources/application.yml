@@ -3,6 +3,7 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
+  address: 192.168.1.53
 
 # Spring configuration
 spring:
@@ -82,9 +83,17 @@ spring:
           filters:
             - RewritePath=/setting/(?<path>.*), /$\{path}
 
+        # Value Service
+        - id: VALUE-SERVICE
+          uri: lb://VALUE-SERVICE
+          predicates:
+            - Path=/value/**
+          filters:
+            - RewritePath=/value/(?<path>.*), /$\{path}
+
         # Common OpenApi
         - id: openapi
-          uri: http://localhost:${server.port}
+          uri: http://${server.address}:${server.port}
           predicates:
             - Path=/v3/api-docs/**
           filters:
@@ -99,8 +108,9 @@ spring:
 # Eureka Server configuration
 eureka:
   instance:
-    hostname: localhost
+    hostname: 192.168.1.53
     lease-renewal-interval-in-seconds: 30
+    prefer-ip-address: true
   client:
     registerWithEureka: true
     fetchRegistry: true
@@ -114,6 +124,14 @@ management:
       base-path: /rest/actuator
       exposure:
         include: "*"
+
+  # Zipkin configuration
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
 
 # OpenApi Swagger configuration
 springdoc:
@@ -166,13 +184,17 @@ springdoc:
 
       - name: SETTING-SERVICE
         url: /v3/api-docs/setting
-        display-name: General Setting
+        display-name: Setting
+
+      - name: VALUE-SERVICE
+        url: /v3/api-docs/value
+        display-name: Value
 
     use-root-path: true
 
   cache:
     disabled: false
-  show-actuator: false
+  show-actuator: true
   writer-with-default-pretty-printer: true
 
 #logging:
@@ -184,4 +206,7 @@ springdoc:
 
 logging:
   level:
-    org.springframework.security: DEBUG
+    root: info
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: info
+    org.springframework.cloud.gateway: trace
+    org.springframework.security: debug

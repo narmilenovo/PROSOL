@@ -25,12 +25,11 @@ import java.util.List;
 @Slf4j
 public class OpenApiConfig {
 
+    public static final String BEARER_AUTH = "bearerAuth";
     @Value("${springdoc.service.title}")
     private String serviceTitle;
-
     @Value("${springdoc.service.version}")
     private String serviceVersion;
-    public static final String BEARER_AUTH = "bearerAuth";
 
     @Bean
     public OpenAPI customOpenAPI() {

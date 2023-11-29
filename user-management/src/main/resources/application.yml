@@ -53,7 +53,16 @@ management:
     web:
       base-path: /rest/actuator
       exposure:
-        include: '*'
+        include: "*"
+
+  # Zipkin configuration
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+
 
 
 # OpenApi Swagger configuration

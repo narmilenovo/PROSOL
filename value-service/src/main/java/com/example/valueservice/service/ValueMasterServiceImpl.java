@@ -12,11 +12,16 @@ import com.example.valueservice.service.interfaces.ValueMasterService;
 import com.example.valueservice.utils.ExcelFileHelper;
 import com.example.valueservice.utils.PdfFileHelper;
 import com.itextpdf.text.DocumentException;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +39,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
     private final ValueMasterRepository valueMasterRepository;
     private final ModelMapper modelMapper;
     private final SettingClient client;
+    private final Tracer tracer;
     @Lazy
     private final ExcelFileHelper excelFileHelper;
     @Lazy
@@ -48,29 +54,44 @@ public class ValueMasterServiceImpl implements ValueMasterService {
     }
 
     @Override
+    @CachePut(value = "valueMaster")
     public List<ValueMasterResponse> getAllValue() {
         List<ValueMaster> allValues = valueMasterRepository.findAll();
+        log.info("Fetch Data from Db {}", allValues);
         return allValues.stream()
                 .sorted(Comparator.comparing(ValueMaster::getId))
                 .map(this::mapToValueMasterResponse)
                 .toList();
     }
 
+
     @Override
+    @Cacheable(value = "valueMaster", key = "#id")
     public ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException {
         ValueMaster valueMaster = findValueById(id);
+        log.info("Fetch Data from Db {}", valueMaster);
         return mapToValueMasterResponse(valueMaster);
     }
 
     @Override
+    @CachePut(value = "valueMaster", key = "#id")
     public ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest) throws ResourceNotFoundException {
-        ValueMaster existingValueMaster = findValueById(id);
-        modelMapper.map(updateValueMasterRequest, existingValueMaster);
-        ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
-        return mapToValueMasterResponse(updatedValueMaster);
+        try {
+            ValueMaster existingValueMaster = findValueById(id);
+            modelMapper.map(updateValueMasterRequest, existingValueMaster);
+            ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
+            log.info("Update Data from Db {}", updatedValueMaster);
+            return mapToValueMasterResponse(updatedValueMaster);
+        } catch (Exception e) {
+            // Log the exception or handle it as appropriate for your application.
+            log.error("Error updating cache for ValueMaster with ID {}: {}", id, e.getMessage());
+            throw new RuntimeException("Error updating ValueMaster", e); // You can throw a more specific exception if needed.
+        }
     }
 
+
     @Override
+    @CacheEvict(value = "valueMaster", allEntries = true)
     public void deleteValueId(Long id) throws ResourceNotFoundException {
         ValueMaster valueMaster = findValueById(id);
         valueMasterRepository.deleteById(valueMaster.getId());
@@ -120,22 +141,24 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     private ValueMaster findValueById(Long id) throws ResourceNotFoundException {
         Optional<ValueMaster> valueMaster = valueMasterRepository.findById(id);
-        if (valueMaster.isEmpty()) {
-            throw new ResourceNotFoundException("Value Master with this ID Not found");
-        }
-        return valueMaster.get();
+        return valueMaster.orElseThrow(() -> new ResourceNotFoundException("Value Master with this ID Not found"));
     }
 
 
     private ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster) {
         ValueMasterResponse valueMasterResponse = modelMapper.map(valueMaster, ValueMasterResponse.class);
 
-        AttributeUomResponse abbreviationUnit = client.getAttributeUomById(valueMaster.getAbbreviationUnit());
-        AttributeUomResponse equivalentUnit = client.getAttributeUomById(valueMaster.getEquivalentUnit());
+        Span attributeUomLookUp = tracer.nextSpan().name("AttributeUomLookUp");
 
-        valueMasterResponse.setAbbreviationUnit(abbreviationUnit);
-        valueMasterResponse.setEquivalentUnit(equivalentUnit);
-        return valueMasterResponse;
+        try (Tracer.SpanInScope aUom = tracer.withSpan(attributeUomLookUp.start())) {
+            AttributeUomResponse abbreviationUnit = client.getAttributeUomById(valueMaster.getAbbreviationUnit());
+            AttributeUomResponse equivalentUnit = client.getAttributeUomById(valueMaster.getEquivalentUnit());
+            valueMasterResponse.setAbbreviationUnit(abbreviationUnit);
+            valueMasterResponse.setEquivalentUnit(equivalentUnit);
+            return valueMasterResponse;
+        } finally {
+            attributeUomLookUp.end();
+        }
     }
 
 

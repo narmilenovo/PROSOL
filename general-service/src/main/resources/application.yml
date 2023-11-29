@@ -31,11 +31,28 @@ eureka:
   instance:
     hostname: localhost
     lease-renewal-interval-in-seconds: 30
+    prefer-ip-address:
   client:
     registerWithEureka: true
     fetchRegistry: true
     service-url:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+
+# Actuator endpoints configuration
+management:
+  endpoints:
+    web:
+      base-path: /rest/actuator
+      exposure:
+        include: "*"
+
+  # Zipkin configuration
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
 
 # OpenApi Swagger configuration
 springdoc:
@@ -60,3 +77,4 @@ springdoc:
     disabled: off
   show-actuator: false
   writer-with-default-pretty-printer: true
+

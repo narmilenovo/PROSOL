@@ -38,6 +38,23 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
 
+# Actuator endpoints configuration
+management:
+  endpoints:
+    web:
+      base-path: /rest/actuator
+      exposure:
+        include: "*"
+
+  # Zipkin configuration
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+
+
 # OpenApi Swagger configuration
 springdoc:
   service:

@@ -1,8 +1,8 @@
 package com.example.api_gateway.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.example.api_gateway.security.AuthenticationManager;
+import com.example.api_gateway.security.SecurityContextRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -10,12 +10,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-
-import com.example.api_gateway.security.AuthenticationManager;
-import com.example.api_gateway.security.SecurityContextRepository;
-
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -23,8 +21,6 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final AuthenticationManager authenticationManager;
-    private final SecurityContextRepository securityContextRepository;
     protected static final List<String> SWAGGER = List.of(
             "/v3/api-docs/**",
             "/swagger-resources/**",
@@ -40,17 +36,16 @@ public class SecurityConfig {
             "/actuator/**"
 
     );
+    protected static final List<String> PERMIT_ALL_URLS = new ArrayList<>();
     private static final List<String> GENERAL = List.of(
             "/general/v3/api-docs"
     );
-
     private static final List<String> SALES = List.of(
             "/sales/v3/api-docs"
     );
     private static final List<String> PLANT = List.of(
             "/plant/v3/api-docs"
     );
-
     private static final List<String> MRP = List.of(
             "/mrp/v3/api-docs"
     );
@@ -60,7 +55,9 @@ public class SecurityConfig {
     private static final List<String> SETTINGS = List.of(
             "/setting/v3/api-docs"
     );
-    protected static final List<String> PERMIT_ALL_URLS = new ArrayList<>();
+    private static final List<String> VALUE = List.of(
+            "/value/v3/api-docs"
+    );
 
     static {
         PERMIT_ALL_URLS.addAll(SWAGGER);
@@ -71,7 +68,11 @@ public class SecurityConfig {
         PERMIT_ALL_URLS.addAll(VENDOR);
         PERMIT_ALL_URLS.addAll(MRP);
         PERMIT_ALL_URLS.addAll(SETTINGS);
+        PERMIT_ALL_URLS.addAll(VALUE);
     }
+
+    private final AuthenticationManager authenticationManager;
+    private final SecurityContextRepository securityContextRepository;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
