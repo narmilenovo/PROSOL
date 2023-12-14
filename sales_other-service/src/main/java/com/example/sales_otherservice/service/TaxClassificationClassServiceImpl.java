@@ -9,7 +9,6 @@ import com.example.sales_otherservice.repository.TaxClassificationClassRepositor
 import com.example.sales_otherservice.service.interfaces.TaxClassificationClassService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,7 +36,6 @@ public class TaxClassificationClassServiceImpl implements TaxClassificationClass
     }
 
     @Override
-    @Cacheable("tcc")
     public List<TaxClassificationClassResponse> getAllTcc() {
         List<TaxClassificationClass> taxClassificationClasses = taxClassificationClassRepository.findAll();
         return taxClassificationClasses.stream()
@@ -47,14 +45,12 @@ public class TaxClassificationClassServiceImpl implements TaxClassificationClass
     }
 
     @Override
-    @Cacheable("tcc")
     public TaxClassificationClassResponse getTccById(Long id) throws ResourceNotFoundException {
         TaxClassificationClass classificationClass = this.findTccById(id);
         return mapToTaxClassificationClassResponse(classificationClass);
     }
 
     @Override
-    @Cacheable("tcc")
     public List<TaxClassificationClassResponse> findAllStatusTrue() {
         List<TaxClassificationClass> taxClassificationClasses = taxClassificationClassRepository.findAllByTccStatusIsTrue();
         return taxClassificationClasses.stream()

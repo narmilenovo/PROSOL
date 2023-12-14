@@ -1,5 +1,8 @@
 package com.example.user_management.controller;
 
+import com.example.user_management.client.DepartmentResponse;
+import com.example.user_management.client.PlantResponse;
+import com.example.user_management.client.PlantServiceClient;
 import com.example.user_management.dto.request.*;
 import com.example.user_management.dto.response.BadRequestResponse;
 import com.example.user_management.dto.response.InvalidDataResponse;
@@ -17,6 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +41,7 @@ public class UserController {
     private final UserService userService;
     private final UserAccountService userAccountService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PlantServiceClient plantServiceClient;
 
     @Operation(summary = SWG_AUTH_REGISTER_OPERATION, responses = {
             @ApiResponse(responseCode = "201", description = SWG_AUTH_REGISTER_MESSAGE, content = {
@@ -49,7 +54,6 @@ public class UserController {
                     @Content(schema = @Schema(implementation = InvalidDataResponse.class))
             })
     })
-
     @PostMapping("/saveUser")
     public ResponseEntity<Object> saveUser(@Valid @RequestBody UserRequest userRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveUser").toUriString());
@@ -82,8 +86,16 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class)))
     })
     @GetMapping(value = "/getAllUsers")
-    public ResponseEntity<Object> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
+    public ResponseEntity<Object> getAllUsers(@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show) {
+        if (show == null) {
+            return ResponseEntity.ok(userService.getAllUsers(show));
+        }
+        List<?> users = switch (show) {
+            case "p" -> userService.getAllUserPlants(show);
+            case "d" -> userService.getAllUserDepartment(show);
+            case "pd" -> userService.getAllUserDepartmentPlants(show);
+            default -> userService.getAllUsers(show);
+        };
         return ResponseEntity.ok(users);
     }
 
@@ -93,8 +105,16 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class)))
     })
     @GetMapping("/getUserById/{id}")
-    public ResponseEntity<Object> getUserById(@PathVariable Long id) throws ResourceNotFoundException {
-        UserResponse userResponse = userService.getUserById(id);
+    public ResponseEntity<Object> getUserById(@PathVariable Long id, @Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show) throws ResourceNotFoundException {
+        if (show == null) {
+            return ResponseEntity.ok(userService.getUserById(id, show));
+        }
+        Object userResponse = switch (show) {
+            case "p" -> userService.getUserPlantById(id, show);
+            case "d" -> userService.getUserDepartmentById(id, show);
+            case "pd" -> userService.getUserDepartmentPlantById(id, show);
+            default -> userService.getUserById(id, show);
+        };
         return ResponseEntity.ok(userResponse);
     }
 
@@ -295,5 +315,14 @@ public class UserController {
         }
     }
 
+    @GetMapping("/getDepartmentById/{id}")
+    public DepartmentResponse demo(@RequestParam Long id) {
+        return plantServiceClient.getDepartmentById(id);
+    }
+
+    @GetMapping("/getPlantById/{plantId}")
+    PlantResponse getPlantById(@PathVariable Long plantId) {
+        return plantServiceClient.getPlantById(plantId);
+    }
 
 }

@@ -1,13 +1,12 @@
 package com.example.createtemplateservice.jpa.dto.response;
 
 import com.example.createtemplateservice.jpa.entity.Type;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Date;
+import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class DictionaryResponse {
 
     private Long id;
@@ -19,4 +18,11 @@ public class DictionaryResponse {
     private String nmDefinition;
     private Type type;
     private String similarSearchItems;
+    private List<Long> nmUoms;
+    private List<DictionaryAttributeResponse> attributes;
+    private String image;
+    private String createdBy;
+    private String updatedBy;
+    private Date createdAt;
+    private Date updatedAt;
 }

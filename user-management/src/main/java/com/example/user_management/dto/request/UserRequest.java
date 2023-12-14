@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -42,7 +44,7 @@ public class UserRequest {
 
     private Long departmentId;
 
-    private String plant;
+    private List<Long> plantId;
 
     @Schema(description = "Indicates if the user will be enabled or not")
     private Boolean status = true;

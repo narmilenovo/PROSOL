@@ -9,7 +9,6 @@ import com.example.sales_otherservice.repository.PurchasingGroupRepository;
 import com.example.sales_otherservice.service.interfaces.PurchasingGroupService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,7 +36,6 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
     }
 
     @Override
-    @Cacheable("pg")
     public List<PurchasingGroupResponse> getAllPg() {
         List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAll();
         return purchasingGroups.stream()
@@ -48,14 +46,12 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
     }
 
     @Override
-    @Cacheable("pg")
     public PurchasingGroupResponse getPgById(Long id) throws ResourceNotFoundException {
         PurchasingGroup purchasingGroup = this.findPgById(id);
         return mapToPurchasingGroupResponse(purchasingGroup);
     }
 
     @Override
-    @Cacheable("pg")
     public List<PurchasingGroupResponse> findAllStatusTrue() {
         List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAllByPgStatusIsTrue();
         return purchasingGroups.stream()

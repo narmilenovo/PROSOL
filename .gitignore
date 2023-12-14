@@ -37,4 +37,8 @@ build/
 ### Mac OS ###
 .DS_Store
 
+### BanuPriya ###
 /general-settings
+/plant-service
+/MRPData
+/attributemaster

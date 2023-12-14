@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Schema(description = "Parameters required to create or update user")
 @Data
 @AllArgsConstructor
@@ -22,7 +24,7 @@ public class UpdateUserRequest {
 
     private Long departmentId;
 
-    private String plant;
+    private List<Long> plantId;
 
     private Boolean status = true;
 

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,4 +19,7 @@ public class DictionaryRequest {
     private String nmDefinition;
     private Type type;
     private String similarSearchItems;
+    private List<Long> nmUoms;
+    private List<DictionaryAttributeRequest> attributes;
+    private String image;
 }

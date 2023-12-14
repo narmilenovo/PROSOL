@@ -11,7 +11,6 @@ import com.example.sales_otherservice.repository.SalesOrganizationRepository;
 import com.example.sales_otherservice.service.interfaces.DistributionChannelService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -31,8 +30,8 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
         String dcName = deliveringPlantRequest.getDcName();
         boolean exists = distributionChannelRepository.existsByDcCodeOrDcName(dcCode, dcName);
         if (!exists) {
-
             DistributionChannel channel = modelMapper.map(deliveringPlantRequest, DistributionChannel.class);
+            channel.setId(null);
             channel.setSalesOrganization(setSalesOrg(deliveringPlantRequest.getSalesOrganizationId()));
             DistributionChannel savedChannel = distributionChannelRepository.save(channel);
             return mapToDistributionChannelResponse(savedChannel);
@@ -49,7 +48,6 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
     }
 
     @Override
-    @Cacheable("dc")
     public List<DistributionChannelResponse> getAllDc() {
         List<DistributionChannel> distributionChannels = distributionChannelRepository.findAll();
         return distributionChannels.stream()
@@ -59,14 +57,12 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
     }
 
     @Override
-    @Cacheable("dc")
     public DistributionChannelResponse getDcById(Long id) throws ResourceNotFoundException {
         DistributionChannel channel = this.findDCById(id);
         return mapToDistributionChannelResponse(channel);
     }
 
     @Override
-    @Cacheable("dc")
     public List<DistributionChannelResponse> findAllStatusTrue() {
         List<DistributionChannel> distributionChannels = distributionChannelRepository.findAllByDcStatusIsTrue();
         return distributionChannels.stream()
@@ -83,6 +79,7 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
         boolean exists = distributionChannelRepository.existsByDcCodeAndIdNotOrDcNameAndIdNot(dcCode, id, dcName, id);
         if (!exists) {
             modelMapper.map(updateDistributionChannelRequest, existingChannel);
+            existingChannel.setId(id);
             existingChannel.setSalesOrganization(setSalesOrg(updateDistributionChannelRequest.getSalesOrganizationId()));
             DistributionChannel updatedChannel = distributionChannelRepository.save(existingChannel);
             return mapToDistributionChannelResponse(updatedChannel);

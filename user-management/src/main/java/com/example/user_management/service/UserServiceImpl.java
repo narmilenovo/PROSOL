@@ -1,5 +1,6 @@
 package com.example.user_management.service;
 
+import com.example.user_management.client.*;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
@@ -14,7 +15,6 @@ import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -29,12 +29,14 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final ModelMapper modelMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final PlantServiceClient plantService;
 
     @Override
     public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException {
         boolean exists = userRepository.existsByEmail(userRequest.getEmail());
         if (!exists) {
             User user = modelMapper.map(userRequest, User.class);
+            user.setId(null);
             user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
             user.setRoles(setToString(userRequest.getRoles()));
             user.setDepartmentId(userRequest.getDepartmentId());
@@ -52,6 +54,7 @@ public class UserServiceImpl implements UserService {
             boolean exists = userRepository.existsByEmail(userRequest.getEmail());
             if (!exists) {
                 User user = modelMapper.map(userRequest, User.class);
+                user.setId(null);
                 user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
                 user.setStatus(false);
                 user.setDepartmentId(userRequest.getDepartmentId());
@@ -64,8 +67,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable("users")
-    public List<UserResponse> getAllUsers() {
+    public List<UserResponse> getAllUsers(String show) {
         List<User> users = userRepository.findAll();
         return users.stream()
                 .sorted(Comparator.comparing(User::getId))
@@ -74,10 +76,54 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable("users")
-    public UserResponse getUserById(Long id) throws ResourceNotFoundException {
+    public List<UserPlantResponse> getAllUserPlants(String show) {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .sorted(Comparator.comparing(User::getId))
+                .map(this::mapToUserPlantResponse)
+                .toList();
+    }
+
+    @Override
+    public List<UserDepartmentResponse> getAllUserDepartment(String show) {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .sorted(Comparator.comparing(User::getId))
+                .map(this::mapToUserDepartmentResponse)
+                .toList();
+    }
+
+    @Override
+    public List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show) {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .sorted(Comparator.comparing(User::getId))
+                .map(this::mapToUserDepartmentPlantResponse)
+                .toList();
+    }
+
+    @Override
+    public UserResponse getUserById(Long id, String show) throws ResourceNotFoundException {
         User user = findUserById(id);
         return mapToUserResponse(user);
+    }
+
+    @Override
+    public UserPlantResponse getUserPlantById(Long id, String show) throws ResourceNotFoundException {
+        User user = findUserById(id);
+        return mapToUserPlantResponse(user);
+    }
+
+    @Override
+    public UserDepartmentResponse getUserDepartmentById(Long id, String show) throws ResourceNotFoundException {
+        User user = findUserById(id);
+        return mapToUserDepartmentResponse(user);
+    }
+
+    @Override
+    public UserDepartmentPlantResponse getUserDepartmentPlantById(Long id, String show) throws ResourceNotFoundException {
+        User user = findUserById(id);
+        return mapToUserDepartmentPlantResponse(user);
     }
 
     @Override
@@ -96,8 +142,9 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException {
         User existingUser = this.findUserById(id);
         modelMapper.map(updateUserRequest, existingUser);
+        existingUser.setId(id);
         existingUser.setRoles(setToString(updateUserRequest.getRoles()));
-        existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
+//        existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
         User updateUser = userRepository.save(existingUser);
         return mapToUserResponse(updateUser);
     }
@@ -171,6 +218,38 @@ public class UserServiceImpl implements UserService {
 
     private UserResponse mapToUserResponse(User user) {
         return modelMapper.map(user, UserResponse.class);
+    }
+
+    private UserDepartmentResponse mapToUserDepartmentResponse(User user) {
+        UserDepartmentResponse userDepartmentResponse = modelMapper.map(user, UserDepartmentResponse.class);
+        DepartmentResponse department = plantService.getDepartmentById(user.getDepartmentId());
+        userDepartmentResponse.setDepartment(department);
+        return userDepartmentResponse;
+    }
+
+    private UserPlantResponse mapToUserPlantResponse(User user) {
+        UserPlantResponse userPlantResponse = modelMapper.map(user, UserPlantResponse.class);
+        List<PlantResponse> plants = new ArrayList<>();
+        for (Long plantId : user.getPlantId()) {
+            PlantResponse plant = plantService.getPlantById(plantId);
+            plants.add(plant);
+        }
+        userPlantResponse.setPlants(plants);
+        return userPlantResponse;
+    }
+
+    private UserDepartmentPlantResponse mapToUserDepartmentPlantResponse(User user) {
+
+        UserDepartmentPlantResponse userDepartmentPlantResponse = modelMapper.map(user, UserDepartmentPlantResponse.class);
+        DepartmentResponse department = plantService.getDepartmentById(user.getDepartmentId());
+        userDepartmentPlantResponse.setDepartment(department);
+        List<PlantResponse> plants = new ArrayList<>();
+        for (Long plantId : user.getPlantId()) {
+            PlantResponse plant = plantService.getPlantById(plantId);
+            plants.add(plant);
+        }
+        userDepartmentPlantResponse.setPlants(plants);
+        return userDepartmentPlantResponse;
     }
 
     private User findUserById(Long id) throws ResourceNotFoundException {

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -25,7 +26,8 @@ public class User extends BaseEntity {
     private String phone;
     private String business;
     private Long departmentId;
-    private String plant;
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<Long> plantId;
     //    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean status;
 
@@ -37,6 +39,4 @@ public class User extends BaseEntity {
             inverseJoinColumns = {
                     @JoinColumn(name = "role_id")})
     private Set<Role> roles;
-
-
 }

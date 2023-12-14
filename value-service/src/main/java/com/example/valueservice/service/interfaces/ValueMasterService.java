@@ -1,5 +1,6 @@
 package com.example.valueservice.service.interfaces;
 
+import com.example.valueservice.client.ValueAttributeUom;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
@@ -14,7 +15,7 @@ import java.util.List;
 public interface ValueMasterService {
     ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest);
 
-    List<ValueMasterResponse> getAllValue();
+    List<ValueMasterResponse> getAllValue(boolean attributeUom);
 
     ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException;
 
@@ -30,4 +31,8 @@ public interface ValueMasterService {
     void uploadData(MultipartFile file) throws IOException, ExcelFileException;
 
     void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException, ExcelFileException, DocumentException;
+
+    List<ValueAttributeUom> getAllValueAttributeUom();
+
+    ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException;
 }

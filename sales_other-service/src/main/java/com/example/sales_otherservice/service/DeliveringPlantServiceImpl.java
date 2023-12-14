@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import com.example.sales_otherservice.clients.DpPlant;
 import com.example.sales_otherservice.clients.PlantClient;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
@@ -10,7 +11,6 @@ import com.example.sales_otherservice.repository.DeliveringPlantRepository;
 import com.example.sales_otherservice.service.interfaces.DeliveringPlantService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -39,7 +39,6 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     }
 
     @Override
-    @Cacheable("dp")
     public List<DeliveringPlantResponse> getAllDp() {
         List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAll();
         return deliveringPlants.stream()
@@ -49,14 +48,12 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
     }
 
     @Override
-    @Cacheable("dp")
     public DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException {
         DeliveringPlant deliveringPlant = this.findDpById(id);
         return mapToDeliveringPlantResponse(deliveringPlant);
     }
 
     @Override
-    @Cacheable("dp")
     public List<DeliveringPlantResponse> findAllStatusTrue() {
         List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAllByDpStatusIsTrue();
         return deliveringPlants.stream()
@@ -73,6 +70,8 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
         boolean exist = deliveringPlantRepository.existsByDpCodeAndIdNotOrDpNameAndIdNot(dpCode, id, dpName, id);
         if (!exist) {
             modelMapper.map(updateDeliveringPlantRequest, existingDeliveringPlant);
+            existingDeliveringPlant.setId(id);
+//            existingDeliveringPlant.setId(existingDeliveringPlant.getId());
             DeliveringPlant updatedDeliveringPlant = deliveringPlantRepository.save(existingDeliveringPlant);
             return mapToDeliveringPlantResponse(updatedDeliveringPlant);
         }
@@ -85,13 +84,31 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
         deliveringPlantRepository.deleteById(deliveringPlant.getId());
     }
 
+    @Override
+    public List<DpPlant> getAllDpPlant() {
+        return deliveringPlantRepository.findAll().stream()
+                .sorted(Comparator.comparing(DeliveringPlant::getId))
+                .map(this::mapToDpPlant)
+                .toList();
+    }
+
+    @Override
+    public DpPlant getDpPlantById(Long id) throws ResourceNotFoundException {
+        DeliveringPlant deliveringPlant = this.findDpById(id);
+        return mapToDpPlant(deliveringPlant);
+    }
+
     private DeliveringPlantResponse mapToDeliveringPlantResponse(DeliveringPlant deliveringPlant) {
-        DeliveringPlantResponse deliveringPlantResponse = modelMapper.map(deliveringPlant, DeliveringPlantResponse.class);
+        return modelMapper.map(deliveringPlant, DeliveringPlantResponse.class);
+    }
+
+    private DpPlant mapToDpPlant(DeliveringPlant deliveringPlant) {
+        DpPlant dpPlant = modelMapper.map(deliveringPlant, DpPlant.class);
         // Check if the id is null before getting the plant information
         if (deliveringPlant.getPlantId() != null) {
-            deliveringPlantResponse.setPlant(plantClient.getPlantById(deliveringPlant.getPlantId()));
+            dpPlant.setPlant(plantClient.getPlantById(deliveringPlant.getPlantId()));
         }
-        return deliveringPlantResponse;
+        return dpPlant;
     }
 
 

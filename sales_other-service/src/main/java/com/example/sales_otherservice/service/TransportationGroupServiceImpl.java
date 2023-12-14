@@ -9,7 +9,6 @@ import com.example.sales_otherservice.repository.TransportationGroupRepository;
 import com.example.sales_otherservice.service.interfaces.TransportationGroupService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,7 +36,6 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
     }
 
     @Override
-    @Cacheable("tg")
     public List<TransportationGroupResponse> getAllTg() {
         List<TransportationGroup> transportationGroups = transportationGroupRepository.findAll();
         return transportationGroups.stream()
@@ -47,14 +45,12 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
     }
 
     @Override
-    @Cacheable("tg")
     public TransportationGroupResponse getTgById(Long id) throws ResourceNotFoundException {
         TransportationGroup transportationGroup = this.findTgById(id);
         return mapToTransportationGroupResponse(transportationGroup);
     }
 
     @Override
-    @Cacheable("tg")
     public List<TransportationGroupResponse> findAllStatusTrue() {
         List<TransportationGroup> transportationGroups = transportationGroupRepository.findAllByTgStatusIsTrue();
         return transportationGroups.stream()

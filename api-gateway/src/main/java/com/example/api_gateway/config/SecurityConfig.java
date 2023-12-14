@@ -58,6 +58,12 @@ public class SecurityConfig {
     private static final List<String> VALUE = List.of(
             "/value/v3/api-docs"
     );
+    private static final List<String> ATTRIBUTE = List.of(
+            "/attribute/v3/api-docs"
+    );
+    private static final List<String> DICTIONARY = List.of(
+            "/dictionary/v3/api-docs"
+    );
 
     static {
         PERMIT_ALL_URLS.addAll(SWAGGER);
@@ -69,6 +75,8 @@ public class SecurityConfig {
         PERMIT_ALL_URLS.addAll(MRP);
         PERMIT_ALL_URLS.addAll(SETTINGS);
         PERMIT_ALL_URLS.addAll(VALUE);
+        PERMIT_ALL_URLS.addAll(ATTRIBUTE);
+        PERMIT_ALL_URLS.addAll(DICTIONARY);
     }
 
     private final AuthenticationManager authenticationManager;

@@ -17,9 +17,10 @@ spring:
     username: postgres
     url: jdbc:postgresql://localhost:5432/Prosol
     password: imu123
+
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -31,7 +32,7 @@ eureka:
   instance:
     hostname: localhost
     lease-renewal-interval-in-seconds: 30
-    prefer-ip-address:
+    prefer-ip-address: true
   client:
     registerWithEureka: true
     fetchRegistry: true

@@ -27,15 +27,25 @@ public class DeliveringPlantController {
     }
 
     @GetMapping("/getAllDp")
-    public ResponseEntity<Object> getAllDp() {
-        List<DeliveringPlantResponse> allDp = deliveringPlantService.getAllDp();
+    public ResponseEntity<Object> getAllDp(@RequestParam boolean plant) {
+        List<?> allDp;
+        if (plant) {
+            allDp = deliveringPlantService.getAllDpPlant();
+        } else {
+            allDp = deliveringPlantService.getAllDp();
+        }
         return ResponseEntity.ok(allDp);
     }
 
 
     @GetMapping("/getDpById/{id}")
-    public ResponseEntity<Object> getDpById(@PathVariable Long id) throws ResourceNotFoundException {
-        DeliveringPlantResponse dpById = deliveringPlantService.getDpById(id);
+    public ResponseEntity<Object> getDpById(@PathVariable Long id, @RequestParam boolean plant) throws ResourceNotFoundException {
+        Object dpById;
+        if (plant) {
+            dpById = deliveringPlantService.getDpPlantById(id);
+        } else {
+            dpById = deliveringPlantService.getDpById(id);
+        }
         return ResponseEntity.ok(dpById);
     }
 

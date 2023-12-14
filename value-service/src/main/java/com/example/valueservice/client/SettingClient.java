@@ -1,15 +1,15 @@
 package com.example.valueservice.client;
 
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.service.annotation.GetExchange;
-import org.springframework.web.service.annotation.HttpExchange;
 
-@HttpExchange
+@FeignClient(name = "SETTING-SERVICE")
 public interface SettingClient {
 
-    @GetExchange("/getAllAttributeUom/{uomId}")
-    AttributeUomResponse getUomById(@PathVariable Long uomId);
+    @GetMapping("/getAllAttributeUom/{uomId}")
+    AttributeUom getUomById(@PathVariable Long uomId);
 
-    @GetExchange("/getAttributeUomById/{id}")
-    AttributeUomResponse getAttributeUomById(@PathVariable Long id);
+    @GetMapping("/getAttributeUomById/{id}")
+    AttributeUom getAttributeUomById(@PathVariable Long id);
 }

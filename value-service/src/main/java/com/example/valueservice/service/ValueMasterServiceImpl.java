@@ -1,7 +1,8 @@
 package com.example.valueservice.service;
 
-import com.example.valueservice.client.AttributeUomResponse;
+import com.example.valueservice.client.AttributeUom;
 import com.example.valueservice.client.SettingClient;
+import com.example.valueservice.client.ValueAttributeUom;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.entity.ValueMaster;
@@ -38,7 +39,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     private final ValueMasterRepository valueMasterRepository;
     private final ModelMapper modelMapper;
-    private final SettingClient client;
+    private final SettingClient settingClient;
     private final Tracer tracer;
     @Lazy
     private final ExcelFileHelper excelFileHelper;
@@ -55,12 +56,23 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
     @Override
     @CachePut(value = "valueMaster")
-    public List<ValueMasterResponse> getAllValue() {
+    public List<ValueMasterResponse> getAllValue(boolean attributeUom) {
         List<ValueMaster> allValues = valueMasterRepository.findAll();
         log.info("Fetch Data from Db {}", allValues);
         return allValues.stream()
                 .sorted(Comparator.comparing(ValueMaster::getId))
                 .map(this::mapToValueMasterResponse)
+                .toList();
+    }
+
+    @Override
+    @CachePut(value = "valueAttributeUom")
+    public List<ValueAttributeUom> getAllValueAttributeUom() {
+        List<ValueMaster> allValues = valueMasterRepository.findAll();
+        log.info("Fetch Data from Db {}", allValues);
+        return allValues.stream()
+                .sorted(Comparator.comparing(ValueMaster::getId))
+                .map(this::mapToValueAttributeUom)
                 .toList();
     }
 
@@ -74,11 +86,21 @@ public class ValueMasterServiceImpl implements ValueMasterService {
     }
 
     @Override
+    @Cacheable(value = "valueAttributeUom", key = "#id")
+    public ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException {
+        ValueMaster valueMaster = findValueById(id);
+        log.info("Fetch Data from Db {}", valueMaster);
+        return mapToValueAttributeUom(valueMaster);
+    }
+
+
+    @Override
     @CachePut(value = "valueMaster", key = "#id")
     public ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest) throws ResourceNotFoundException {
         try {
             ValueMaster existingValueMaster = findValueById(id);
             modelMapper.map(updateValueMasterRequest, existingValueMaster);
+            existingValueMaster.setId(id);
             ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
             log.info("Update Data from Db {}", updatedValueMaster);
             return mapToValueMasterResponse(updatedValueMaster);
@@ -91,7 +113,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 
     @Override
-    @CacheEvict(value = "valueMaster", allEntries = true)
+    @CacheEvict(value = {"valueMaster", "valueAttributeUom"}, allEntries = true)
     public void deleteValueId(Long id) throws ResourceNotFoundException {
         ValueMaster valueMaster = findValueById(id);
         valueMasterRepository.deleteById(valueMaster.getId());
@@ -114,7 +136,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
         String contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         String extension = ".xlsx";
         String prefix = "ValueMaster_";
-        List<ValueMasterResponse> allValues = getAllValue();
+        List<ValueMasterResponse> allValues = getAllValue(false);
         excelFileHelper.exportData(response, sheetName, clazz, contentType, extension, prefix, allValues);
     }
 
@@ -125,7 +147,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
         String contentType = "application/pdf";
         String extension = ".pdf";
         String prefix = "ValueMaster_";
-        List<ValueMasterResponse> allValues = getAllValue();
+        List<ValueMasterResponse> allValues = getAllValue(false);
         pdfFileHelper.export(response, headerName, clazz, contentType, extension, prefix, allValues);
     }
 
@@ -146,19 +168,25 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 
     private ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster) {
-        ValueMasterResponse valueMasterResponse = modelMapper.map(valueMaster, ValueMasterResponse.class);
+        return modelMapper.map(valueMaster, ValueMasterResponse.class);
+    }
+
+
+    private ValueAttributeUom mapToValueAttributeUom(ValueMaster valueMaster) {
+        ValueAttributeUom valueAttributeUom = modelMapper.map(valueMaster, ValueAttributeUom.class);
 
         Span attributeUomLookUp = tracer.nextSpan().name("AttributeUomLookUp");
 
         try (Tracer.SpanInScope aUom = tracer.withSpan(attributeUomLookUp.start())) {
-            AttributeUomResponse abbreviationUnit = client.getAttributeUomById(valueMaster.getAbbreviationUnit());
-            AttributeUomResponse equivalentUnit = client.getAttributeUomById(valueMaster.getEquivalentUnit());
-            valueMasterResponse.setAbbreviationUnit(abbreviationUnit);
-            valueMasterResponse.setEquivalentUnit(equivalentUnit);
-            return valueMasterResponse;
+            AttributeUom abbreviationUnit = settingClient.getAttributeUomById(valueMaster.getAbbreviationUnit());
+            AttributeUom equivalentUnit = settingClient.getAttributeUomById(valueMaster.getEquivalentUnit());
+            valueAttributeUom.setAbbreviationUnit(abbreviationUnit);
+            valueAttributeUom.setEquivalentUnit(equivalentUnit);
+            return valueAttributeUom;
         } finally {
             attributeUomLookUp.end();
         }
+
     }
 
 

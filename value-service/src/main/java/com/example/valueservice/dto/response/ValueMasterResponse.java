@@ -1,9 +1,10 @@
 package com.example.valueservice.dto.response;
 
-import com.example.valueservice.client.AttributeUomResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -13,8 +14,12 @@ public class ValueMasterResponse {
     private Long id;
     private String value;
     private String abbreviation;
-    private AttributeUomResponse abbreviationUnit;
+    private Long abbreviationUnit;
     private String equivalent;
-    private AttributeUomResponse equivalentUnit;
+    private Long equivalentUnit;
     private String likelyWords;
+    private String createdBy;
+    private String updatedBy;
+    private Date createdAt;
+    private Date updatedAt;
 }

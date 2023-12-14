@@ -3,7 +3,7 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.1.53
+  address: 192.168.1.82
 
 # Spring configuration
 spring:
@@ -90,6 +90,23 @@ spring:
             - Path=/value/**
           filters:
             - RewritePath=/value/(?<path>.*), /$\{path}
+
+        # Attribute Service
+        - id: ATTRIBUTE-SERVICE
+          uri: lb://ATTRIBUTE-SERVICE
+          predicates:
+            - Path=/attribute/**
+          filters:
+            - RewritePath=/attribute/(?<path>.*), /$\{path}
+
+
+        # Dictionary Service
+        - id: DICTIONARY-SERVICE
+          uri: lb://DICTIONARY-SERVICE
+          predicates:
+            - Path=/dictionary/**
+          filters:
+            - RewritePath=/dictionary/(?<path>.*), /$\{path}
 
         # Common OpenApi
         - id: openapi
@@ -189,6 +206,14 @@ springdoc:
       - name: VALUE-SERVICE
         url: /v3/api-docs/value
         display-name: Value
+
+      - name: ATTRIBUTE-SERVICE
+        url: /v3/api-docs/attribute
+        display-name: Attribute
+
+      - name: DICTIONARY-SERVICE
+        url: /v3/api-docs/dictionary
+        display-name: Create Template
 
     use-root-path: true
 

@@ -3,6 +3,7 @@ package com.example.user_management.dto.response;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -14,7 +15,7 @@ public class UserResponse {
     private String phone;
     private String business;
     private Long departmentId;
-    private String plant;
+    private List<Long> plantId;
     private Boolean status;
     private Set<RoleResponse> roles;
     private String createdBy;

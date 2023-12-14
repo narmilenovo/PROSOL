@@ -9,7 +9,6 @@ import com.example.sales_otherservice.repository.OrderUnitRepository;
 import com.example.sales_otherservice.service.interfaces.OrderUnitService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,7 +36,6 @@ public class OrderUnitServiceImpl implements OrderUnitService {
     }
 
     @Override
-    @Cacheable("ou")
     public List<OrderUnitResponse> getAllOu() {
         List<OrderUnit> orderUnits = orderUnitRepository.findAll();
         return orderUnits.stream()
@@ -48,14 +46,12 @@ public class OrderUnitServiceImpl implements OrderUnitService {
     }
 
     @Override
-    @Cacheable("ou")
     public OrderUnitResponse getOuById(Long id) throws ResourceNotFoundException {
         OrderUnit orderUnit = this.findOuById(id);
         return mapToOrderUnitResponse(orderUnit);
     }
 
     @Override
-    @Cacheable("ou")
     public List<OrderUnitResponse> findAllStatusTrue() {
         List<OrderUnit> orderUnits = orderUnitRepository.findAllByOuStatusIsTrue();
         return orderUnits.stream()

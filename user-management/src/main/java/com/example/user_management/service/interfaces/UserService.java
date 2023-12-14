@@ -1,5 +1,8 @@
 package com.example.user_management.service.interfaces;
 
+import com.example.user_management.client.UserDepartmentPlantResponse;
+import com.example.user_management.client.UserDepartmentResponse;
+import com.example.user_management.client.UserPlantResponse;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
@@ -17,9 +20,9 @@ public interface UserService {
 
     List<UserResponse> saveAllUser(List<UserRequest> userRequests);
 
-    List<UserResponse> getAllUsers();
+    List<UserResponse> getAllUsers(String show);
 
-    UserResponse getUserById(Long id) throws ResourceNotFoundException;
+    UserResponse getUserById(Long id, String show) throws ResourceNotFoundException;
 
     void deleteUserId(Long id) throws ResourceNotFoundException;
 
@@ -42,4 +45,16 @@ public interface UserService {
     UserResponse addRolesToUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
 
     UserResponse removeRolesFromUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
+
+    List<UserPlantResponse> getAllUserPlants(String show);
+
+    List<UserDepartmentResponse> getAllUserDepartment(String show);
+
+    List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show);
+
+    UserPlantResponse getUserPlantById(Long id, String show) throws ResourceNotFoundException;
+
+    UserDepartmentResponse getUserDepartmentById(Long id, String show) throws ResourceNotFoundException;
+
+    UserDepartmentPlantResponse getUserDepartmentPlantById(Long id, String show) throws ResourceNotFoundException;
 }

@@ -9,7 +9,6 @@ import com.example.sales_otherservice.repository.ItemCategoryGroupRepository;
 import com.example.sales_otherservice.service.interfaces.ItemCategoryGroupService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,7 +36,6 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
     }
 
     @Override
-    @Cacheable("icg")
     public List<ItemCategoryGroupResponse> getAllIcg() {
         List<ItemCategoryGroup> categoryGroups = itemCategoryGroupRepository.findAll();
         return categoryGroups.stream()
@@ -47,14 +45,12 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
     }
 
     @Override
-    @Cacheable("icg")
     public ItemCategoryGroupResponse getIcgById(Long id) throws ResourceNotFoundException {
         ItemCategoryGroup itemCategoryGroup = this.findIcgById(id);
         return mapToItemCategoryGroupResponse(itemCategoryGroup);
     }
 
     @Override
-    @Cacheable("icg")
     public List<ItemCategoryGroupResponse> findAllStatusTrue() {
         List<ItemCategoryGroup> categoryGroups = itemCategoryGroupRepository.findAllByIcgStatusIsTrue();
         return categoryGroups.stream()

@@ -8,7 +8,6 @@ import com.example.vendor_masterservice.repository.VendorMasterRepository;
 import com.example.vendor_masterservice.service.interfaces.VendorMasterService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ public class VendorMasterServiceImpl implements VendorMasterService {
     }
 
     @Override
-    @Cacheable("vendor")
     public List<VendorMasterResponse> getAllVm() {
         List<VendorMaster> vendorMasters = vendorMasterRepository.findAll();
         return vendorMasters.stream()
@@ -51,14 +49,12 @@ public class VendorMasterServiceImpl implements VendorMasterService {
     }
 
     @Override
-    @Cacheable("vendor")
     public VendorMasterResponse getVmById(Long id) throws ResourceNotFoundException {
         VendorMaster vendorMaster = this.findVmById(id);
         return mapToVendorMasterResponse(vendorMaster);
     }
 
     @Override
-    @Cacheable("vendor")
     public List<VendorMasterResponse> findAllStatusTrue() {
         List<VendorMaster> vendorMasters = vendorMasterRepository.findAllByStatusIsTrue();
         return vendorMasters.stream()

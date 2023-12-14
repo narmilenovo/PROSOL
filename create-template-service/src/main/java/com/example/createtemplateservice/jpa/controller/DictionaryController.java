@@ -6,6 +6,7 @@ import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +29,43 @@ public class DictionaryController {
     }
 
     @GetMapping("/getAllDictionary")
-    public ResponseEntity<Object> getAllDictionary() {
-        List<DictionaryResponse> allDictionary = dictionaryService.getAllDictionary();
+    public ResponseEntity<Object> getAllDictionary(@Pattern(regexp = "uom") @RequestParam(required = false) String show) {
+        List<?> allDictionary;
+        if (show == null) {
+            allDictionary = dictionaryService.getAllDictionary(show);
+        } else if (show.equals("uom")) {
+            allDictionary = dictionaryService.getAllDictionaryNmUom(show);
+        } else {
+            allDictionary = dictionaryService.getAllDictionary(show);
+
+        }
         return ResponseEntity.ok(allDictionary);
     }
 
 
     @GetMapping("/getDictionaryById/{id}")
-    public ResponseEntity<Object> getDictionaryById(@PathVariable Long id) throws ResourceNotFoundException {
-        DictionaryResponse dictionaryById = dictionaryService.getDictionaryById(id);
+    public ResponseEntity<Object> getDictionaryById(@PathVariable Long id, @Pattern(regexp = "uom") @RequestParam(required = false) String show) throws ResourceNotFoundException {
+        Object dictionaryById;
+        if (show == null) {
+            dictionaryById = dictionaryService.getDictionaryById(id, show);
+        } else if (show.equals("uom")) {
+            dictionaryById = dictionaryService.getDictionaryNmUomById(id, show);
+        } else {
+            dictionaryById = dictionaryService.getDictionaryById(id, show);
+        }
         return ResponseEntity.ok(dictionaryById);
+    }
+
+    @GetMapping("/noun-suggestions")
+    public ResponseEntity<Object> getNounSuggestions(@RequestParam String noun) {
+        List<String> nouns = dictionaryService.getNounSuggestions(noun);
+        return ResponseEntity.ok(nouns);
+    }
+
+    @GetMapping("/modifier-suggestions")
+    public ResponseEntity<Object> getModifierSuggestions(@RequestParam String noun) {
+        List<String> modifiers = dictionaryService.getModifiersByNoun(noun);
+        return ResponseEntity.ok(modifiers);
     }
 
     @PutMapping("/updateDictionary/{id}")
