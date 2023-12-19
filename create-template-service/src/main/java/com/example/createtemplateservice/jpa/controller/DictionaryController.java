@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -24,6 +25,20 @@ public class DictionaryController {
     @PostMapping("/saveDictionary")
     public ResponseEntity<Object> saveDictionary(@Valid @RequestBody DictionaryRequest dictionaryRequest) throws ResourceFoundException {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionary").toUriString());
+        DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest);
+        return ResponseEntity.created(uri).body(savedDictionary);
+    }
+
+    @PostMapping(value = "/saveDictionaryImage", consumes = "multipart/form-data")
+    public ResponseEntity<Object> saveDictionary(
+            @Valid @RequestParam("dictionaryRequest") DictionaryRequest dictionaryRequest,
+            @RequestParam("file") MultipartFile file) throws ResourceFoundException {
+        // Rest of your code remains unchanged
+        // Handle file upload and save the file name in dictionaryRequest.image
+        String fileName = file.getOriginalFilename();
+        dictionaryRequest.setImage(fileName);
+
+        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
         DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest);
         return ResponseEntity.created(uri).body(savedDictionary);
     }

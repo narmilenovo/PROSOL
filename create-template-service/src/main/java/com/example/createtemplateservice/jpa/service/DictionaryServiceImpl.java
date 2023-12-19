@@ -92,6 +92,7 @@ public class DictionaryServiceImpl implements DictionaryService {
     public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest) throws ResourceNotFoundException {
         Dictionary existingDictionary = findDictionaryById(id);
         modelMapper.map(updateDictionaryRequest, existingDictionary);
+        existingDictionary.setId(id);
         Dictionary updatedDictionary = dictionaryRepository.save(existingDictionary);
         // Set the parent reference in each child entity
         List<DictionaryAttribute> attributes = existingDictionary.getAttributes();

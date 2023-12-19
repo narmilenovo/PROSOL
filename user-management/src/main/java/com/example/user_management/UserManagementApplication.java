@@ -39,7 +39,7 @@ public class UserManagementApplication {
         return new SpringSecurityAuditorAware();
     }
 
-    /*@Bean
+   /* @Bean
     CommandLineRunner runner(UserService userService, RoleService roleService, PrivilegeService privilegeService) {
         return args -> {
             privilegeService.savePrivilege(new PrivilegeRequest("create", true));

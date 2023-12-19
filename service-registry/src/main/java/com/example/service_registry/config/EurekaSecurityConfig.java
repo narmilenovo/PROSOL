@@ -1,6 +1,7 @@
 package com.example.service_registry.config;
 
-import lombok.RequiredArgsConstructor;
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.sql.DataSource;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
@@ -43,10 +44,12 @@ public class EurekaSecurityConfig {
                 .dataSource(dataSource)
                 .passwordEncoder(passwordEncoder)
                 .usersByUsernameQuery("SELECT email, password, TRUE as enabled FROM users WHERE email=?")
-                .authoritiesByUsernameQuery("SELECT u.email, r.name as authority FROM users u " +
-                        "JOIN users_roles ur ON u.id = ur.user_id " +
-                        "JOIN roles r ON ur.role_id = r.id " +
-                        "WHERE u.email=?");
+                .authoritiesByUsernameQuery("""
+                        SELECT u.email, r.name as authority FROM users u \
+                        JOIN users_roles ur ON u.id = ur.user_id \
+                        JOIN roles r ON ur.role_id = r.id \
+                        WHERE u.email=?\
+                        """);
         dataSource.getConnection().close();
     }
 }

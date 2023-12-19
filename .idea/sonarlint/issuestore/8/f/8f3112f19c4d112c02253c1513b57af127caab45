@@ -1,5 +1,7 @@
 
 ¹
-java:S1130"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(µ€à<8éÅŠÅÅ1
+java:S1130"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(µ€à<8ÐáæÇ1
 º
-java:S1130H"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(“Æ É8Âë‘ÅÅ1
+java:S1130#"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(Òîâ÷8”ÐáæÇ1
+º
+java:S1130W"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(“Æ É8÷ŠãæÇ1

@@ -3,7 +3,7 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.1.82
+  address: 192.168.1.109
 
 # Spring configuration
 spring:
@@ -107,6 +107,15 @@ spring:
             - Path=/dictionary/**
           filters:
             - RewritePath=/dictionary/(?<path>.*), /$\{path}
+
+
+        # Request Item Service
+        - id: REQUEST-SERVICE
+          uri: lb://REQUEST-SERVICE
+          predicates:
+            - Path=/request/**
+          filters:
+            - RewritePath=/request/(?<path>.*), /$\{path}
 
         # Common OpenApi
         - id: openapi
@@ -214,6 +223,10 @@ springdoc:
       - name: DICTIONARY-SERVICE
         url: /v3/api-docs/dictionary
         display-name: Create Template
+
+      - name: REQUEST-SERVICE
+        url: /v3/api-docs/request
+        display-name: Request Item
 
     use-root-path: true
 

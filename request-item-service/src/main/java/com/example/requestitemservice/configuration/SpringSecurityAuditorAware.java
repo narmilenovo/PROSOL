@@ -1,4 +1,4 @@
-package com.example.generalservice.configuration;
+package com.example.requestitemservice.configuration;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

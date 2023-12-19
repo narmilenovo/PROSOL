@@ -1,9 +1,9 @@
-package com.example.generalservice.exceptions;
+package com.example.requestitemservice.exceptions;
 
-import com.example.generalservice.dto.response.BadRequestResponse;
-import com.example.generalservice.dto.response.GenericResponse;
-import com.example.generalservice.dto.response.InvalidDataResponse;
-import com.example.generalservice.utils.Helpers;
+import com.example.requestitemservice.dto.response.BadRequestResponse;
+import com.example.requestitemservice.dto.response.GenericResponse;
+import com.example.requestitemservice.dto.response.InvalidDataResponse;
+import com.example.requestitemservice.utils.Helpers;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

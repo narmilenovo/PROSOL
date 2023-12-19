@@ -1,6 +1,6 @@
 # Server configuration
 server:
-  port: 8011
+  port: 8013
   forward-headers-strategy: framework
   shutdown: graceful
 
@@ -10,7 +10,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
   application:
-    name: DICTIONARY-SERVICE   # The server application name
+    name: REQUEST-SERVICE   # The server application name
 
   # Db Configuration
   datasource:
@@ -59,7 +59,7 @@ management:
 # OpenApi Swagger configuration
 springdoc:
   service:
-    title: Dictionary-Service doc
+    title: Request-Item-Service doc
     version: 1.0.1
   api-docs:
     groups:

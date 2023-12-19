@@ -1,4 +1,4 @@
-package com.example.generalservice.configuration;
+package com.example.requestitemservice.configuration;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;

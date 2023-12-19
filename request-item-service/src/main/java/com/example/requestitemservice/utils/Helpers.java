@@ -1,4 +1,4 @@
-package com.example.generalservice.utils;
+package com.example.requestitemservice.utils;
 
 import java.security.SecureRandom;
 import java.util.*;

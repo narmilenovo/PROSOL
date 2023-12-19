@@ -1,4 +1,4 @@
-package com.example.generalservice.utils;
+package com.example.requestitemservice.utils;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;

@@ -1,4 +1,4 @@
-package com.example.generalservice.entity;
+package com.example.requestitemservice.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

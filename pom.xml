@@ -28,6 +28,7 @@
         <module>plant-service</module>
         <module>MRPData</module>
         <module>attributemaster</module>
+        <module>request-item-service</module>
     </modules>
 
 </project>

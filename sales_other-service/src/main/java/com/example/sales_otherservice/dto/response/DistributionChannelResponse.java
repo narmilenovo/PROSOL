@@ -1,6 +1,5 @@
 package com.example.sales_otherservice.dto.response;
 
-import com.example.sales_otherservice.entity.SalesOrganization;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +14,7 @@ public class DistributionChannelResponse {
     private String dcCode;
     private String dcName;
     private Boolean dcStatus;
-    private SalesOrganization salesOrganization;
+    private SalesOrganizationResponse salesOrganization;
     private String createdBy;
     private String updatedBy;
     private Date createdAt;

@@ -1,4 +1,4 @@
-package com.example.generalservice.dto.response;
+package com.example.requestitemservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import lombok.AllArgsConstructor;

@@ -1,7 +1,7 @@
-package com.example.generalservice.configuration;
+package com.example.requestitemservice.configuration;
 
-import com.example.generalservice.utils.LocalDateTimeDeserializer;
-import com.example.generalservice.utils.LocalDateTimeSerializer;
+import com.example.requestitemservice.utils.LocalDateTimeDeserializer;
+import com.example.requestitemservice.utils.LocalDateTimeSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

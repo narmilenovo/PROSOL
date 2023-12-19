@@ -11,53 +11,54 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class VendorMasterRequest {
-    @Schema(description = "Short Description of the vendor name", example = "Trial for All")
+    @Schema(description = "Short Description of the vendor name", example = "Codasol")
     private String shortDescName;
 
-    @Schema(description = "Vendor Name", example = "Trial for All Vendor Name Ltd.")
+    @Schema(description = "Vendor Name", example = "Coda Technology Solutions Private Limited")
     @Size(min = 2, max = 100, message = "Vendor Name must be between 2 and 100 characters long")
     private String name;
 
-    @Schema(description = "Vendor Name2", example = "Trial for All Vendor Name Ltd.")
+    @Schema(description = "Vendor Name2", example = "Coda Technology Solutions Private Limited")
     @Size(min = 2, max = 100, message = "Vendor Name must be between 2 and 100 characters long")
     private String name2;
 
-    @Schema(description = "Vendor Name3", example = "Trial for All Vendor Name Ltd.")
+    @Schema(description = "Vendor Name3", example = "Coda Technology Solutions Private Limited")
     @Size(min = 2, max = 100, message = "Vendor Name must be between 2 and 100 characters long")
     private String name3;
 
-    @Schema(description = "Vendor Name4", example = "Trial for All Vendor Name Ltd.")
+    @Schema(description = "Vendor Name4", example = "Coda Technology Solutions Private Limited")
     @Size(min = 2, max = 100, message = "Vendor Name must be between 2 and 100 characters long")
     private String name4;
 
-    @Schema(description = "Vendor Address", example = "Trial for All Vendor Name Ltd. Address")
+    @Schema(description = "Vendor Address", example = "Coda Technology Solutions Private Limited Address")
     @Size(min = 2, max = 255, message = "Vendor Address must be between 2 and 255 characters long")
     private String address;
 
-    @Schema(description = "Vendor Address2", example = "Trial for All Vendor Name Ltd. Address")
+    @Schema(description = "Vendor Address2", example = "Coda Technology Solutions Private Limited Address")
     @Size(min = 2, max = 255, message = "Vendor Address must be between 2 and 255 characters long")
     private String address2;
 
-    @Schema(description = "Vendor Address3", example = "Trial for All Vendor Name Ltd. Address")
+    @Schema(description = "Vendor Address3", example = "Coda Technology Solutions Private Limited Address")
     @Size(min = 2, max = 255, message = "Vendor Address must be between 2 and 255 characters long")
     private String address3;
 
-    @Schema(description = "Vendor Address4", example = "Trial for All Vendor Name Ltd. Address")
+    @Schema(description = "Vendor Address4", example = "Coda Technology Solutions Private Limited Address")
     @Size(min = 2, max = 255, message = "Vendor Address must be between 2 and 255 characters long")
     private String address4;
 
-    @Schema(description = "Vendor City", example = "Trial for All Vendor Name Ltd. City")
+    @Schema(description = "Vendor City", example = "Coda Technology Solutions Private Limited City")
     private String city;
 
-    @Schema(description = "Vendor State", example = "Trial for All Vendor Name Ltd. State")
+    @Schema(description = "Vendor State", example = "Coda Technology Solutions Private Limited State")
     private String state;
 
-    @Schema(description = "Vendor Country", example = "Trial for All Vendor Name Ltd. Country")
+    @Schema(description = "Vendor Country", example = "Coda Technology Solutions Private Limited Country")
     private String country;
 
-    @Schema(description = "Vendor Postal Code", example = "Trial for All Vendor Name Ltd. Postal Code")
+    @Schema(description = "Vendor Postal Code", example = "Coda Technology Solutions Private Limited Postal Code")
     private String postalCode;
 
+    @Schema(description = "Vendor Telephone Number", example = "(044) 3706012")
     @Pattern(regexp = "^\\+*\\(?\\d{1,4}\\)?[-\\s./0-9]*$", message = "Invalid Telephone Number")
     private String telephoneNo;
 
@@ -71,12 +72,13 @@ public class VendorMasterRequest {
     @Pattern(regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
     private String email;
 
+    @Schema(description = "Vendor Website", example = "https://codasol.com")
     @Pattern(regexp = "^(https?://(?:www\\.)?)[a-zA-Z]{2,}(?:\\.[a-zA-Z]{2,})++(?:/[a-zA-Z0-9]{2,})*+$", message = "Invalid Website")
     private String website;
 
     @Schema(description = "Vendor Acquired By", example = "Trial for All Vendor Name Ltd. Acquired By")
     private String acquiredBy;
 
-    @Schema(description = "Vendor Status", example = "Trial for All Vendor Name Ltd. Status")
+    @Schema(description = "Vendor Status", example = "true")
     private Boolean status;
 }
