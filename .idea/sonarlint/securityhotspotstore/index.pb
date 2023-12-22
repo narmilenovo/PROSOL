@@ -1040,3 +1040,5 @@ Xrequest-item-service/src/main/java/com/example/requestitemservice/entity/BaseEn
 acreate-template-service/src/main/java/com/example/createtemplateservice/utils/FileUploadUtil.java,7\8\785a3dbdebe1911baf6b40b1a97618e09471cc2e
  
 pcreate-template-service/src/main/java/com/example/createtemplateservice/configuration/FileStorageProperties.java,1\5\1568c528442cd36993795f089d3bd63068bdcb8b
+B
+authserver/pom.xml,b\c\bc46c662895083d1a9579fcb611e2290df6d2644

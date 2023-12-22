@@ -1,6 +1,5 @@
 package com.example.createtemplateservice.utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -8,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -25,10 +25,6 @@ public class FileUploadUtil {
 
 	public FileUploadUtil(FileStorageProperties fileStorageProperties) {
 		this.fileStorageLocation = Paths.get(fileStorageProperties.getUploadDir()).toAbsolutePath().normalize();
-		// this.fileStorageLocation =
-		// Paths.get("").toAbsolutePath().resolve(fileStorageProperties.getUploadDir())
-		// .normalize();
-
 		try {
 			Files.createDirectories(this.fileStorageLocation);
 		} catch (Exception e) {
@@ -87,12 +83,16 @@ public class FileUploadUtil {
 			Path idDirectory = this.fileStorageLocation.resolve(id.toString()).normalize();
 			Path file = idDirectory.resolve(fileName).normalize();
 
+			// Delete the file
 			boolean deletedFile = Files.deleteIfExists(file);
-			if (deletedFile && Files.exists(idDirectory) && Files.isDirectory(idDirectory)) {
-				if (Files.list(idDirectory).count() == 0) {
+
+			// Check if the directory exists and is empty, then delete it
+			try (Stream<Path> directoryStream = Files.list(idDirectory)) {
+				if (Files.isDirectory(idDirectory) && directoryStream.count() == 0) {
 					Files.delete(idDirectory);
 				}
 			}
+
 			return deletedFile;
 		} catch (IOException e) {
 			throw new RuntimeException("Error: " + e.getMessage());
@@ -104,18 +104,18 @@ public class FileUploadUtil {
 			Path idDirectory = this.fileStorageLocation.resolve(id.toString()).normalize();
 			Path file = idDirectory.resolve(fileName).normalize();
 
-			if (file != null) {
-				Files.walk(idDirectory)
-						.map(Path::toFile)
-						.filter(f -> !f.getName().equals(fileName))
-						.forEach(File::delete);
+			// Check if the file exists before proceeding
+			if (Files.exists(file)) {
+				Files.delete(file);
 				return true;
+			} else {
+				throw new FileStorageException("File not found: " + fileName);
 			}
 
 		} catch (IOException e) {
-			throw new FileStorageException("Could Not delete File from the Id directory: " + e.getMessage());
+			throw new RuntimeException(
+					"Error deleting file " + fileName + " from the Id directory: " + e.getMessage());
 		}
-		return false;
 	}
 
 }
