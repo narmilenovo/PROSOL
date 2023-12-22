@@ -19,7 +19,7 @@ import static com.example.user_management.utils.Constants.BEARER_AUTH;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI customOpenAPI(
+    OpenAPI customOpenAPI(
             @Value("${springdoc.service.title}") String serviceTitle,
             @Value("${springdoc.service.version}") String serviceVersion) {
         final String securitySchemeName = BEARER_AUTH;

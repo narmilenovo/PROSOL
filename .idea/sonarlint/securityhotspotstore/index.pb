@@ -1036,3 +1036,7 @@ hrequest-item-service/src/main/java/com/example/requestitemservice/exceptions/Re
 krequest-item-service/src/main/java/com/example/requestitemservice/exceptions/ResourceNotFoundException.java,5\a\5a5b4c3ff010552bbdc863c9ce909a28fd3967e2
 ˆ
 Xrequest-item-service/src/main/java/com/example/requestitemservice/entity/BaseEntity.java,9\9\99cfdde22b1515383889eba99f4e6382f2d0c23c
+‘
+acreate-template-service/src/main/java/com/example/createtemplateservice/utils/FileUploadUtil.java,7\8\785a3dbdebe1911baf6b40b1a97618e09471cc2e
+ 
+pcreate-template-service/src/main/java/com/example/createtemplateservice/configuration/FileStorageProperties.java,1\5\1568c528442cd36993795f089d3bd63068bdcb8b

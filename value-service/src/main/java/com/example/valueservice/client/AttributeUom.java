@@ -11,8 +11,8 @@ import java.util.Date;
 @NoArgsConstructor
 public class AttributeUom {
     private Long id;
-    private String attributeUomCode;
     private String attributeUomName;
+    private String attributeUnit;
     private Boolean attributeUomStatus;
     private String createdBy;
     private String updatedBy;

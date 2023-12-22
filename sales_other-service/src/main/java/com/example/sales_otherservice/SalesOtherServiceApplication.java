@@ -22,12 +22,12 @@ public class SalesOtherServiceApplication {
     }
 
     @Bean
-    public ModelMapper modelMapper() {
+    ModelMapper modelMapper() {
         return new ModelMapper();
     }
 
     @Bean
-    public AuditorAware<String> auditorAware(HttpServletRequest request) {
+    AuditorAware<String> auditorAware(HttpServletRequest request) {
         return new SpringSecurityAuditorAware(request);
     }
 }

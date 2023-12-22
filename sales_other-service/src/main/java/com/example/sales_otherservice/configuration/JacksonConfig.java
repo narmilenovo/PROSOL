@@ -13,7 +13,7 @@ import java.util.Date;
 @Configuration
 public class JacksonConfig {
     @Bean
-    public ObjectMapper objectMapper() {
+    ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         objectMapper.registerModule(new JavaTimeModule());

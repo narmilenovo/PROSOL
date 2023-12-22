@@ -6,12 +6,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class TransportationGroup extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,4 +22,3 @@ public class TransportationGroup extends BaseEntity {
     private String tgName;
     private Boolean tgStatus;
 }
-

@@ -1,20 +1,35 @@
 package com.example.createtemplateservice.jpa.controller;
 
+import java.net.URI;
+import java.util.List;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
-import jakarta.validation.Valid;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,29 +37,27 @@ public class DictionaryController {
 
     private final DictionaryService dictionaryService;
 
-    @PostMapping("/saveDictionary")
-    public ResponseEntity<Object> saveDictionary(@Valid @RequestBody DictionaryRequest dictionaryRequest) throws ResourceFoundException {
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionary").toUriString());
-        DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest);
+    @PostMapping(value = "/saveDictionaryImage", consumes = {
+            MediaType.MULTIPART_FORM_DATA_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Save Dictionary with Image", description = "Save a dictionary entry along with an image.")
+    public ResponseEntity<Object> saveDictionary(
+            @Parameter(name = "dictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
+            @RequestParam(value = "file", required = true) MultipartFile file)
+            throws ResourceFoundException, JsonMappingException, JsonProcessingException {
+        DictionaryRequest dictionaryRequest = this.convert(source);
+        URI uri = URI.create(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
+        DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest, file);
         return ResponseEntity.created(uri).body(savedDictionary);
     }
 
-    @PostMapping(value = "/saveDictionaryImage", consumes = "multipart/form-data")
-    public ResponseEntity<Object> saveDictionary(
-            @Valid @RequestParam("dictionaryRequest") DictionaryRequest dictionaryRequest,
-            @RequestParam("file") MultipartFile file) throws ResourceFoundException {
-        // Rest of your code remains unchanged
-        // Handle file upload and save the file name in dictionaryRequest.image
-        String fileName = file.getOriginalFilename();
-        dictionaryRequest.setImage(fileName);
-
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
-        DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest);
-        return ResponseEntity.created(uri).body(savedDictionary);
+    private DictionaryRequest convert(String source) throws JsonMappingException, JsonProcessingException {
+        return new ObjectMapper().readValue(source, DictionaryRequest.class);
     }
 
     @GetMapping("/getAllDictionary")
-    public ResponseEntity<Object> getAllDictionary(@Pattern(regexp = "uom") @RequestParam(required = false) String show) {
+    public ResponseEntity<Object> getAllDictionary(
+            @Pattern(regexp = "uom") @RequestParam(required = false) String show) {
         List<?> allDictionary;
         if (show == null) {
             allDictionary = dictionaryService.getAllDictionary(show);
@@ -57,9 +70,9 @@ public class DictionaryController {
         return ResponseEntity.ok(allDictionary);
     }
 
-
     @GetMapping("/getDictionaryById/{id}")
-    public ResponseEntity<Object> getDictionaryById(@PathVariable Long id, @Pattern(regexp = "uom") @RequestParam(required = false) String show) throws ResourceNotFoundException {
+    public ResponseEntity<Object> getDictionaryById(@PathVariable Long id,
+            @Pattern(regexp = "uom") @RequestParam(required = false) String show) throws ResourceNotFoundException {
         Object dictionaryById;
         if (show == null) {
             dictionaryById = dictionaryService.getDictionaryById(id, show);
@@ -83,9 +96,13 @@ public class DictionaryController {
         return ResponseEntity.ok(modifiers);
     }
 
-    @PutMapping("/updateDictionary/{id}")
-    public ResponseEntity<Object> updateDictionary(@PathVariable Long id, @Valid @RequestBody DictionaryRequest updateDictionaryRequest) throws ResourceNotFoundException, ResourceFoundException {
-        DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest);
+    @PutMapping(value = "/updatedDictionary/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
+            @Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
+            @RequestParam(value = "file", required = true) MultipartFile file)
+            throws ResourceNotFoundException, ResourceFoundException, JsonMappingException, JsonProcessingException {
+        DictionaryRequest updateDictionaryRequest = this.convert(source);
+        DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest, file);
         return ResponseEntity.ok(updateDictionary);
     }
 

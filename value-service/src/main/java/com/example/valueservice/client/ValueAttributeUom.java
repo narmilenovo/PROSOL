@@ -1,10 +1,13 @@
 package com.example.valueservice.client;
 
-import lombok.Data;
-
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import lombok.Data;
+
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ValueAttributeUom {
     private Long id;
     private String value;

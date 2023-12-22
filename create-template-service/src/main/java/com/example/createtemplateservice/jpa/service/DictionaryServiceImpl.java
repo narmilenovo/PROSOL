@@ -1,9 +1,19 @@
 package com.example.createtemplateservice.jpa.service;
 
-import com.example.createtemplateservice.client.AttributeMaster.AttributeClient;
-import com.example.createtemplateservice.client.AttributeMaster.AttributeMasterUomResponse;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.createtemplateservice.client.DictionaryAllResponse;
 import com.example.createtemplateservice.client.DictionaryAttributeAllResponse;
+import com.example.createtemplateservice.client.AttributeMaster.AttributeClient;
+import com.example.createtemplateservice.client.AttributeMaster.AttributeMasterUomResponse;
 import com.example.createtemplateservice.client.GeneralSettings.AttributeUom;
 import com.example.createtemplateservice.client.GeneralSettings.GeneralSettingClient;
 import com.example.createtemplateservice.client.GeneralSettings.NmUom;
@@ -18,15 +28,9 @@ import com.example.createtemplateservice.jpa.entity.DictionaryAttribute;
 import com.example.createtemplateservice.jpa.repository.DictionaryAttributeRepository;
 import com.example.createtemplateservice.jpa.repository.DictionaryRepository;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
-import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.createtemplateservice.utils.FileUploadUtil;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -38,23 +42,30 @@ public class DictionaryServiceImpl implements DictionaryService {
     private final GeneralSettingClient generalSettingClient;
     private final AttributeClient attributeClient;
     private final ValueMasterClient valueMasterClient;
+    private final FileUploadUtil fileUploadUtil;
 
     @Override
     @Transactional
-    public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest) {
+    public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file) {
         Dictionary dictionary = modelMapper.map(dictionaryRequest, Dictionary.class);
         dictionary.setId(null);
-        Dictionary savedDictionary = dictionaryRepository.save(dictionary);
+        // Dictionary savedDictionary = dictionaryRepository.save(dictionary);
+        Dictionary saveEmptyDicId = dictionaryRepository.save(dictionary);
+
+        String fileName = fileUploadUtil.storeFile(file, saveEmptyDicId.getId());
+        saveEmptyDicId.setImage(fileName);
+
         // Set the parent reference in each child entity
         List<DictionaryAttribute> attributes = dictionary.getAttributes();
         if (attributes != null && !attributes.isEmpty()) {
             for (DictionaryAttribute attribute : attributes) {
-                attribute.setDictionary(savedDictionary);
+                attribute.setDictionary(saveEmptyDicId);
             }
             // Save the child entities (DictionaryAttribute)
             List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
-            savedDictionary.setAttributes(savedAttributes);
+            saveEmptyDicId.setAttributes(savedAttributes);
         }
+        Dictionary savedDictionary = dictionaryRepository.save(saveEmptyDicId);
         return mapToDictionaryResponse(savedDictionary);
     }
 
@@ -89,10 +100,15 @@ public class DictionaryServiceImpl implements DictionaryService {
     }
 
     @Override
-    public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest) throws ResourceNotFoundException {
+    public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
+            throws ResourceNotFoundException {
         Dictionary existingDictionary = findDictionaryById(id);
         modelMapper.map(updateDictionaryRequest, existingDictionary);
         existingDictionary.setId(id);
+        String existingFile = existingDictionary.getImage();
+        fileUploadUtil.deleteFile(existingFile, id);
+        String newFile = fileUploadUtil.storeFile(file, id);
+        existingDictionary.setImage(newFile);
         Dictionary updatedDictionary = dictionaryRepository.save(existingDictionary);
         // Set the parent reference in each child entity
         List<DictionaryAttribute> attributes = existingDictionary.getAttributes();
@@ -110,6 +126,7 @@ public class DictionaryServiceImpl implements DictionaryService {
     @Override
     public void deleteDictionaryId(Long id) throws ResourceNotFoundException {
         Dictionary dictionary = findDictionaryById(id);
+        fileUploadUtil.deleteDir(dictionary.getImage(), id);
         dictionaryRepository.delete(dictionary);
     }
 
@@ -163,10 +180,13 @@ public class DictionaryServiceImpl implements DictionaryService {
         return dictionaryNmUom;
     }
 
-    private DictionaryAttributeAllResponse mapToDictionaryAttributeAllResponse(DictionaryAttribute dictionaryAttribute) {
-        DictionaryAttributeAllResponse dictionaryAttributeAllResponse = modelMapper.map(dictionaryAttribute, DictionaryAttributeAllResponse.class);
+    private DictionaryAttributeAllResponse mapToDictionaryAttributeAllResponse(
+            DictionaryAttribute dictionaryAttribute) {
+        DictionaryAttributeAllResponse dictionaryAttributeAllResponse = modelMapper.map(dictionaryAttribute,
+                DictionaryAttributeAllResponse.class);
         // Attribute Client
-        AttributeMasterUomResponse attribute = attributeClient.getAttributeMasterById(dictionaryAttribute.getAttributeId());
+        AttributeMasterUomResponse attribute = attributeClient
+                .getAttributeMasterById(dictionaryAttribute.getAttributeId());
         dictionaryAttributeAllResponse.setAttribute(attribute);
         // Value Master Client
         List<ValueAttributeUom> values = new ArrayList<>();

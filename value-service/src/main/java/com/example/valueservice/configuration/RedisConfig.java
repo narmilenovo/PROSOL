@@ -21,7 +21,7 @@ public class RedisConfig {
     private final RedisConnectionFactory redisConnectionFactory;
 
     @Bean
-    public RedisCacheConfiguration cacheConfiguration() {
+    RedisCacheConfiguration cacheConfiguration() {
         RedisCacheConfiguration config = RedisCacheConfiguration
                 .defaultCacheConfig()
                 .entryTtl(Duration.ofHours(1))
@@ -36,7 +36,7 @@ public class RedisConfig {
     }
 
     @Bean
-    public CacheManager cacheManager() {
+    CacheManager cacheManager() {
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(cacheConfiguration())
                 .build();

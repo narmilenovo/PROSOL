@@ -17,7 +17,7 @@ public class ServiceRegistryApplication {
     }
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
+    BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 

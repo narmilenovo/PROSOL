@@ -20,12 +20,12 @@ public class DictionaryAttributeRequest {
     @Schema(description = "Definition", example = "Definition")
     private String definition;
 
-    @Schema(description = "Select Value", example = "1,2,3,4,5")
+    @Schema(description = "Select Value")
     private List<Long> valueId;
 
     @Schema(description = "UOM Mandatory", example = "true", allowableValues = "true,false", defaultValue = "false")
     private Boolean uomMandatory;
 
-    @Schema(description = "Select Attribute UOM", example = "1,2,3,4,5")
+    @Schema(description = "Select Attribute UOM")
     private List<Long> attrUomId;
 }

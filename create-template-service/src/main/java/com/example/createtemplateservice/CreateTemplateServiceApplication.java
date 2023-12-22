@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +16,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
+@ConfigurationPropertiesScan
 public class CreateTemplateServiceApplication {
 
     public static void main(String[] args) {
@@ -22,14 +24,13 @@ public class CreateTemplateServiceApplication {
     }
 
     @Bean
-    public ModelMapper modelMapper() {
+    ModelMapper modelMapper() {
         return new ModelMapper();
     }
 
     @Bean
-    public AuditorAware<String> auditorAware(HttpServletRequest request) {
+    AuditorAware<String> auditorAware(HttpServletRequest request) {
         return new SpringSecurityAuditorAware(request);
     }
-
 
 }

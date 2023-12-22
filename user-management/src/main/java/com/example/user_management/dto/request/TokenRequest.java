@@ -1,6 +1,7 @@
 package com.example.user_management.dto.request;
 
 import com.example.user_management.dto.response.UserResponse;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +15,7 @@ public class TokenRequest {
 
     private String tokenValue;
 
+    @Builder.Default
     private TokenType tokenType = TokenType.BEARER;
 
     private boolean revoked;

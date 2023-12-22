@@ -1,21 +1,24 @@
 package com.example.vendor_masterservice.exceptions;
 
-import com.example.vendor_masterservice.dto.response.BadRequestResponse;
-import com.example.vendor_masterservice.dto.response.GenericResponse;
-import com.example.vendor_masterservice.dto.response.InvalidDataResponse;
-import com.example.vendor_masterservice.utils.Helpers;
-import jakarta.validation.ConstraintViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-
 import java.io.FileNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
+
+import com.example.vendor_masterservice.dto.response.BadRequestResponse;
+import com.example.vendor_masterservice.dto.response.GenericResponse;
+import com.example.vendor_masterservice.dto.response.InvalidDataResponse;
+import com.example.vendor_masterservice.utils.Helpers;
+
+import jakarta.validation.ConstraintViolationException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -49,13 +52,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
-    /*@ExceptionHandler(FileStorageException.class)
-    public ResponseEntity<Object> fileStorageException(FileStorageException ex, WebRequest request) {
-        BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
-        ex.printStackTrace();
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }*/
+    /*
+     * @ExceptionHandler(FileStorageException.class)
+     * public ResponseEntity<Object> fileStorageException(FileStorageException ex,
+     * WebRequest request) {
+     * BadRequestResponse response = new
+     * BadRequestResponse(formatMessage(ex.getMessage()));
+     * ex.printStackTrace();
+     * 
+     * return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+     * }
+     */
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> constraintViolationException(ConstraintViolationException ex) {
@@ -82,8 +89,9 @@ public class GlobalExceptionHandler {
         ex.getBindingResult().getAllErrors().forEach(objectError -> {
             String field = "";
 
-            if (objectError.getArguments() != null && objectError.getArguments().length >= 2) {
-                field = objectError.getArguments()[1].toString();
+            Object[] arguments = objectError.getArguments();
+            if (arguments != null && arguments.length >= 2 && arguments[1] != null) {
+                field = arguments[1].toString();
             }
 
             if (!field.isEmpty()) {
@@ -91,7 +99,9 @@ public class GlobalExceptionHandler {
             }
         });
 
-        ex.getBindingResult().getFieldErrors().forEach(fieldError -> Helpers.updateErrorHashMap(errors, fieldError.getField(), fieldError.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(fieldError -> {
+            Helpers.updateErrorHashMap(errors, fieldError.getField(), fieldError.getDefaultMessage());
+        });
 
         Map<String, Map<String, List<String>>> result = new HashMap<>();
         result.put("errors", errors);
@@ -108,12 +118,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
-   /* @ExceptionHandler(BadCredentialsException.class)
+    @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Object> badCredentialsException(BadCredentialsException ex, WebRequest request) {
         BadRequestResponse response = new BadRequestResponse(formatMessage(ex.getMessage()));
 
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-    }*/
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> globalExceptionHandler(Exception ex) {

@@ -25,17 +25,17 @@ public class UserManagementApplication {
     }
 
     @Bean
-    public ModelMapper modelMapper() {
+    ModelMapper modelMapper() {
         return new ModelMapper();
     }
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
+    BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuditorAware<String> auditorAware() {
+    AuditorAware<String> auditorAware() {
         return new SpringSecurityAuditorAware();
     }
 

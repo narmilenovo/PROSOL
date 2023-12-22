@@ -1,7 +1,11 @@
 
-¹
-java:S1130"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(µ€à<8ÐáæÇ1
+¿
+java:S1130,"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(¬Åí¡ùÿÿÿÿ8ð–¹È1
 º
-java:S1130#"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(Òîâ÷8”ÐáæÇ1
-º
-java:S1130W"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(“Æ É8÷ŠãæÇ1
+java:S11308"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(€î¼Á8ø–¹È1
+Ë
+java:S11308"­Remove the declaration of thrown exception 'com.fasterxml.jackson.databind.JsonMappingException' which is a subclass of 'com.fasterxml.jackson.core.JsonProcessingException'.(€î¼Á8ø–¹È1
+Ð
+java:S1130E"­Remove the declaration of thrown exception 'com.fasterxml.jackson.databind.JsonMappingException' which is a subclass of 'com.fasterxml.jackson.core.JsonProcessingException'.(³·ªöûÿÿÿÿ8‚—¹È1
+¿
+java:S1130v"œRemove the declaration of thrown exception 'com.example.createtemplateservice.exceptions.ResourceFoundException', as it cannot be thrown from method's body.(™Ç„îùÿÿÿÿ8Õ—¹È1

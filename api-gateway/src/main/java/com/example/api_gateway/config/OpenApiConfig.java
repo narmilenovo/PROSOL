@@ -32,7 +32,7 @@ public class OpenApiConfig {
     private String serviceVersion;
 
     @Bean
-    public OpenAPI customOpenAPI() {
+    OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .servers(Collections.singletonList(new Server().url("http://localhost:9191")))
                 .components(
@@ -51,9 +51,9 @@ public class OpenApiConfig {
     }
 
 
+    //    @Lazy(false)
     @Bean
-//    @Lazy(false)
-    public List<GroupedOpenApi> apis(RouteDefinitionLocator locator) {
+    List<GroupedOpenApi> apis(RouteDefinitionLocator locator) {
         List<GroupedOpenApi> groups = new ArrayList<>();
         List<RouteDefinition> definitions = locator.getRouteDefinitions().collectList().block();
 

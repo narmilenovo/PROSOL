@@ -4,13 +4,12 @@ server:
   forward-headers-strategy: framework
   shutdown: graceful
 
-
 # Spring configuration
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: DICTIONARY-SERVICE   # The server application name
+    name: DICTIONARY-SERVICE # The server application name
 
   # Db Configuration
   datasource:
@@ -55,12 +54,12 @@ management:
     sampling:
       probability: 1.0
 
-
 # OpenApi Swagger configuration
 springdoc:
   service:
     title: Dictionary-Service doc
     version: 1.0.1
+  default-support-form-data: true
   api-docs:
     groups:
       enabled: true
@@ -76,6 +75,9 @@ springdoc:
     filter: false
     show-extensions: false
   cache:
-    disabled: off
+    disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
+
+file:
+  upload-dir: create-template-service/images

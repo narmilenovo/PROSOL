@@ -1,13 +1,14 @@
 package com.example.createtemplateservice.jpa.dto.request;
 
+import java.util.List;
+
 import com.example.createtemplateservice.jpa.entity.Type;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -34,13 +35,13 @@ public class DictionaryRequest {
     @Schema(description = "Noun Modifier Definition", example = "A place where people sleep")
     private String nmDefinition;
 
-    @Schema(description = "Noun Modifier Type", example = "Noun Modifier")
+    @Schema(description = "Noun Modifier Type")
     private Type type;
 
     @Schema(description = "Similar Search Items")
     private String similarSearchItems;
 
-    @Schema(description = "Select Noun Modifier UOMs", example = "1,2,3,4,5", allowableValues = "range[1,infinity]")
+    @Schema(description = "Select Noun Modifier UOMs", allowableValues = "range[1,infinity]")
     private List<Long> nmUoms;
 
     @Schema(description = "Dictionary Attributes")
@@ -49,5 +50,5 @@ public class DictionaryRequest {
     @Schema(description = "Image")
     private String image;
 
-//    private MultipartFile file;
+    // private MultipartFile file;
 }

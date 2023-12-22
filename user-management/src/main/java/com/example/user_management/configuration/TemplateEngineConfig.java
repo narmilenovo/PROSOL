@@ -22,7 +22,7 @@ public class TemplateEngineConfig implements WebMvcConfigurer {
 
     @Bean
     @Primary
-    public TemplateEngine emailTemplateEngine() {
+    TemplateEngine emailTemplateEngine() {
         final SpringTemplateEngine templateEngine = new SpringTemplateEngine();
         // Resolver for HTML emails (except the editable one)
         templateEngine.addTemplateResolver(emailTemplateResolver());
@@ -45,7 +45,7 @@ public class TemplateEngineConfig implements WebMvcConfigurer {
 
     @Bean
     @Description("Thymeleaf template resolver serving HTML 5")
-    public ClassLoaderTemplateResolver webTemplateResolver() {
+    ClassLoaderTemplateResolver webTemplateResolver() {
 
         ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
 
@@ -63,7 +63,7 @@ public class TemplateEngineConfig implements WebMvcConfigurer {
 
     @Bean
     @Description("Thymeleaf template engine with Spring integration")
-    public SpringTemplateEngine webTemplateEngine() {
+    SpringTemplateEngine webTemplateEngine() {
 
         SpringTemplateEngine templateEngine = new SpringTemplateEngine();
         templateEngine.setTemplateResolver(webTemplateResolver());
@@ -73,7 +73,7 @@ public class TemplateEngineConfig implements WebMvcConfigurer {
 
     @Bean
     @Description("Thymeleaf view resolver")
-    public ViewResolver viewResolver() {
+    ViewResolver viewResolver() {
 
         ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
 
