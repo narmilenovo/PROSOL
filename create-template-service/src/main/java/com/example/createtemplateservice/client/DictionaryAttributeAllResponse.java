@@ -1,8 +1,9 @@
 package com.example.createtemplateservice.client;
 
-import com.example.createtemplateservice.client.AttributeMaster.AttributeMasterUomResponse;
-import com.example.createtemplateservice.client.GeneralSettings.AttributeUom;
-import com.example.createtemplateservice.client.ValueMaster.ValueAttributeUom;
+import com.example.createtemplateservice.client.attributemaster.AttributeMasterUomResponse;
+import com.example.createtemplateservice.client.generalsettings.AttributeUom;
+import com.example.createtemplateservice.client.valuemaster.ValueAttributeUom;
+
 import lombok.Data;
 
 import java.util.List;

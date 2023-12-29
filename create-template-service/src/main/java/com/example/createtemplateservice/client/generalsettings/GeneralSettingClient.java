@@ -1,4 +1,4 @@
-package com.example.createtemplateservice.client.GeneralSettings;
+package com.example.createtemplateservice.client.generalsettings;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-package com.example.createtemplateservice.client.ValueMaster;
+package com.example.createtemplateservice.client.valuemaster;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

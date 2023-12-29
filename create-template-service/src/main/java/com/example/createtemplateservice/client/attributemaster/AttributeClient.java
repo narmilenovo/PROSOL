@@ -1,4 +1,4 @@
-package com.example.createtemplateservice.client.AttributeMaster;
+package com.example.createtemplateservice.client.attributemaster;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

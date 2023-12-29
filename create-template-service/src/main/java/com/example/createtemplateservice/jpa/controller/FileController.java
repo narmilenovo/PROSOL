@@ -49,31 +49,4 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
     }
-
-    /*
-     * @DeleteMapping("/files/{userId}/{filename:.+}")
-     * public ResponseEntity<CustomErrorResponse> deleteFile(@PathVariable Long
-     * userId, @PathVariable String filename) {
-     * String message = "";
-     * 
-     * try {
-     * boolean existed = fileStorageService.delete(filename, userId);
-     * 
-     * if (existed) {
-     * message = "File deleted successfully: '" + filename + "'";
-     * return ResponseEntity.status(HttpStatus.OK).body(new
-     * CustomErrorResponse(message));
-     * }
-     * 
-     * message = "The file does not exist!";
-     * return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new
-     * CustomErrorResponse(message));
-     * } catch (Exception e) {
-     * message = "Could not delete the file: " + filename + ". Error: " +
-     * e.getMessage();
-     * return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new
-     * CustomErrorResponse(message));
-     * }
-     * }
-     */
 }

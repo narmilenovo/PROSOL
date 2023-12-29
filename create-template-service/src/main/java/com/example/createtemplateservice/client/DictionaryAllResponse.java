@@ -1,6 +1,6 @@
 package com.example.createtemplateservice.client;
 
-import com.example.createtemplateservice.client.GeneralSettings.NmUom;
+import com.example.createtemplateservice.client.generalsettings.NmUom;
 import com.example.createtemplateservice.jpa.entity.Type;
 import lombok.Data;
 

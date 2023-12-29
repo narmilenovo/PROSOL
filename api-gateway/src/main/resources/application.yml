@@ -3,7 +3,7 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.1.109
+  address: 192.168.1.178
 
 # Spring configuration
 spring:
@@ -16,11 +16,14 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       globalcors:
-        CorsConfigurations:
+        corsConfigurations:
           "[/**]":
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
+      httpclient:
+        ssl:
+          use-insecure-trust-manager: true
       discovery:
         locator:
           enabled: true
@@ -99,7 +102,6 @@ spring:
           filters:
             - RewritePath=/attribute/(?<path>.*), /$\{path}
 
-
         # Dictionary Service
         - id: DICTIONARY-SERVICE
           uri: lb://DICTIONARY-SERVICE
@@ -107,7 +109,6 @@ spring:
             - Path=/dictionary/**
           filters:
             - RewritePath=/dictionary/(?<path>.*), /$\{path}
-
 
         # Request Item Service
         - id: REQUEST-SERVICE
@@ -134,7 +135,6 @@ spring:
 # Eureka Server configuration
 eureka:
   instance:
-    hostname: 192.168.1.53
     lease-renewal-interval-in-seconds: 30
     prefer-ip-address: true
   client:
@@ -179,6 +179,7 @@ springdoc:
     display-operation-id: false
     filter: false
     show-extensions: false
+    use-root-path: true
     urls:
       - name: GATEWAY-SERVICE
         url: /v3/api-docs
@@ -228,8 +229,6 @@ springdoc:
         url: /v3/api-docs/request
         display-name: Request Item
 
-    use-root-path: true
-
   cache:
     disabled: false
   show-actuator: true
@@ -245,6 +244,6 @@ springdoc:
 logging:
   level:
     root: info
-    org.springframework.cloud.gateway.route.RouteDefinitionLocator: info
-    org.springframework.cloud.gateway: trace
-    org.springframework.security: debug
+    "[org.springframework.cloud.gateway.route.RouteDefinitionLocator]": info
+    "[org.springframework.cloud.gateway]": trace
+    "[org.springframework.security]": debug

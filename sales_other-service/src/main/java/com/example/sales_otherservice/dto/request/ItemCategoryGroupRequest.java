@@ -10,13 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ItemCategoryGroupRequest {
 
-    @Schema(description = "Item Category Group Code", example = "ICG001")
-    private String icgCode;
+	@Schema(description = "Item Category Group Code", example = "ICG001")
+	private String icgCode;
 
-    @Schema(description = "Item Category Group Name", example = "ICG001 Name", required = true)
-    private String icgName;
+	@Schema(description = "Item Category Group Name", example = "ICG001 Name")
+	private String icgName;
 
-    @Schema(description = "Item Category Group Status", example = "true")
-    private Boolean icgStatus;
+	@Schema(description = "Item Category Group Status", example = "true")
+	private Boolean icgStatus;
 }
-

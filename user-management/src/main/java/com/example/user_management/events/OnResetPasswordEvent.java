@@ -10,11 +10,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OnResetPasswordEvent extends ApplicationEvent {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-	private UserResponse user;
+	private transient UserResponse user;
 	private String resetPassUrl;
 
 	public OnResetPasswordEvent(UserResponse user, String resetPassUrl) {

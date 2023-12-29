@@ -1,4 +1,4 @@
-package com.example.createtemplateservice.client.AttributeMaster;
+package com.example.createtemplateservice.client.attributemaster;
 
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
