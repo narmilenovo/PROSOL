@@ -1,13 +1,13 @@
 package com.example.vendor_masterservice.service.interfaces;
 
+import java.util.List;
+
 import com.example.vendor_masterservice.dto.request.VendorMasterRequest;
 import com.example.vendor_masterservice.dto.response.VendorMasterResponse;
 import com.example.vendor_masterservice.exceptions.ResourceNotFoundException;
 
-import java.util.List;
-
 public interface VendorMasterService {
-    VendorMasterResponse saveVm(VendorMasterRequest vendorMasterRequest);
+    VendorMasterResponse saveVm(VendorMasterRequest vendorMasterRequest) throws ResourceNotFoundException;
 
     List<VendorMasterResponse> saveAllVm(List<VendorMasterRequest> vendorMasterRequests);
 
@@ -17,7 +17,8 @@ public interface VendorMasterService {
 
     List<VendorMasterResponse> findAllStatusTrue();
 
-    VendorMasterResponse updateVm(Long id, VendorMasterRequest updateVendorMasterRequest) throws ResourceNotFoundException;
+    VendorMasterResponse updateVm(Long id, VendorMasterRequest updateVendorMasterRequest)
+            throws ResourceNotFoundException;
 
     void deleteVmId(Long id) throws ResourceNotFoundException;
 

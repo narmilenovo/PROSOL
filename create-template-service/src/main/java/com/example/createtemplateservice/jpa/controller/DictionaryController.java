@@ -35,81 +35,87 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DictionaryController {
 
-    private final DictionaryService dictionaryService;
+	private final DictionaryService dictionaryService;
 
-    @PostMapping(value = "/saveDictionaryImage", consumes = {
-            MediaType.MULTIPART_FORM_DATA_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Save Dictionary with Image", description = "Save a dictionary entry along with an image.")
-    public ResponseEntity<Object> saveDictionary(
-            @Parameter(name = "dictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
-            @RequestParam(value = "file", required = true) MultipartFile file)
-            throws ResourceFoundException, JsonMappingException, JsonProcessingException {
-        DictionaryRequest dictionaryRequest = this.convert(source);
-        URI uri = URI.create(
-                ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
-        DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest, file);
-        return ResponseEntity.created(uri).body(savedDictionary);
-    }
+	@PostMapping(value = "/saveDictionaryImage", consumes = {
+			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
+	@Operation(summary = "Save Dictionary with Image", description = "Save a dictionary entry along with an image.")
+	public ResponseEntity<Object> saveDictionary(
+			@Parameter(name = "dictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
+			@RequestParam(value = "file", required = true) MultipartFile file)
+			throws ResourceFoundException, JsonMappingException, JsonProcessingException {
+		DictionaryRequest dictionaryRequest = this.convert(source);
+		URI uri = URI.create(
+				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
+		DictionaryResponse savedDictionary = dictionaryService.saveDictionary(dictionaryRequest, file);
+		return ResponseEntity.created(uri).body(savedDictionary);
+	}
 
-    private DictionaryRequest convert(String source) throws JsonMappingException, JsonProcessingException {
-        return new ObjectMapper().readValue(source, DictionaryRequest.class);
-    }
+	private DictionaryRequest convert(String source) throws JsonMappingException, JsonProcessingException {
+		return new ObjectMapper().readValue(source, DictionaryRequest.class);
+	}
 
-    @GetMapping("/getAllDictionary")
-    public ResponseEntity<Object> getAllDictionary(
-            @Pattern(regexp = "uom") @RequestParam(required = false) String show) {
-        List<?> allDictionary;
-        if (show == null) {
-            allDictionary = dictionaryService.getAllDictionary(show);
-        } else if (show.equals("uom")) {
-            allDictionary = dictionaryService.getAllDictionaryNmUom(show);
-        } else {
-            allDictionary = dictionaryService.getAllDictionary(show);
+	@GetMapping("/getAllDictionary")
+	public ResponseEntity<Object> getAllDictionary(
+			@Pattern(regexp = "uom") @RequestParam(required = false) String show) {
+		List<?> allDictionary;
+		if (show == null) {
+			allDictionary = dictionaryService.getAllDictionary(show);
+		} else if (show.equals("uom")) {
+			allDictionary = dictionaryService.getAllDictionaryNmUom(show);
+		} else {
+			allDictionary = dictionaryService.getAllDictionary(show);
 
-        }
-        return ResponseEntity.ok(allDictionary);
-    }
+		}
+		return ResponseEntity.ok(allDictionary);
+	}
 
-    @GetMapping("/getDictionaryById/{id}")
-    public ResponseEntity<Object> getDictionaryById(@PathVariable Long id,
-            @Pattern(regexp = "uom") @RequestParam(required = false) String show) throws ResourceNotFoundException {
-        Object dictionaryById;
-        if (show == null) {
-            dictionaryById = dictionaryService.getDictionaryById(id, show);
-        } else if (show.equals("uom")) {
-            dictionaryById = dictionaryService.getDictionaryNmUomById(id, show);
-        } else {
-            dictionaryById = dictionaryService.getDictionaryById(id, show);
-        }
-        return ResponseEntity.ok(dictionaryById);
-    }
+	@GetMapping("/getDictionaryById/{id}")
+	public ResponseEntity<Object> getDictionaryById(@PathVariable Long id,
+			@Pattern(regexp = "uom") @RequestParam(required = false) String show) throws ResourceNotFoundException {
+		Object dictionaryById;
+		if (show == null) {
+			dictionaryById = dictionaryService.getDictionaryById(id, show);
+		} else if (show.equals("uom")) {
+			dictionaryById = dictionaryService.getDictionaryNmUomById(id, show);
+		} else {
+			dictionaryById = dictionaryService.getDictionaryById(id, show);
+		}
+		return ResponseEntity.ok(dictionaryById);
+	}
 
-    @GetMapping("/noun-suggestions")
-    public ResponseEntity<Object> getNounSuggestions(@RequestParam String noun) {
-        List<String> nouns = dictionaryService.getNounSuggestions(noun);
-        return ResponseEntity.ok(nouns);
-    }
+	@GetMapping("/noun-suggestions")
+	public ResponseEntity<Object> getNounSuggestions(@RequestParam String noun) {
+		List<String> nouns = dictionaryService.getNounSuggestions(noun);
+		return ResponseEntity.ok(nouns);
+	}
 
-    @GetMapping("/modifier-suggestions")
-    public ResponseEntity<Object> getModifierSuggestions(@RequestParam String noun) {
-        List<String> modifiers = dictionaryService.getModifiersByNoun(noun);
-        return ResponseEntity.ok(modifiers);
-    }
+	@GetMapping("/modifier-suggestions")
+	public ResponseEntity<Object> getModifierSuggestions(@RequestParam String noun) {
+		List<String> modifiers = dictionaryService.getModifiersByNoun(noun);
+		return ResponseEntity.ok(modifiers);
+	}
 
-    @PutMapping(value = "/updatedDictionary/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
-            @Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
-            @RequestParam(value = "file", required = true) MultipartFile file)
-            throws ResourceNotFoundException, ResourceFoundException, JsonMappingException, JsonProcessingException {
-        DictionaryRequest updateDictionaryRequest = this.convert(source);
-        DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest, file);
-        return ResponseEntity.ok(updateDictionary);
-    }
+	@PutMapping(value = "/updatedDictionary/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
+			@Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
+			@RequestParam(value = "file", required = true) MultipartFile file)
+			throws ResourceNotFoundException, ResourceFoundException, JsonMappingException, JsonProcessingException {
+		DictionaryRequest updateDictionaryRequest = this.convert(source);
+		DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest, file);
+		return ResponseEntity.ok(updateDictionary);
+	}
 
-    @DeleteMapping("/deleteDictionary/{id}")
-    public ResponseEntity<Object> deleteDictionary(@PathVariable Long id) throws ResourceNotFoundException {
-        dictionaryService.deleteDictionaryId(id);
-        return ResponseEntity.noContent().build();
-    }
+	@DeleteMapping("/deleteDictionary/{id}")
+	public ResponseEntity<Object> deleteDictionary(@PathVariable Long id) throws ResourceNotFoundException {
+		dictionaryService.deleteDictionaryId(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping(value = "/deleteBatchDictionary")
+	public ResponseEntity<Object> deleteBatchDictionary(@PathVariable List<Long> ids) {
+		dictionaryService.deleteBatchDictionary(ids);
+		return ResponseEntity.ok("Successfully deleted !!!");
+	}
 
 }

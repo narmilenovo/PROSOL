@@ -3,7 +3,8 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.1.178
+  # address: 192.168.105.122
+  address: 192.168.1.86
 
 # Spring configuration
 spring:
@@ -118,6 +119,14 @@ spring:
           filters:
             - RewritePath=/request/(?<path>.*), /$\{path}
 
+        # Dynamic Service
+        - id: DYNAMIC-SERVICE
+          uri: lb://DYNAMIC-SERVICE
+          predicates:
+            - Path=/dynamic/**
+          filters:
+            - RewritePath=/dynamic/(?<path>.*), /$\{path}
+
         # Common OpenApi
         - id: openapi
           uri: http://${server.address}:${server.port}
@@ -228,6 +237,10 @@ springdoc:
       - name: REQUEST-SERVICE
         url: /v3/api-docs/request
         display-name: Request Item
+
+      - name: DYNAMIC-SERVICE
+        url: /v3/api-docs/dynamic
+        display-name: Dynamic
 
   cache:
     disabled: false

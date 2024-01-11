@@ -1,9 +1,19 @@
 package com.example.sales_otherservice.entity;
 
+import java.util.Map;
+
+import com.example.sales_otherservice.configuration.ObjectToJsonConverter;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,4 +32,11 @@ public class DeliveringPlant extends BaseEntity {
     private String dpName;
     private Boolean dpStatus;
     private Long plantId;
+
+    @ElementCollection
+    @CollectionTable(name = "delivering_plant_fields", joinColumns = @JoinColumn(name = "delivering_plant_id"))
+    @MapKeyColumn(name = "field_name")
+    @Column(name = "field_value")
+    @Convert(converter = ObjectToJsonConverter.class)
+    private Map<String, Object> dynamicFields;
 }

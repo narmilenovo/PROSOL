@@ -49,7 +49,7 @@ public class ValueMasterController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PostMapping("/saveValue")
 	public ResponseEntity<Object> saveValue(@Valid @RequestBody ValueMasterRequest valueMasterRequest)
-			throws ResourceFoundException {
+			throws ResourceFoundException, ResourceNotFoundException {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveValue").toUriString());
 		ValueMasterResponse savedValue = valueMasterService.saveValue(valueMasterRequest);
 		return ResponseEntity.created(uri).body(savedValue);
@@ -129,6 +129,12 @@ public class ValueMasterController {
 	public ResponseEntity<Object> deleteValue(@PathVariable Long id) throws ResourceNotFoundException {
 		valueMasterService.deleteValueId(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping("/deleteBatchValue")
+	public ResponseEntity<Object> deleteBatchValue(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		valueMasterService.deleteBatchValue(ids);
+		return ResponseEntity.ok("Successfully deleted !!!");
 	}
 
 	@Operation(summary = "Download Template", responses = {

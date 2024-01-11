@@ -1,61 +1,76 @@
 package com.example.generalservice.controller;
 
+import java.net.URI;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import com.example.generalservice.dto.request.IndustrySectorRequest;
 import com.example.generalservice.dto.response.IndustrySectorResponse;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class IndustrySectorController {
 
-    private final IndustrySectorService industrySectorService;
+	private final IndustrySectorService industrySectorService;
 
+	@PostMapping("/saveSector")
+	public ResponseEntity<Object> saveSector(@Valid @RequestBody IndustrySectorRequest industrySectorRequest)
+			throws ResourceFoundException, ResourceNotFoundException {
+		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveSector").toUriString());
+		IndustrySectorResponse sectorResponse = industrySectorService.saveSector(industrySectorRequest);
+		return ResponseEntity.created(uri).body(sectorResponse);
+	}
 
-    @PostMapping("/saveSector")
-    public ResponseEntity<Object> saveSector(@Valid @RequestBody IndustrySectorRequest industrySectorRequest) throws ResourceFoundException {
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveSector").toUriString());
-        IndustrySectorResponse sectorResponse = industrySectorService.saveSector(industrySectorRequest);
-        return ResponseEntity.created(uri).body(sectorResponse);
-    }
+	@GetMapping("/getAllSector")
+	public ResponseEntity<Object> getAllSector() {
+		List<IndustrySectorResponse> allSector = industrySectorService.getAllSector();
+		return ResponseEntity.ok(allSector);
+	}
 
-    @GetMapping("/getAllSector")
-    public ResponseEntity<Object> getAllSector() {
-        List<IndustrySectorResponse> allSector = industrySectorService.getAllSector();
-        return ResponseEntity.ok(allSector);
-    }
+	@GetMapping("/getSectorById/{id}")
+	public ResponseEntity<Object> getSectorById(@PathVariable Long id) throws ResourceNotFoundException {
+		IndustrySectorResponse sectorResponse = industrySectorService.getSectorById(id);
+		return ResponseEntity.ok(sectorResponse);
+	}
 
+	@GetMapping("/getAllSectorTrue")
+	public ResponseEntity<Object> listSectorStatusTrue() {
+		List<IndustrySectorResponse> sectorResponses = industrySectorService.findAllStatusTrue();
+		return ResponseEntity.ok(sectorResponses);
+	}
 
-    @GetMapping("/getSectorById/{id}")
-    public ResponseEntity<Object> getSectorById(@PathVariable Long id) throws ResourceNotFoundException {
-        IndustrySectorResponse sectorResponse = industrySectorService.getSectorById(id);
-        return ResponseEntity.ok(sectorResponse);
-    }
+	@PutMapping("/updateSector/{id}")
+	public ResponseEntity<Object> updateSector(@PathVariable Long id,
+			@Valid @RequestBody IndustrySectorRequest updateindustrysectorrequest)
+			throws ResourceNotFoundException, ResourceFoundException {
+		IndustrySectorResponse updateSector = industrySectorService.updateSector(id, updateindustrysectorrequest);
+		return ResponseEntity.ok(updateSector);
+	}
 
-    @GetMapping("/getAllSectorTrue")
-    public ResponseEntity<Object> listSectorStatusTrue() {
-        List<IndustrySectorResponse> sectorResponses = industrySectorService.findAllStatusTrue();
-        return ResponseEntity.ok(sectorResponses);
-    }
+	@DeleteMapping("/deleteSector/{id}")
+	public ResponseEntity<Object> deleteSector(@PathVariable Long id) throws ResourceNotFoundException {
+		industrySectorService.deleteSectorId(id);
+		return ResponseEntity.noContent().build();
+	}
 
-    @PutMapping("/updateSector/{id}")
-    public ResponseEntity<Object> updateSector(@PathVariable Long id, @Valid @RequestBody IndustrySectorRequest updateindustrysectorrequest) throws ResourceNotFoundException, ResourceFoundException {
-        IndustrySectorResponse updateSector = industrySectorService.updateSector(id, updateindustrysectorrequest);
-        return ResponseEntity.ok(updateSector);
-    }
-
-    @DeleteMapping("/deleteSector/{id}")
-    public ResponseEntity<Object> deleteSector(@PathVariable Long id) throws ResourceNotFoundException {
-        industrySectorService.deleteSectorId(id);
-        return ResponseEntity.noContent().build();
-    }
+	@DeleteMapping("/deleteBatchSector")
+	public ResponseEntity<Object> deleteBatchSector(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		industrySectorService.deleteBatchSector(ids);
+		return ResponseEntity.ok("Successfully deleted !!!");
+	}
 }

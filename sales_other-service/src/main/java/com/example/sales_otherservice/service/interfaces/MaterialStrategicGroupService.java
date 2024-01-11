@@ -1,22 +1,26 @@
 package com.example.sales_otherservice.service.interfaces;
 
+import java.util.List;
+
 import com.example.sales_otherservice.dto.request.MaterialStrategicGroupRequest;
 import com.example.sales_otherservice.dto.response.MaterialStrategicGroupResponse;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 
-import java.util.List;
-
 public interface MaterialStrategicGroupService {
-    MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest) throws ResourceFoundException;
+	MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest)
+			throws ResourceFoundException, ResourceNotFoundException;
 
-    List<MaterialStrategicGroupResponse> getAllMsg();
+	List<MaterialStrategicGroupResponse> getAllMsg();
 
-    MaterialStrategicGroupResponse getMsgById(Long id) throws ResourceNotFoundException;
+	MaterialStrategicGroupResponse getMsgById(Long id) throws ResourceNotFoundException;
 
-    List<MaterialStrategicGroupResponse> findAllStatusTrue();
+	List<MaterialStrategicGroupResponse> findAllStatusTrue();
 
-    MaterialStrategicGroupResponse updateMsg(Long id, MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest) throws ResourceNotFoundException, ResourceFoundException;
+	MaterialStrategicGroupResponse updateMsg(Long id, MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest)
+			throws ResourceNotFoundException, ResourceFoundException;
 
-    void deleteMsgById(Long id) throws ResourceNotFoundException;
+	void deleteMsgById(Long id) throws ResourceNotFoundException;
+
+	void deleteBatchMsg(List<Long> ids);
 }

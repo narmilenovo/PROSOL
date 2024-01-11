@@ -49,7 +49,7 @@ public class VendorMasterController {
         })
         @PostMapping("/saveVm")
         public ResponseEntity<Object> saveVm(@Valid @RequestBody VendorMasterRequest vendorMasterRequest)
-                        throws ResourceFoundException {
+                        throws ResourceFoundException, ResourceNotFoundException {
                 URI uri = URI.create(
                                 ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveVm").toUriString());
                 VendorMasterResponse savedVm = vendorMasterService.saveVm(vendorMasterRequest);

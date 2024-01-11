@@ -3,6 +3,7 @@ package com.example.valueservice.service;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.valueservice.client.AttributeUom;
+import com.example.valueservice.client.DynamicClient;
 import com.example.valueservice.client.SettingClient;
 import com.example.valueservice.client.ValueAttributeUom;
 import com.example.valueservice.dto.request.ValueMasterRequest;
@@ -43,6 +45,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	private final ModelMapper modelMapper;
 	private final SettingClient settingClient;
 	private final Tracer tracer;
+	private final DynamicClient dynamicClient;
 	@Lazy
 	private final ExcelFileHelper excelFileHelper;
 	@Lazy
@@ -51,8 +54,17 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	private static final String VALUE_PREFIX = "ValueMaster_";
 
 	@Override
-	public ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) {
+	public ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) throws ResourceNotFoundException {
 		ValueMaster valueMaster = modelMapper.map(valueMasterRequest, ValueMaster.class);
+		for (Map.Entry<String, Object> entryField : valueMaster.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ValueMaster.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 		valueMaster.setId(null);
 		ValueMaster savedValue = valueMasterRepository.save(valueMaster);
 		return mapToValueMasterResponse(savedValue);
@@ -99,6 +111,15 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 		try {
 			ValueMaster existingValueMaster = findValueById(id);
 			modelMapper.map(updateValueMasterRequest, existingValueMaster);
+			for (Map.Entry<String, Object> entryField : existingValueMaster.getDynamicFields().entrySet()) {
+				String fieldName = entryField.getKey();
+				String formName = ValueMaster.class.getSimpleName();
+				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+				if (!fieldExists) {
+					throw new ResourceNotFoundException("Field of '" + fieldName
+							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+				}
+			}
 			existingValueMaster.setId(id);
 			ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
 			log.info("Update Data from Db {}", updatedValueMaster);
@@ -116,6 +137,12 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	public void deleteValueId(Long id) throws ResourceNotFoundException {
 		ValueMaster valueMaster = findValueById(id);
 		valueMasterRepository.deleteById(valueMaster.getId());
+	}
+
+	@Override
+	public void deleteBatchValue(List<Long> ids) {
+		valueMasterRepository.deleteAllByIdInBatch(ids);
+
 	}
 
 	@Override

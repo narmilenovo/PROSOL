@@ -10,18 +10,20 @@ import com.example.requestitemservice.dto.response.RequestItemResponse;
 
 public interface RequestItemService {
 
-    RequestItemResponse save(RequestItemRequest item, MultipartFile file);
+	RequestItemResponse save(RequestItemRequest item, MultipartFile file);
 
-    RequestItemResponse getRequestItem(Long id);
+	RequestItemResponse getRequestItem(Long id);
 
-    List<RequestItemResponse> getAllRequestItem();
+	List<RequestItemResponse> getAllRequestItem();
 
-    RequestItemResponse update(Long id, RequestItemRequest updatedItem, MultipartFile file);
+	RequestItemResponse update(Long id, RequestItemRequest updatedItem, MultipartFile file);
 
-    void delete(Long id);
+	void delete(Long id);
 
-    MaterialItem getMaterialItem(Long id);
+	MaterialItem getMaterialItem(Long id);
 
-    List<MaterialItem> getAllMaterialItem();
+	List<MaterialItem> getAllMaterialItem();
+
+	void deleteBatchRequest(List<Long> ids);
 
 }

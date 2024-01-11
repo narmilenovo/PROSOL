@@ -1,59 +1,75 @@
 package com.example.generalservice.controller;
 
+import java.net.URI;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import com.example.generalservice.dto.request.InspectionTypeRequest;
 import com.example.generalservice.dto.response.InspectionTypeResponse;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.service.interfaces.InspectionTypeService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class InspectionTypeController {
-    private final InspectionTypeService inspectionTypeService;
+	private final InspectionTypeService inspectionTypeService;
 
-    @PostMapping("/saveInType")
-    public ResponseEntity<Object> saveInCode(@Valid @RequestBody InspectionTypeRequest inspectionTypeRequest) throws ResourceFoundException {
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveInType").toUriString());
-        InspectionTypeResponse inCode = inspectionTypeService.saveInType(inspectionTypeRequest);
-        return ResponseEntity.created(uri).body(inCode);
-    }
+	@PostMapping("/saveInType")
+	public ResponseEntity<Object> saveInCode(@Valid @RequestBody InspectionTypeRequest inspectionTypeRequest)
+			throws ResourceFoundException, ResourceNotFoundException {
+		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveInType").toUriString());
+		InspectionTypeResponse inCode = inspectionTypeService.saveInType(inspectionTypeRequest);
+		return ResponseEntity.created(uri).body(inCode);
+	}
 
-    @GetMapping("/getAllInType")
-    public ResponseEntity<Object> getAllInType() {
-        List<InspectionTypeResponse> codeResponses = inspectionTypeService.getAllInType();
-        return ResponseEntity.ok(codeResponses);
-    }
+	@GetMapping("/getAllInType")
+	public ResponseEntity<Object> getAllInType() {
+		List<InspectionTypeResponse> codeResponses = inspectionTypeService.getAllInType();
+		return ResponseEntity.ok(codeResponses);
+	}
 
+	@GetMapping("/getInTypeById/{id}")
+	public ResponseEntity<Object> getInTypeById(@PathVariable Long id) throws ResourceNotFoundException {
+		InspectionTypeResponse codeResponse = inspectionTypeService.getInTypeById(id);
+		return ResponseEntity.ok(codeResponse);
+	}
 
-    @GetMapping("/getInTypeById/{id}")
-    public ResponseEntity<Object> getInTypeById(@PathVariable Long id) throws ResourceNotFoundException {
-        InspectionTypeResponse codeResponse = inspectionTypeService.getInTypeById(id);
-        return ResponseEntity.ok(codeResponse);
-    }
+	@GetMapping("/getAllInTypeTrue")
+	public ResponseEntity<Object> listInTypeStatusTrue() {
+		List<InspectionTypeResponse> codeResponses = inspectionTypeService.findAllStatusTrue();
+		return ResponseEntity.ok(codeResponses);
+	}
 
-    @GetMapping("/getAllInTypeTrue")
-    public ResponseEntity<Object> listInTypeStatusTrue() {
-        List<InspectionTypeResponse> codeResponses = inspectionTypeService.findAllStatusTrue();
-        return ResponseEntity.ok(codeResponses);
-    }
+	@PutMapping("/updateInType/{id}")
+	public ResponseEntity<Object> updateInType(@PathVariable Long id,
+			@Valid @RequestBody InspectionTypeRequest updateInspectionTypeRequest)
+			throws ResourceNotFoundException, ResourceFoundException {
+		InspectionTypeResponse codeResponse = inspectionTypeService.updateInType(id, updateInspectionTypeRequest);
+		return ResponseEntity.ok(codeResponse);
+	}
 
-    @PutMapping("/updateInType/{id}")
-    public ResponseEntity<Object> updateInType(@PathVariable Long id, @Valid @RequestBody InspectionTypeRequest updateInspectionTypeRequest) throws ResourceNotFoundException, ResourceFoundException {
-        InspectionTypeResponse codeResponse = inspectionTypeService.updateInType(id, updateInspectionTypeRequest);
-        return ResponseEntity.ok(codeResponse);
-    }
+	@DeleteMapping("/deleteInType/{id}")
+	public ResponseEntity<Object> deleteInCode(@PathVariable Long id) throws ResourceNotFoundException {
+		inspectionTypeService.deleteInTypeId(id);
+		return ResponseEntity.noContent().build();
+	}
 
-    @DeleteMapping("/deleteInType/{id}")
-    public ResponseEntity<Object> deleteInCode(@PathVariable Long id) throws ResourceNotFoundException {
-        inspectionTypeService.deleteInTypeId(id);
-        return ResponseEntity.noContent().build();
-    }
+	@DeleteMapping("/deleteBatchInType")
+	public ResponseEntity<Object> deleteBatchInType(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		inspectionTypeService.deleteBatchInType(ids);
+		return ResponseEntity.ok("Successfully deleted !!!");
+	}
 }

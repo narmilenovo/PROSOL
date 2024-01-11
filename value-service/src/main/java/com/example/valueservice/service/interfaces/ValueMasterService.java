@@ -1,38 +1,43 @@
 package com.example.valueservice.service.interfaces;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.valueservice.client.ValueAttributeUom;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.itextpdf.text.DocumentException;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.List;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface ValueMasterService {
-    ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest);
+	ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) throws ResourceNotFoundException;
 
-    List<ValueMasterResponse> getAllValue(boolean attributeUom);
+	List<ValueMasterResponse> getAllValue(boolean attributeUom);
 
-    ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException;
+	ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException;
 
-    ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest) throws ResourceNotFoundException;
+	ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest)
+			throws ResourceNotFoundException;
 
-    void deleteValueId(Long id) throws ResourceNotFoundException;
+	void deleteValueId(Long id) throws ResourceNotFoundException;
 
+	void downloadTemplate(HttpServletResponse httpServletResponse) throws IOException;
 
-    void downloadTemplate(HttpServletResponse httpServletResponse) throws IOException;
+	void downloadAllData(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException;
 
-    void downloadAllData(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException;
+	void uploadData(MultipartFile file) throws IOException, ExcelFileException;
 
-    void uploadData(MultipartFile file) throws IOException, ExcelFileException;
+	void exportPdf(HttpServletResponse httpServletResponse)
+			throws IOException, IllegalAccessException, ExcelFileException, DocumentException;
 
-    void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException, ExcelFileException, DocumentException;
+	List<ValueAttributeUom> getAllValueAttributeUom();
 
-    List<ValueAttributeUom> getAllValueAttributeUom();
+	ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException;
 
-    ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException;
+	void deleteBatchValue(List<Long> ids);
 }

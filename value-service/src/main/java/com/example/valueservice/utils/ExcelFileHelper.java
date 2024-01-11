@@ -1,22 +1,36 @@
 package com.example.valueservice.utils;
 
-import com.example.valueservice.exceptions.ExcelFileException;
-import jakarta.servlet.ServletOutputStream;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.*;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Component;
+
+import com.example.valueservice.exceptions.ExcelFileException;
+
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -27,8 +41,8 @@ public class ExcelFileHelper extends AbstractExporter {
     private XSSFCellStyle headerCellStyle;
     private XSSFCellStyle dataCellStyle;
 
-
-    public void exportTemplate(HttpServletResponse response, String sheetName, Class<?> clazz, String contentType, String extension, String prefix) throws IOException {
+    public void exportTemplate(HttpServletResponse response, String sheetName, Class<?> clazz, String contentType,
+            String extension, String prefix) throws IOException {
         super.setResponseHeader(response, contentType, extension, prefix);
         workbook = new XSSFWorkbook();
         initializeCellStyles();
@@ -37,7 +51,8 @@ public class ExcelFileHelper extends AbstractExporter {
         workbook.close();
     }
 
-    public void exportData(HttpServletResponse response, String sheetName, Class<?> clazz, String contentType, String extension, String prefix, List<?> list) throws IOException, ExcelFileException {
+    public void exportData(HttpServletResponse response, String sheetName, Class<?> clazz, String contentType,
+            String extension, String prefix, List<?> list) throws IOException, ExcelFileException {
         super.setResponseHeader(response, contentType, extension, prefix);
         workbook = new XSSFWorkbook();
         initializeCellStyles();
@@ -120,7 +135,8 @@ public class ExcelFileHelper extends AbstractExporter {
         }
     }
 
-    public <T> List<T> readDataFromExcel(InputStream inputStream, Class<T> clazz) throws IOException, ExcelFileException {
+    public <T> List<T> readDataFromExcel(InputStream inputStream, Class<T> clazz)
+            throws IOException, ExcelFileException {
         workbook = new XSSFWorkbook(inputStream);
         sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
         List<T> dataList = new ArrayList<>();
@@ -159,8 +175,8 @@ public class ExcelFileHelper extends AbstractExporter {
             }
 
             return dto;
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                 NoSuchMethodException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException
+                | NoSuchMethodException e) {
             // Handle exceptions (e.g., log, throw, or return null)
             throw new ExcelFileException("Error converting row to DTO", e);
         }
@@ -188,18 +204,62 @@ public class ExcelFileHelper extends AbstractExporter {
             return null;
         }
 
+        CellType cellType = cell.getCellType();
+
         if (targetType == String.class) {
-            return cell.getStringCellValue();
+            return getStringCellValue(cell, cellType);
         } else if (targetType == Double.class || targetType == double.class) {
-            return cell.getNumericCellValue();
+            return getNumericCellValue(cell, cellType);
         } else if (targetType == Integer.class || targetType == int.class) {
-            return (int) cell.getNumericCellValue();
+            return getIntCellValue(cell, cellType);
         } else if (targetType == Date.class) {
-            return cell.getDateCellValue();
+            return getDateCellValue(cell, cellType);
+        } else if (targetType == Boolean.class || targetType == boolean.class) {
+            return getBooleanCellValue(cell, cellType);
         } else {
             // Add more type conversions as needed
             return null;
         }
     }
-}
 
+    private Object getStringCellValue(Cell cell, CellType cellType) {
+        if (cellType == CellType.STRING) {
+            return cell.getStringCellValue();
+        } else {
+            return String.valueOf(cell);
+        }
+    }
+
+    private Object getNumericCellValue(Cell cell, CellType cellType) {
+        if (cellType == CellType.NUMERIC) {
+            return cell.getNumericCellValue();
+        } else {
+            return null; // Handle non-numeric types as needed
+        }
+    }
+
+    private Object getIntCellValue(Cell cell, CellType cellType) {
+        if (cellType == CellType.NUMERIC) {
+            return (int) cell.getNumericCellValue();
+        } else {
+            return null; // Handle non-numeric types as needed
+        }
+    }
+
+    private Object getDateCellValue(Cell cell, CellType cellType) {
+        if (cellType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            return cell.getDateCellValue();
+        } else {
+            return null; // Handle non-date or non-numeric types as needed
+        }
+    }
+
+    private Object getBooleanCellValue(Cell cell, CellType cellType) {
+        if (cellType == CellType.BOOLEAN) {
+            return cell.getBooleanCellValue();
+        } else {
+            return null; // Handle non-boolean types as needed
+        }
+    }
+
+}
