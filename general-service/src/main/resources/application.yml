@@ -4,18 +4,17 @@ server:
   forward-headers-strategy: framework
   shutdown: graceful
 
-
 # Spring configuration
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: GENERAL-SERVICE   # The server application name
+    name: GENERAL-SERVICE # The server application name
 
   # Db Configuration
   datasource:
     username: postgres
-    url: jdbc:postgresql://localhost:5432/Prosol
+    url: jdbc:postgresql://localhost:5432/general
     password: imu123
 
   jpa:
@@ -75,7 +74,6 @@ springdoc:
     filter: false
     show-extensions: false
   cache:
-    disabled: off
+    disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
-

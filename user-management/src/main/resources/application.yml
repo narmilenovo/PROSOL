@@ -4,18 +4,17 @@ server:
   forward-headers-strategy: framework
   shutdown: graceful
 
-
 # Spring configuration
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 1m  # The server will wait up to one minute for active requests to complete
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: USER-SERVICE   # The server application name
+    name: USER-SERVICE # The server application name
 
   # Db Configuration
   datasource:
     username: postgres
-    url: jdbc:postgresql://localhost:5432/Prosol
+    url: jdbc:postgresql://localhost:5432/userManagement
     password: imu123
 
   jpa:
@@ -64,8 +63,6 @@ management:
     sampling:
       probability: 1.0
 
-
-
 # OpenApi Swagger configuration
 springdoc:
   service:
@@ -89,7 +86,6 @@ springdoc:
     disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
-
 #logging:
 #  pattern:
 #    console: "%d{yyyy-MM-dd HH:mm:ss} ${LOG_LEVEL_PATTERN:-%5p} %m%n"

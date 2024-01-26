@@ -3,8 +3,8 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  # address: 192.168.105.122
-  address: 192.168.1.86
+  address: 192.168.105.122
+  # address: 192.168.1.51
 
 # Spring configuration
 spring:
@@ -17,14 +17,15 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       globalcors:
-        corsConfigurations:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
           "[/**]":
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
-      httpclient:
-        ssl:
-          use-insecure-trust-manager: true
+      #      httpclient:
+      #        ssl:
+      #          use-insecure-trust-manager: true
       discovery:
         locator:
           enabled: true

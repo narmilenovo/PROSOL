@@ -81,31 +81,6 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public List<UserResponse> getAllUsers(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserResponse).toList();
-	}
-
-	@Override
-	public List<UserPlantResponse> getAllUserPlants(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserPlantResponse).toList();
-	}
-
-	@Override
-	public List<UserDepartmentResponse> getAllUserDepartment(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentResponse).toList();
-	}
-
-	@Override
-	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
-				.toList();
-	}
-
-	@Override
 	public UserResponse getUserById(Long id, String show) throws ResourceNotFoundException {
 		User user = findUserById(id);
 		return mapToUserResponse(user);
@@ -131,14 +106,28 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public void deleteUserId(Long id) throws ResourceNotFoundException {
-		User user = this.findUserById(id);
-		userRepository.deleteById(user.getId());
+	public List<UserResponse> getAllUsers(String show) {
+		List<User> users = userRepository.findAll();
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserResponse).toList();
 	}
 
 	@Override
-	public void deleteBatch(List<Long> id) {
-		userRepository.deleteAllByIdInBatch(id);
+	public List<UserPlantResponse> getAllUserPlants(String show) {
+		List<User> users = userRepository.findAll();
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserPlantResponse).toList();
+	}
+
+	@Override
+	public List<UserDepartmentResponse> getAllUserDepartment(String show) {
+		List<User> users = userRepository.findAll();
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentResponse).toList();
+	}
+
+	@Override
+	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show) {
+		List<User> users = userRepository.findAll();
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
+				.toList();
 	}
 
 	@Override
@@ -147,7 +136,6 @@ public class UserServiceImpl implements UserService {
 		modelMapper.map(updateUserRequest, existingUser);
 		existingUser.setId(id);
 		existingUser.setRoles(setToString(updateUserRequest.getRoles()));
-//        existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
 		User updateUser = userRepository.save(existingUser);
 		return mapToUserResponse(updateUser);
 	}
@@ -161,8 +149,8 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public List<UserResponse> updateBulkStatusUsingId(List<Long> id) {
-		List<User> existingUsers = userRepository.findAllById(id);
+	public List<UserResponse> updateBulkStatusUsingId(List<Long> ids) throws ResourceNotFoundException {
+		List<User> existingUsers = this.findAllUsersById(ids);
 		for (User user : existingUsers) {
 			user.setStatus(!user.getStatus());
 		}
@@ -197,6 +185,18 @@ public class UserServiceImpl implements UserService {
 			throw new ResourceNotFoundException(NO_USER_FOUND_WITH_EMAIL_MESSAGE);
 		}
 		return mapToUserResponse(user.get());
+	}
+
+	@Override
+	public void deleteUserId(Long id) throws ResourceNotFoundException {
+		User user = this.findUserById(id);
+		userRepository.deleteById(user.getId());
+	}
+
+	@Override
+	public void deleteBatch(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllUsersById(ids);
+		userRepository.deleteAllByIdInBatch(ids);
 	}
 
 	public Set<Role> setToString(Long[] roles) {
@@ -261,6 +261,19 @@ public class UserServiceImpl implements UserService {
 			throw new ResourceNotFoundException(NO_USER_FOUND_WITH_ID_MESSAGE);
 		}
 		return user.get();
+	}
+
+	private List<User> findAllUsersById(List<Long> ids) throws ResourceNotFoundException {
+		List<User> users = userRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream().filter(id -> users.stream().noneMatch(entity -> entity.getId().equals(id)))
+				.toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("User's with IDs " + missingIds + " not found.");
+		}
+		return users;
 	}
 
 	private UserResponse modifyRole(Long userId, UserRoleRequest userRoleRequest, String operation)

@@ -14,7 +14,7 @@ spring:
   # Db Configuration
   datasource:
     username: postgres
-    url: jdbc:postgresql://localhost:5432/Prosol
+    url: jdbc:postgresql://localhost:5432/createTemplate
     password: imu123
 
   jpa:

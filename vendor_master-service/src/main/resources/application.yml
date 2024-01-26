@@ -14,7 +14,7 @@ spring:
   # Db Configuration
   datasource:
     username: postgres
-    url: jdbc:postgresql://localhost:5432/Prosol?rewriteBatchedStatements=true
+    url: jdbc:postgresql://localhost:5432/vendor?rewriteBatchedStatements=true
     password: imu123
 
   jpa:
@@ -26,7 +26,7 @@ spring:
         jdbc:
           batch_size: 1000
         order_inserts: true
-        generate_statistics: true
+        # generate_statistics: true
         format_sql: true
     show-sql: true
 

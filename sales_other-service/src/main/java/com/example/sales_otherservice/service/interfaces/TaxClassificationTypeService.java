@@ -11,16 +11,20 @@ public interface TaxClassificationTypeService {
 	TaxClassificationTypeResponse saveTct(TaxClassificationTypeRequest taxClassificationClassRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<TaxClassificationTypeResponse> getAllTct();
-
 	TaxClassificationTypeResponse getTctById(Long id) throws ResourceNotFoundException;
+
+	List<TaxClassificationTypeResponse> getAllTct();
 
 	List<TaxClassificationTypeResponse> findAllStatusTrue();
 
 	TaxClassificationTypeResponse updateTct(Long id, TaxClassificationTypeRequest updateTaxClassificationTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	TaxClassificationTypeResponse updateTctStatus(Long id) throws ResourceNotFoundException;
+
+	List<TaxClassificationTypeResponse> updateBatchTctStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteTctById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchTct(List<Long> ids);
+	void deleteBatchTct(List<Long> ids) throws ResourceNotFoundException;
 }

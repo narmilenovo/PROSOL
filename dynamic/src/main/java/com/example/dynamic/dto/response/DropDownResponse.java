@@ -8,8 +8,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DropDownResponse {
-    private String value;
-
-    // @JsonIgnore
-    // private FieldResponse field;
+	private String value;
 }

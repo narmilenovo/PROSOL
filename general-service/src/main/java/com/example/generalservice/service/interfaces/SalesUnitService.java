@@ -11,16 +11,21 @@ public interface SalesUnitService {
 	SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<SalesUnitResponse> getAllSalesUnit();
-
 	SalesUnitResponse getSalesUnitById(Long id) throws ResourceNotFoundException;
+
+	List<SalesUnitResponse> getAllSalesUnit();
 
 	List<SalesUnitResponse> findAllStatusTrue();
 
 	SalesUnitResponse updateSalesUnit(Long id, SalesUnitRequest updateSalesUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	SalesUnitResponse updateSalesUnitStatus(Long id) throws ResourceNotFoundException;
+
+	List<SalesUnitResponse> updateBatchSalesUnitStatus(List<Long> ids);
+
 	void deleteSalesUnitId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchSalesUnit(List<Long> ids);
+	void deleteBatchSalesUnit(List<Long> ids) throws ResourceNotFoundException;
+
 }

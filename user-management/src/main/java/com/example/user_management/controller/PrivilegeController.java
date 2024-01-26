@@ -20,10 +20,12 @@ import static com.example.user_management.utils.Constants.UNAUTHORIZED_MESSAGE;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -84,7 +86,7 @@ public class PrivilegeController {
 	@GetMapping("/getPrivilegeById/{id}")
 	public ResponseEntity<Object> getPrivilegeById(@PathVariable Long id) throws ResourceNotFoundException {
 		PrivilegeResponse foundPrivilege = privilegeService.getPrivilegeById(id);
-		return ResponseEntity.ok(foundPrivilege);
+		return ResponseEntity.status(HttpStatus.OK).body(foundPrivilege);
 	}
 
 	@Operation(summary = SWG_PRIVILEGE_LIST_OPERATION, responses = {
@@ -118,6 +120,19 @@ public class PrivilegeController {
 		return ResponseEntity.ok().body(updatePrivilege);
 	}
 
+	@PatchMapping("/updatePrivilegeStatusById/{id}")
+	public ResponseEntity<Object> updatePrivilegeStatusById(@PathVariable Long id) throws ResourceNotFoundException {
+		PrivilegeResponse response = privilegeService.updateStatusUsingPrivilegeById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+	}
+
+	@PatchMapping("/updateBulkStatusPrivilegeId")
+	public ResponseEntity<Object> updateBulkStatusPrivilegeById(@RequestBody List<Long> ids)
+			throws ResourceNotFoundException {
+		List<PrivilegeResponse> responseList = privilegeService.updateBulkStatusPrivilegeById(ids);
+		return ResponseEntity.ok(responseList);
+	}
+
 	@Operation(summary = SWG_PRIVILEGE_DELETE_OPERATION, responses = {
 			@ApiResponse(responseCode = "204", description = SWG_PRIVILEGE_DELETE_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
@@ -134,6 +149,7 @@ public class PrivilegeController {
 	@DeleteMapping("/deleteBatchPrivilege")
 	public ResponseEntity<Object> deleteBatchPrivilege(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		privilegeService.deleteBatchPrivilege(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
+
 }

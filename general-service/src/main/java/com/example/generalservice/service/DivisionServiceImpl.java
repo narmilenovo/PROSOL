@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.DivisionRepository;
 import com.example.generalservice.service.interfaces.DivisionService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -77,6 +78,7 @@ public class DivisionServiceImpl implements DivisionService {
 	@Override
 	public DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String divCode = updateDivisionRequest.getDivCode();
 		String divName = updateDivisionRequest.getDivName();
 		Division existingDivision = this.findDivisionById(id);
@@ -99,14 +101,30 @@ public class DivisionServiceImpl implements DivisionService {
 	}
 
 	@Override
-	public void deleteDivisionId(Long id) throws ResourceNotFoundException {
-		Division division = this.findDivisionById(id);
-		divisionRepository.deleteById(division.getId());
-
+	public DivisionResponse updateDivisionStatus(Long id) throws ResourceNotFoundException {
+		Division existingDivision = this.findDivisionById(id);
+		existingDivision.setDivStatus(!existingDivision.getDivStatus());
+		divisionRepository.save(existingDivision);
+		return this.mapToDivisionResponse(existingDivision);
 	}
 
 	@Override
-	public void deleteBatchDivsion(List<Long> ids) {
+	public List<DivisionResponse> updateBatchDivisionStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<Division> divisions = this.findAllById(ids);
+		divisions.forEach(division -> division.setDivStatus(!division.getDivStatus()));
+		divisionRepository.saveAll(divisions);
+		return divisions.stream().map(this::mapToDivisionResponse).toList();
+	}
+
+	@Override
+	public void deleteDivisionId(Long id) throws ResourceNotFoundException {
+		Division division = this.findDivisionById(id);
+		divisionRepository.deleteById(division.getId());
+	}
+
+	@Override
+	public void deleteBatchDivision(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		divisionRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -115,11 +133,26 @@ public class DivisionServiceImpl implements DivisionService {
 	}
 
 	private Division findDivisionById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<Division> division = divisionRepository.findById(id);
 		if (division.isEmpty()) {
 			throw new ResourceNotFoundException("No Division found with this Id");
 		}
 		return division.get();
+	}
+
+	private List<Division> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<Division> divisions = divisionRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> divisions.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Division with IDs " + missingIds + " not found.");
+		}
+		return divisions;
 	}
 
 }

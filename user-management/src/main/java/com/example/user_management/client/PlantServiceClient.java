@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "PLANT-SERVICE")
 public interface PlantServiceClient {
 
-    @GetMapping("/getDepartmentById/{id}")
-    DepartmentResponse getDepartmentById(@PathVariable Long id);
+	@GetMapping("/getDepartmentById/{id}")
+	DepartmentResponse getDepartmentById(@PathVariable Long id);
 
-    @GetMapping("/getPlantById/{plantId}")
-    PlantResponse getPlantById(@PathVariable Long plantId);
+	@GetMapping("/getPlantById/{plantId}")
+	PlantResponse getPlantById(@PathVariable Long plantId);
 }

@@ -22,5 +22,9 @@ public interface MaterialStrategicGroupService {
 
 	void deleteMsgById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchMsg(List<Long> ids);
+	void deleteBatchMsg(List<Long> ids) throws ResourceNotFoundException;
+
+	MaterialStrategicGroupResponse updateMsgStatus(Long id) throws ResourceNotFoundException;
+
+	List<MaterialStrategicGroupResponse> updateBatchMsgStatus(List<Long> ids) throws ResourceNotFoundException;
 }

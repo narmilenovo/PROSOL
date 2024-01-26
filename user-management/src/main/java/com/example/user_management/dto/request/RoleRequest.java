@@ -10,19 +10,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoleRequest {
-    @Schema(description = "Name of the role", example = "A")
-    @NotBlank(message = "The name is required")
-    private String name;
+	@Schema(description = "Name of the role", example = "A")
+	@NotBlank(message = "The name is required")
+	private String name;
 
-    @Schema(description = "Description of the role")
-    private String description;
+	@Schema(description = "Description of the role")
+	private String description;
 
-    @Schema(description = "Role based plant Name")
-    private String plantName;
+	@Schema(description = "Role based plant Name")
+	private Long plantId;
 
-    @Schema(description = "Defines Role status")
-    private Boolean status = true;
+	@Schema(description = "Defines Role status")
+	private Boolean status = true;
 
-    @Schema(description = "Set Privileges to Role")
-    private Long[] privileges;
+	@Schema(description = "Set Privileges to Role")
+	private Long[] privileges;
 }

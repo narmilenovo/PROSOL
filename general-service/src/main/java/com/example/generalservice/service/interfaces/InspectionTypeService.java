@@ -11,16 +11,21 @@ public interface InspectionTypeService {
 	InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<InspectionTypeResponse> getAllInType();
-
 	InspectionTypeResponse getInTypeById(Long id) throws ResourceNotFoundException;
+
+	List<InspectionTypeResponse> getAllInType();
 
 	List<InspectionTypeResponse> findAllStatusTrue();
 
 	InspectionTypeResponse updateInType(Long id, InspectionTypeRequest updateInspectionTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	InspectionTypeResponse updateInTypeStatus(Long id) throws ResourceNotFoundException;
+
+	List<InspectionTypeResponse> updateBatchInTypeStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteInTypeId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchInType(List<Long> ids);
+	void deleteBatchInType(List<Long> ids) throws ResourceNotFoundException;
+
 }

@@ -76,6 +76,7 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>(response, HttpStatus.UNPROCESSABLE_ENTITY);
 	}
 
+	@SuppressWarnings("null")
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<Object> methodArgumentNotValidException(MethodArgumentNotValidException ex) {
 		HashMap<String, List<String>> errors = new HashMap<>();

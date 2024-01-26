@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.AlternateUOMRepository;
 import com.example.generalservice.service.interfaces.AlternateUOMService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,30 +54,41 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 
 	@Override
 	@Cacheable("uom")
-	public List<AlternateUOMResponse> getAllUom() {
-		List<AlternateUOM> uomList = alternateUOMRepository.findAll();
-		return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId)).map(this::mapToAlternateUOMResponse)
-				.toList();
-	}
-
-	@Override
-	@Cacheable("uom")
 	public AlternateUOMResponse getUomById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		AlternateUOM uom = this.findUomById(id);
 		return mapToAlternateUOMResponse(uom);
 	}
 
 	@Override
 	@Cacheable("uom")
-	public List<AlternateUOMResponse> findAllStatusTrue() {
+	public List<AlternateUOMResponse> getAllUom() throws ResourceNotFoundException {
+		List<AlternateUOM> uomList = alternateUOMRepository.findAll();
+		if (uomList.isEmpty()) {
+			throw new ResourceNotFoundException("Attribute Uom is Empty");
+		} else {
+			return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId))
+					.map(this::mapToAlternateUOMResponse).toList();
+		}
+	}
+
+	@Override
+	@Cacheable("uom")
+	public List<AlternateUOMResponse> findAllStatusTrue() throws ResourceNotFoundException {
 		List<AlternateUOM> uomList = alternateUOMRepository.findAllByUomStatusIsTrue();
-		return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId)).map(this::mapToAlternateUOMResponse)
-				.toList();
+		if (uomList.isEmpty()) {
+			throw new ResourceNotFoundException("Attribute Uom is Empty");
+		} else {
+
+			return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId))
+					.map(this::mapToAlternateUOMResponse).toList();
+		}
 	}
 
 	@Override
 	public AlternateUOMResponse updateUom(Long id, AlternateUOMRequest updateAlternateUOMRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String uomCode = updateAlternateUOMRequest.getUomCode();
 		String uomName = updateAlternateUOMRequest.getUomName();
 		AlternateUOM existingUom = this.findUomById(id);
@@ -99,13 +111,31 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 	}
 
 	@Override
+	public AlternateUOMResponse updateUomStatus(Long id) throws ResourceNotFoundException {
+		AlternateUOM uom = this.findUomById(id);
+		uom.setUomStatus(!uom.getUomStatus());
+		alternateUOMRepository.save(uom);
+		return mapToAlternateUOMResponse(uom);
+	}
+
+	@Override
+	public List<AlternateUOMResponse> updateBatchUomStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<AlternateUOM> uomList = this.findAllById(ids);
+		uomList.forEach(uom -> uom.setUomStatus(!uom.getUomStatus()));
+		alternateUOMRepository.saveAll(uomList);
+		return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId)).map(this::mapToAlternateUOMResponse)
+				.toList();
+	}
+
+	@Override
 	public void deleteUomId(Long id) throws ResourceNotFoundException {
 		AlternateUOM uom = this.findUomById(id);
 		alternateUOMRepository.deleteById(uom.getId());
 	}
 
 	@Override
-	public void deleteBatchUom(List<Long> ids) {
+	public void deleteBatchUom(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		alternateUOMRepository.deleteAllByIdInBatch(ids);
 
 	}
@@ -115,11 +145,26 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 	}
 
 	private AlternateUOM findUomById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<AlternateUOM> uom = alternateUOMRepository.findById(id);
 		if (uom.isEmpty()) {
 			throw new ResourceNotFoundException("No Uom found with this");
 		}
 		return uom.get();
+	}
+
+	private List<AlternateUOM> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<AlternateUOM> uomList = alternateUOMRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> uomList.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+		}
+		return uomList;
 	}
 
 }

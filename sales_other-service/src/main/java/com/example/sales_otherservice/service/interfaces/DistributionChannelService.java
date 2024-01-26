@@ -11,16 +11,21 @@ public interface DistributionChannelService {
 	DistributionChannelResponse saveDc(DistributionChannelRequest deliveringPlantRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<DistributionChannelResponse> getAllDc();
-
 	DistributionChannelResponse getDcById(Long id) throws ResourceNotFoundException;
+
+	List<DistributionChannelResponse> getAllDc();
 
 	List<DistributionChannelResponse> findAllStatusTrue();
 
 	DistributionChannelResponse updateDc(Long id, DistributionChannelRequest updateDistributionChannelRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	DistributionChannelResponse updateDcStatus(Long id) throws ResourceNotFoundException;
+
+	List<DistributionChannelResponse> updateBatchDcStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteDcId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchDc(List<Long> ids);
+	void deleteBatchDc(List<Long> ids) throws ResourceNotFoundException;
+
 }

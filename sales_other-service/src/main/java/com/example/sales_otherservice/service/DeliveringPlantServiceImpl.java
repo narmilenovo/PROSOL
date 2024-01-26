@@ -9,8 +9,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.DpPlant;
-import com.example.sales_otherservice.clients.DynamicClient;
-import com.example.sales_otherservice.clients.PlantClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
+import com.example.sales_otherservice.clients.Plant.PlantClient;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
 import com.example.sales_otherservice.entity.DeliveringPlant;
@@ -18,6 +18,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.DeliveringPlantRepository;
 import com.example.sales_otherservice.service.interfaces.DeliveringPlantService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -54,6 +55,18 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	}
 
 	@Override
+	public DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException {
+		DeliveringPlant deliveringPlant = this.findDpById(id);
+		return mapToDeliveringPlantResponse(deliveringPlant);
+	}
+
+	@Override
+	public DpPlant getDpPlantById(Long id) throws ResourceNotFoundException {
+		DeliveringPlant deliveringPlant = this.findDpById(id);
+		return mapToDpPlant(deliveringPlant);
+	}
+
+	@Override
 	public List<DeliveringPlantResponse> getAllDp() {
 		List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAll();
 		return deliveringPlants.stream().sorted(Comparator.comparing(DeliveringPlant::getId))
@@ -61,9 +74,9 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	}
 
 	@Override
-	public DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException {
-		DeliveringPlant deliveringPlant = this.findDpById(id);
-		return mapToDeliveringPlantResponse(deliveringPlant);
+	public List<DpPlant> getAllDpPlant() {
+		return deliveringPlantRepository.findAll().stream().sorted(Comparator.comparing(DeliveringPlant::getId))
+				.map(this::mapToDpPlant).toList();
 	}
 
 	@Override
@@ -76,6 +89,7 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	@Override
 	public DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String dpCode = updateDeliveringPlantRequest.getDpCode();
 		String dpName = updateDeliveringPlantRequest.getDpName();
 		DeliveringPlant existingDeliveringPlant = this.findDpById(id);
@@ -92,11 +106,27 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 				}
 			}
 			existingDeliveringPlant.setId(id);
-			// existingDeliveringPlant.setId(existingDeliveringPlant.getId());
 			DeliveringPlant updatedDeliveringPlant = deliveringPlantRepository.save(existingDeliveringPlant);
 			return mapToDeliveringPlantResponse(updatedDeliveringPlant);
 		}
 		throw new ResourceFoundException("Delivering Plant already exist");
+	}
+
+	@Override
+	public DeliveringPlantResponse updateDpStatus(Long id) throws ResourceNotFoundException {
+		DeliveringPlant deliveringPlant = this.findDpById(id);
+		deliveringPlant.setDpStatus(!deliveringPlant.getDpStatus());
+		deliveringPlantRepository.save(deliveringPlant);
+		return mapToDeliveringPlantResponse(deliveringPlant);
+	}
+
+	@Override
+	public List<DeliveringPlantResponse> updateBatchDpStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<DeliveringPlant> deliveringPlants = this.findAllDpById(ids);
+		deliveringPlants.forEach(deliveringPlant -> deliveringPlant.setDpStatus(!deliveringPlant.getDpStatus()));
+		deliveringPlantRepository.saveAll(deliveringPlants);
+		return deliveringPlants.stream().sorted(Comparator.comparing(DeliveringPlant::getId))
+				.map(this::mapToDeliveringPlantResponse).toList();
 	}
 
 	@Override
@@ -106,20 +136,9 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	}
 
 	@Override
-	public void deleteBatchDp(List<Long> ids) {
+	public void deleteBatchDp(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllDpById(ids);
 		deliveringPlantRepository.deleteAllByIdInBatch(ids);
-	}
-
-	@Override
-	public List<DpPlant> getAllDpPlant() {
-		return deliveringPlantRepository.findAll().stream().sorted(Comparator.comparing(DeliveringPlant::getId))
-				.map(this::mapToDpPlant).toList();
-	}
-
-	@Override
-	public DpPlant getDpPlantById(Long id) throws ResourceNotFoundException {
-		DeliveringPlant deliveringPlant = this.findDpById(id);
-		return mapToDpPlant(deliveringPlant);
 	}
 
 	private DeliveringPlantResponse mapToDeliveringPlantResponse(DeliveringPlant deliveringPlant) {
@@ -136,11 +155,26 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	}
 
 	private DeliveringPlant findDpById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<DeliveringPlant> deliveringPlant = deliveringPlantRepository.findById(id);
 		if (deliveringPlant.isEmpty()) {
 			throw new ResourceNotFoundException("Delivering Plant not found with this Id");
 		}
 		return deliveringPlant.get();
+	}
+
+	private List<DeliveringPlant> findAllDpById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<DeliveringPlant> deliveringPlants = deliveringPlantRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> deliveringPlants.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Delivering Plant with IDs " + missingIds + " not found.");
+		}
+		return deliveringPlants;
 	}
 
 }

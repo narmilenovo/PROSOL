@@ -74,13 +74,30 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 	}
 
 	@Override
+	public PrivilegeResponse updateStatusUsingPrivilegeById(Long id) throws ResourceNotFoundException {
+		Privilege privilege = this.findPrivilegeById(id);
+		privilege.setStatus(!privilege.getStatus());
+		Privilege updatedPrivilege = privilegeRepository.save(privilege);
+		return mapToPrivilegeResponse(updatedPrivilege);
+	}
+
+	@Override
+	public List<PrivilegeResponse> updateBulkStatusPrivilegeById(List<Long> ids) throws ResourceNotFoundException {
+		List<Privilege> privileges = this.findAllPrivilegeById(ids);
+		privileges.forEach(privilege -> privilege.setStatus(!privilege.getStatus()));
+		privilegeRepository.saveAll(privileges);
+		return privileges.stream().map(this::mapToPrivilegeResponse).toList();
+	}
+
+	@Override
 	public void deletePrivilege(Long id) throws ResourceNotFoundException {
 		Privilege privilege = this.findPrivilegeById(id);
 		privilegeRepository.deleteById(privilege.getId());
 	}
 
 	@Override
-	public void deleteBatchPrivilege(List<Long> ids) {
+	public void deleteBatchPrivilege(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllPrivilegeById(ids);
 		privilegeRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -94,6 +111,19 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 			throw new ResourceNotFoundException(NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE);
 		}
 		return privilege.get();
+	}
+
+	private List<Privilege> findAllPrivilegeById(List<Long> ids) throws ResourceNotFoundException {
+		List<Privilege> privileges = privilegeRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> privileges.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Privilege with IDs " + missingIds + " not found.");
+		}
+		return privileges;
 	}
 
 }

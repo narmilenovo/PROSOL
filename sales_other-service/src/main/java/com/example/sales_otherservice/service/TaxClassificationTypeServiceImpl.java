@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.TaxClassificationTypeRequest;
 import com.example.sales_otherservice.dto.response.TaxClassificationTypeResponse;
 import com.example.sales_otherservice.entity.TaxClassificationType;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.TaxClassificationTypeRepository;
 import com.example.sales_otherservice.service.interfaces.TaxClassificationTypeService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,16 +53,16 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 	}
 
 	@Override
+	public TaxClassificationTypeResponse getTctById(Long id) throws ResourceNotFoundException {
+		TaxClassificationType classificationType = this.findTctById(id);
+		return mapToTaxClassificationClassResponse(classificationType);
+	}
+
+	@Override
 	public List<TaxClassificationTypeResponse> getAllTct() {
 		List<TaxClassificationType> classificationTypes = taxClassificationTypeRepository.findAll();
 		return classificationTypes.stream().sorted(Comparator.comparing(TaxClassificationType::getId))
 				.map(this::mapToTaxClassificationClassResponse).toList();
-	}
-
-	@Override
-	public TaxClassificationTypeResponse getTctById(Long id) throws ResourceNotFoundException {
-		TaxClassificationType classificationType = this.findTctById(id);
-		return mapToTaxClassificationClassResponse(classificationType);
 	}
 
 	@Override
@@ -75,6 +76,7 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 	public TaxClassificationTypeResponse updateTct(Long id,
 			TaxClassificationTypeRequest updateTaxClassificationTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String tctCode = updateTaxClassificationTypeRequest.getTctCode();
 		String tctName = updateTaxClassificationTypeRequest.getTctName();
 		TaxClassificationType existingClassificationType = this.findTctById(id);
@@ -99,13 +101,30 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 	}
 
 	@Override
+	public TaxClassificationTypeResponse updateTctStatus(Long id) throws ResourceNotFoundException {
+		TaxClassificationType classificationType = this.findTctById(id);
+		classificationType.setTctStatus(!classificationType.getTctStatus());
+		taxClassificationTypeRepository.save(classificationType);
+		return mapToTaxClassificationClassResponse(classificationType);
+	}
+
+	@Override
+	public List<TaxClassificationTypeResponse> updateBatchTctStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<TaxClassificationType> types = this.findAllTctById(ids);
+		types.forEach(type -> type.setTctStatus(!type.getTctStatus()));
+		taxClassificationTypeRepository.saveAll(types);
+		return types.stream().map(this::mapToTaxClassificationClassResponse).toList();
+	}
+
+	@Override
 	public void deleteTctById(Long id) throws ResourceNotFoundException {
 		TaxClassificationType classificationType = this.findTctById(id);
 		taxClassificationTypeRepository.deleteById(classificationType.getId());
 	}
 
 	@Override
-	public void deleteBatchTct(List<Long> ids) {
+	public void deleteBatchTct(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllTctById(ids);
 		taxClassificationTypeRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -115,11 +134,26 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 	}
 
 	private TaxClassificationType findTctById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<TaxClassificationType> classificationType = taxClassificationTypeRepository.findById(id);
 		if (classificationType.isEmpty()) {
 			throw new ResourceNotFoundException("Tax classification Type not found with this Id");
 		}
 		return classificationType.get();
+	}
+
+	private List<TaxClassificationType> findAllTctById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<TaxClassificationType> types = taxClassificationTypeRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
+				.toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Tax classification Type with IDs " + missingIds + " not found.");
+		}
+		return types;
 	}
 
 }

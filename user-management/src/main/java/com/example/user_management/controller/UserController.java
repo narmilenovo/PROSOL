@@ -43,6 +43,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -126,24 +127,6 @@ public class UserController {
 		return ResponseEntity.created(uri).body(users);
 	}
 
-	@Operation(summary = SWG_USER_LIST_OPERATION, responses = {
-			@ApiResponse(responseCode = "200", description = SWG_USER_LIST_MESSAGE, content = @Content(schema = @Schema(implementation = UserResponse.class))),
-			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
-			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
-	@GetMapping(value = "/getAllUsers")
-	public ResponseEntity<Object> getAllUsers(@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show) {
-		if (show == null) {
-			return ResponseEntity.ok(userService.getAllUsers(show));
-		}
-		List<?> users = switch (show) {
-		case "p" -> userService.getAllUserPlants(show);
-		case "d" -> userService.getAllUserDepartment(show);
-		case "pd" -> userService.getAllUserDepartmentPlants(show);
-		default -> userService.getAllUsers(show);
-		};
-		return ResponseEntity.ok(users);
-	}
-
 	@Operation(summary = SWG_USER_ITEM_OPERATION, responses = {
 			@ApiResponse(responseCode = "200", description = SWG_USER_ITEM_MESSAGE, content = @Content(schema = @Schema(implementation = UserResponse.class))),
 			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
@@ -160,27 +143,25 @@ public class UserController {
 		case "pd" -> userService.getUserDepartmentPlantById(id, show);
 		default -> userService.getUserById(id, show);
 		};
-		return ResponseEntity.ok(userResponse);
+		return ResponseEntity.status(HttpStatus.OK).body(userResponse);
 	}
 
-	@Operation(summary = SWG_USER_DELETE_OPERATION, responses = {
-			@ApiResponse(responseCode = "204", description = SWG_USER_DELETE_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
+	@Operation(summary = SWG_USER_LIST_OPERATION, responses = {
+			@ApiResponse(responseCode = "200", description = SWG_USER_LIST_MESSAGE, content = @Content(schema = @Schema(implementation = UserResponse.class))),
 			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
-	@DeleteMapping("/deleteUser/{id}")
-	public ResponseEntity<Object> delete(@PathVariable Long id) throws ResourceNotFoundException {
-		userService.deleteUserId(id);
-		return ResponseEntity.noContent().build();
-	}
-
-	@Operation(summary = SWG_USER_BATCH_DELETE_OPERATION, responses = {
-			@ApiResponse(responseCode = "204", description = SWG_USER_DELETE_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
-			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
-			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
-	@DeleteMapping("/deleteBatchUser/{id}")
-	public ResponseEntity<Object> deleteBatch(@PathVariable List<Long> id) {
-		userService.deleteBatch(id);
-		return ResponseEntity.ok().build();
+	@GetMapping(value = "/getAllUsers")
+	public ResponseEntity<Object> getAllUsers(@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show) {
+		if (show == null) {
+			return ResponseEntity.ok(userService.getAllUsers(show));
+		}
+		List<?> users = switch (show) {
+		case "p" -> userService.getAllUserPlants(show);
+		case "d" -> userService.getAllUserDepartment(show);
+		case "pd" -> userService.getAllUserDepartmentPlants(show);
+		default -> userService.getAllUsers(show);
+		};
+		return ResponseEntity.ok(users);
 	}
 
 	@Operation(summary = SWG_USER_UPDATE_OPERATION, responses = {
@@ -223,9 +204,10 @@ public class UserController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@PatchMapping("/updateBulkStatusUsingId/{id}")
-	public ResponseEntity<Object> updateBulkStatusUsingId(@PathVariable List<Long> id) {
-		List<UserResponse> users = userService.updateBulkStatusUsingId(id);
+	@PatchMapping("/updateBulkStatusUsingId")
+	public ResponseEntity<Object> updateBulkStatusUsingId(@RequestBody List<Long> ids)
+			throws ResourceNotFoundException {
+		List<UserResponse> users = userService.updateBulkStatusUsingId(ids);
 		return ResponseEntity.ok(users);
 	}
 
@@ -287,6 +269,26 @@ public class UserController {
 		userService.updatePassword(userAccount.getUser().getId(), resetPasswordRequest.getPassword());
 		userAccountService.delete(userAccount.getId());
 		return ResponseEntity.badRequest().body(RESET_PASSWORD_SUCCESS_MESSAGE);
+	}
+
+	@Operation(summary = SWG_USER_DELETE_OPERATION, responses = {
+			@ApiResponse(responseCode = "204", description = SWG_USER_DELETE_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
+			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
+			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
+	@DeleteMapping("/deleteUser/{id}")
+	public ResponseEntity<Object> delete(@PathVariable Long id) throws ResourceNotFoundException {
+		userService.deleteUserId(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@Operation(summary = SWG_USER_BATCH_DELETE_OPERATION, responses = {
+			@ApiResponse(responseCode = "204", description = SWG_USER_DELETE_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
+			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
+			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
+	@DeleteMapping("/deleteBatchUser")
+	public ResponseEntity<Object> deleteBatch(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		userService.deleteBatch(ids);
+		return ResponseEntity.ok().build();
 	}
 
 	@Operation(summary = SWG_REMOVE_ROLE_USER_OPERATION, responses = {

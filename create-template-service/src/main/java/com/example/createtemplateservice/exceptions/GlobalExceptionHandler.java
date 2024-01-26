@@ -118,4 +118,11 @@ public class GlobalExceptionHandler {
 
 		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
+
+	@ExceptionHandler(DateTimeException.class)
+	public ResponseEntity<String> handleDateTimeException(DateTimeException ex) {
+		// Log the exception or handle it in other ways as needed
+		return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+
 }

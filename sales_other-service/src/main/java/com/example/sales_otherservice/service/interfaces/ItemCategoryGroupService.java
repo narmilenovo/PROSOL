@@ -22,5 +22,9 @@ public interface ItemCategoryGroupService {
 
 	void deleteIcgById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchIcg(List<Long> ids);
+	void deleteBatchIcg(List<Long> ids) throws ResourceNotFoundException;
+
+	ItemCategoryGroupResponse updateIcgStatus(Long id) throws ResourceNotFoundException;
+
+	List<ItemCategoryGroupResponse> updateBatchIcgStatus(List<Long> ids) throws ResourceNotFoundException;
 }

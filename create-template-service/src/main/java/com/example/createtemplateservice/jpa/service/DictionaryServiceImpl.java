@@ -29,6 +29,7 @@ import com.example.createtemplateservice.jpa.repository.DictionaryAttributeRepos
 import com.example.createtemplateservice.jpa.repository.DictionaryRepository;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
 import com.example.createtemplateservice.utils.FileUploadUtil;
+import com.example.createtemplateservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -49,7 +50,6 @@ public class DictionaryServiceImpl implements DictionaryService {
 	public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file) {
 		Dictionary dictionary = modelMapper.map(dictionaryRequest, Dictionary.class);
 		dictionary.setId(null);
-		// Dictionary savedDictionary = dictionaryRepository.save(dictionary);
 		Dictionary saveEmptyDicId = dictionaryRepository.save(dictionary);
 
 		String fileName = fileUploadUtil.storeFile(file, saveEmptyDicId.getId());
@@ -70,34 +70,47 @@ public class DictionaryServiceImpl implements DictionaryService {
 	}
 
 	@Override
-	public List<DictionaryResponse> getAllDictionary(String show) {
-		List<Dictionary> dictionaries = dictionaryRepository.findAll();
-		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapToDictionaryResponse)
-				.toList();
-	}
-
-	@Override
-	public List<DictionaryAllResponse> getAllDictionaryNmUom(String show) {
-		List<Dictionary> dictionaries = dictionaryRepository.findAll();
-		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapTODictionaryAll)
-				.toList();
-	}
-
-	@Override
 	public DictionaryResponse getDictionaryById(Long id, String show) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		return mapToDictionaryResponse(dictionary);
 	}
 
 	@Override
 	public DictionaryAllResponse getDictionaryNmUomById(Long id, String show) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		return mapTODictionaryAll(dictionary);
 	}
 
 	@Override
+	public List<DictionaryResponse> getAllDictionary(String show) throws ResourceNotFoundException {
+		List<Dictionary> dictionaries = this.findAll();
+		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapToDictionaryResponse)
+				.toList();
+	}
+
+	@Override
+	public List<DictionaryAllResponse> getAllDictionaryNmUom(String show) throws ResourceNotFoundException {
+		List<Dictionary> dictionaries = this.findAll();
+		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapTODictionaryAll)
+				.toList();
+	}
+
+	@Override
+	public List<String> getNounSuggestions(String noun) {
+		return dictionaryRepository.findNounSuggestionsByPrefix(noun);
+	}
+
+	@Override
+	public List<String> getModifiersByNoun(String noun) {
+		return dictionaryRepository.findModifiersByNoun(noun);
+	}
+
+	@Override
 	public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
 			throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Dictionary existingDictionary = findDictionaryById(id);
 		modelMapper.map(updateDictionaryRequest, existingDictionary);
 		existingDictionary.setId(id);
@@ -121,32 +134,43 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	@Override
 	public void deleteDictionaryId(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		fileUploadUtil.deleteDir(dictionary.getImage(), id);
 		dictionaryRepository.delete(dictionary);
 	}
 
 	@Override
-	public void deleteBatchDictionary(List<Long> ids) {
+	public void deleteBatchDictionary(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<Dictionary> attributeMasters = dictionaryRepository.findAllById(ids);
+
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> attributeMasters.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Dictionaries with IDs " + missingIds + " not found.");
+		}
 		dictionaryRepository.deleteAllById(ids);
 	}
 
-	@Override
-	public List<String> getNounSuggestions(String noun) {
-		return dictionaryRepository.findNounSuggestionsByPrefix(noun);
-	}
-
-	@Override
-	public List<String> getModifiersByNoun(String noun) {
-		return dictionaryRepository.findModifiersByNoun(noun);
-	}
-
 	private Dictionary findDictionaryById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<Dictionary> dictionary = dictionaryRepository.findById(id);
 		if (dictionary.isEmpty()) {
 			throw new ResourceNotFoundException("No Dictionary found with this Id");
 		}
 		return dictionary.get();
+	}
+
+	private List<Dictionary> findAll() throws ResourceNotFoundException {
+		List<Dictionary> dictionaries = dictionaryRepository.findAll();
+		if (dictionaries.isEmpty()) {
+			throw new ResourceNotFoundException("Dictionaries is Empty");
+		}
+		return dictionaries;
 	}
 
 	private DictionaryResponse mapToDictionaryResponse(Dictionary dictionary) {
@@ -168,6 +192,9 @@ public class DictionaryServiceImpl implements DictionaryService {
 		DictionaryAllResponse dictionaryNmUom = modelMapper.map(dictionary, DictionaryAllResponse.class);
 		List<NmUom> nmUoms = new ArrayList<>();
 		for (Long id : dictionary.getNmUoms()) {
+			if (generalSettingClient == null) {
+				throw new IllegalStateException("General setting Client is not initialized");
+			}
 			NmUom nmUom = generalSettingClient.getNmUomById(id);
 			nmUoms.add(nmUom);
 		}
@@ -186,12 +213,18 @@ public class DictionaryServiceImpl implements DictionaryService {
 		DictionaryAttributeAllResponse dictionaryAttributeAllResponse = modelMapper.map(dictionaryAttribute,
 				DictionaryAttributeAllResponse.class);
 		// Attribute Client
+		if (attributeClient == null) {
+			throw new IllegalStateException("Attribute Client is not initialized");
+		}
 		AttributeMasterUomResponse attribute = attributeClient
 				.getAttributeMasterById(dictionaryAttribute.getAttributeId());
 		dictionaryAttributeAllResponse.setAttribute(attribute);
 		// Value Master Client
 		List<ValueAttributeUom> values = new ArrayList<>();
 		for (Long id : dictionaryAttribute.getValueId()) {
+			if (valueMasterClient == null) {
+				throw new IllegalStateException("Value master client is not initialized");
+			}
 			ValueAttributeUom value = valueMasterClient.getValueById(id, true);
 			values.add(value);
 		}
@@ -199,6 +232,9 @@ public class DictionaryServiceImpl implements DictionaryService {
 		// General Setting Client
 		List<AttributeUom> attrUoms = new ArrayList<>();
 		for (Long id : dictionaryAttribute.getAttrUomId()) {
+			if (generalSettingClient == null) {
+				throw new IllegalStateException("General setting Client is not initialized");
+			}
 			AttributeUom attrUom = generalSettingClient.getAttributeUomById(id);
 			attrUoms.add(attrUom);
 		}

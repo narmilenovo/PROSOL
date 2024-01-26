@@ -11,16 +11,21 @@ public interface SalesOrganizationService {
 	SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<SalesOrganizationResponse> getAllSo();
-
 	SalesOrganizationResponse getSoById(Long id) throws ResourceNotFoundException;
+
+	List<SalesOrganizationResponse> getAllSo();
 
 	List<SalesOrganizationResponse> findAllStatusTrue();
 
 	SalesOrganizationResponse updateSo(Long id, SalesOrganizationRequest updateSalesOrganizationRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	SalesOrganizationResponse updateSoStatus(Long id) throws ResourceNotFoundException;
+
+	List<SalesOrganizationResponse> updateBatchSoStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteSoById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchSo(List<Long> ids);
+	void deleteBatchSo(List<Long> ids) throws ResourceNotFoundException;
+
 }

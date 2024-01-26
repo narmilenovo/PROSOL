@@ -17,8 +17,12 @@ public interface PrivilegeService {
 	PrivilegeResponse updatePrivilege(Long id, PrivilegeRequest updatePrivilegeRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	PrivilegeResponse updateStatusUsingPrivilegeById(Long id) throws ResourceNotFoundException;
+
+	List<PrivilegeResponse> updateBulkStatusPrivilegeById(List<Long> ids) throws ResourceNotFoundException;
+
 	void deletePrivilege(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchPrivilege(List<Long> ids);
+	void deleteBatchPrivilege(List<Long> ids) throws ResourceNotFoundException;
 
 }

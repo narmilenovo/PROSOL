@@ -3,9 +3,11 @@ package com.example.sales_otherservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class DistributionChannelController {
 		return ResponseEntity.created(uri).body(saveDc);
 	}
 
+	@GetMapping("/getDcById/{id}")
+	public ResponseEntity<Object> getDcById(@PathVariable Long id) throws ResourceNotFoundException {
+		DistributionChannelResponse dpById = distributionChannelService.getDcById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(dpById);
+	}
+
 	@GetMapping("/getAllDc")
 	public ResponseEntity<Object> getAllDc() {
 		List<DistributionChannelResponse> allDc = distributionChannelService.getAllDc();
 		return ResponseEntity.ok(allDc);
-	}
-
-	@GetMapping("/getDcById/{id}")
-	public ResponseEntity<Object> getDcById(@PathVariable Long id) throws ResourceNotFoundException {
-		DistributionChannelResponse dpById = distributionChannelService.getDcById(id);
-		return ResponseEntity.ok(dpById);
 	}
 
 	@GetMapping("/getAllDcTrue")
@@ -62,6 +64,18 @@ public class DistributionChannelController {
 		return ResponseEntity.ok(updateDc);
 	}
 
+	@PatchMapping("/updateDcStatus/{id}")
+	public ResponseEntity<Object> updateDcStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		DistributionChannelResponse dcResponse = distributionChannelService.updateDcStatus(id);
+		return ResponseEntity.ok(dcResponse);
+	}
+
+	@PatchMapping("/updateBatchDcStatus")
+	public ResponseEntity<Object> updateBatchDcStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		List<DistributionChannelResponse> dcResponses = distributionChannelService.updateBatchDcStatus(ids);
+		return ResponseEntity.ok(dcResponses);
+	}
+
 	@DeleteMapping("/deleteDc/{id}")
 	public ResponseEntity<Object> deleteDc(@PathVariable Long id) throws ResourceNotFoundException {
 		distributionChannelService.deleteDcId(id);
@@ -71,6 +85,6 @@ public class DistributionChannelController {
 	@DeleteMapping("/deleteBatchDc")
 	public ResponseEntity<Object> deleteBatchDc(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		distributionChannelService.deleteBatchDc(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

@@ -3,9 +3,11 @@ package com.example.sales_otherservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -36,27 +38,27 @@ public class DeliveringPlantController {
 		return ResponseEntity.created(uri).body(saveDp);
 	}
 
+	@GetMapping("/getDpById/{id}")
+	public ResponseEntity<Object> getDpById(@PathVariable Long id, @RequestParam Boolean plant)
+			throws ResourceNotFoundException {
+		Object dpById;
+		if (Boolean.TRUE.equals(plant)) {
+			dpById = deliveringPlantService.getDpPlantById(id);
+		} else {
+			dpById = deliveringPlantService.getDpById(id);
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(dpById);
+	}
+
 	@GetMapping("/getAllDp")
-	public ResponseEntity<Object> getAllDp(@RequestParam boolean plant) {
+	public ResponseEntity<Object> getAllDp(@RequestParam Boolean plant) {
 		List<?> allDp;
-		if (plant) {
+		if (Boolean.TRUE.equals(plant)) {
 			allDp = deliveringPlantService.getAllDpPlant();
 		} else {
 			allDp = deliveringPlantService.getAllDp();
 		}
 		return ResponseEntity.ok(allDp);
-	}
-
-	@GetMapping("/getDpById/{id}")
-	public ResponseEntity<Object> getDpById(@PathVariable Long id, @RequestParam boolean plant)
-			throws ResourceNotFoundException {
-		Object dpById;
-		if (plant) {
-			dpById = deliveringPlantService.getDpPlantById(id);
-		} else {
-			dpById = deliveringPlantService.getDpById(id);
-		}
-		return ResponseEntity.ok(dpById);
 	}
 
 	@GetMapping("/getAllDpTrue")
@@ -73,6 +75,18 @@ public class DeliveringPlantController {
 		return ResponseEntity.ok(updateDp);
 	}
 
+	@PatchMapping("/updateDpStatus/{id}")
+	public ResponseEntity<Object> updateDpStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		DeliveringPlantResponse dpResponse = deliveringPlantService.updateDpStatus(id);
+		return ResponseEntity.ok(dpResponse);
+	}
+
+	@PatchMapping("/updateBatchDpStatus")
+	public ResponseEntity<Object> updateBatchDpStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		List<DeliveringPlantResponse> dpResponses = deliveringPlantService.updateBatchDpStatus(ids);
+		return ResponseEntity.ok(dpResponses);
+	}
+
 	@DeleteMapping("/deleteDp/{id}")
 	public ResponseEntity<Object> deleteDp(@PathVariable Long id) throws ResourceNotFoundException {
 		deliveringPlantService.deleteDpId(id);
@@ -82,6 +96,6 @@ public class DeliveringPlantController {
 	@DeleteMapping("/deleteBatchDp")
 	public ResponseEntity<Object> deleteBatchDp(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		deliveringPlantService.deleteBatchDp(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.UnitOfIssueRepository;
 import com.example.generalservice.service.interfaces.UnitOfIssueService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,17 +54,17 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 
 	@Override
 	@Cacheable("uoi")
-	public List<UnitOfIssueResponse> getAllUOI() {
-		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAll();
-		return unitOfIssues.stream().sorted(Comparator.comparing(UnitOfIssue::getId))
-				.map(this::mapToUnitOfIssueResponse).toList();
+	public UnitOfIssueResponse getUOIById(Long id) throws ResourceNotFoundException {
+		UnitOfIssue unitOfIssue = this.findUOIById(id);
+		return mapToUnitOfIssueResponse(unitOfIssue);
 	}
 
 	@Override
 	@Cacheable("uoi")
-	public UnitOfIssueResponse getUOIById(Long id) throws ResourceNotFoundException {
-		UnitOfIssue unitOfIssue = this.findUOIById(id);
-		return mapToUnitOfIssueResponse(unitOfIssue);
+	public List<UnitOfIssueResponse> getAllUOI() {
+		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAll();
+		return unitOfIssues.stream().sorted(Comparator.comparing(UnitOfIssue::getId))
+				.map(this::mapToUnitOfIssueResponse).toList();
 	}
 
 	@Override
@@ -77,6 +78,7 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	@Override
 	public UnitOfIssueResponse updateUOI(Long id, UnitOfIssueRequest updateUnitOfIssueRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String uoiCode = updateUnitOfIssueRequest.getUoiCode();
 		String uoiName = updateUnitOfIssueRequest.getUoiName();
 		UnitOfIssue existingUnitOfIssue = this.findUOIById(id);
@@ -99,13 +101,30 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	}
 
 	@Override
+	public UnitOfIssueResponse updateUOIStatus(Long id) throws ResourceNotFoundException {
+		UnitOfIssue unitOfIssue = this.findUOIById(id);
+		unitOfIssue.setUoiStatus(!unitOfIssue.getUoiStatus());
+		unitOfIssueRepository.save(unitOfIssue);
+		return this.mapToUnitOfIssueResponse(unitOfIssue);
+	}
+
+	@Override
+	public List<UnitOfIssueResponse> updateBatchUOIStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<UnitOfIssue> unitOfIssues = this.findAllById(ids);
+		unitOfIssues.forEach(unitOfIssue -> unitOfIssue.setUoiStatus(!unitOfIssue.getUoiStatus()));
+		unitOfIssueRepository.saveAll(unitOfIssues);
+		return unitOfIssues.stream().map(this::mapToUnitOfIssueResponse).toList();
+	}
+
+	@Override
 	public void deleteUOIId(Long id) throws ResourceNotFoundException {
 		UnitOfIssue unitOfIssue = this.findUOIById(id);
 		unitOfIssueRepository.deleteById(unitOfIssue.getId());
 	}
 
 	@Override
-	public void deleteBatchUOI(List<Long> ids) {
+	public void deleteBatchUOI(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		unitOfIssueRepository.deleteAllById(ids);
 	}
 
@@ -114,11 +133,25 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	}
 
 	private UnitOfIssue findUOIById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<UnitOfIssue> unitOfIssue = unitOfIssueRepository.findById(id);
 		if (unitOfIssue.isEmpty()) {
 			throw new ResourceNotFoundException("No Unit Of Issue found with this Id");
 		}
 		return unitOfIssue.get();
+	}
+
+	private List<UnitOfIssue> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> unitOfIssues.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Unit Of Issue with IDs " + missingIds + " not found");
+		}
+		return unitOfIssues;
 	}
 
 }

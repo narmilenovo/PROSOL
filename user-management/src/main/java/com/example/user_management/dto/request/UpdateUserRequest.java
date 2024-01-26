@@ -1,32 +1,32 @@
 package com.example.user_management.dto.request;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Schema(description = "Parameters required to create or update user")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateUserRequest {
-    private String firstName;
+	private String firstName;
 
-    private String lastName;
+	private String lastName;
 
-    @Pattern(regexp = "^\\+91[1-9]\\d{9}$", message = "Invalid phone number")
-    private String phone;
+	@Pattern(regexp = "^[1-9]\\d{9}$", message = "Invalid phone number")
+	private String phone;
 
-    private String business;
+	private String business;
 
-    private Long departmentId;
+	private Long departmentId;
 
-    private List<Long> plantId;
+	private List<Long> plantId;
 
-    private Boolean status = true;
+	private Boolean status = true;
 
-    private Long[] roles;
+	private Long[] roles;
 }

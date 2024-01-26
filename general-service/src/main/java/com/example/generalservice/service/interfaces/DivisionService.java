@@ -20,8 +20,12 @@ public interface DivisionService {
 	DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	DivisionResponse updateDivisionStatus(Long id) throws ResourceNotFoundException;
+
+	List<DivisionResponse> updateBatchDivisionStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteDivisionId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchDivsion(List<Long> ids);
+	void deleteBatchDivision(List<Long> ids) throws ResourceNotFoundException;
 
 }

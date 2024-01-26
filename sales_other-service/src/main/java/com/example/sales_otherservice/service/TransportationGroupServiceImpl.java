@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.TransportationGroupRequest;
 import com.example.sales_otherservice.dto.response.TransportationGroupResponse;
 import com.example.sales_otherservice.entity.TransportationGroup;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.TransportationGroupRepository;
 import com.example.sales_otherservice.service.interfaces.TransportationGroupService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -73,6 +74,7 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 	@Override
 	public TransportationGroupResponse updateTg(Long id, TransportationGroupRequest updateTransportationGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String tgCode = updateTransportationGroupRequest.getTgCode();
 		String tgName = updateTransportationGroupRequest.getTgName();
 		TransportationGroup existingTransportationGroup = this.findTgById(id);
@@ -95,13 +97,30 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 	}
 
 	@Override
+	public TransportationGroupResponse updateTgStatus(Long id) throws ResourceNotFoundException {
+		TransportationGroup transportationGroup = this.findTgById(id);
+		transportationGroup.setTgStatus(!transportationGroup.getTgStatus());
+		transportationGroupRepository.save(transportationGroup);
+		return mapToTransportationGroupResponse(transportationGroup);
+	}
+
+	@Override
+	public List<TransportationGroupResponse> updateBatchTgStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<TransportationGroup> groups = this.findAllTgById(ids);
+		groups.forEach(group -> group.setTgStatus(!group.getTgStatus()));
+		transportationGroupRepository.saveAll(groups);
+		return groups.stream().map(this::mapToTransportationGroupResponse).toList();
+	}
+
+	@Override
 	public void deleteTgById(Long id) throws ResourceNotFoundException {
 		TransportationGroup transportationGroup = this.findTgById(id);
 		transportationGroupRepository.deleteById(transportationGroup.getId());
 	}
 
 	@Override
-	public void deleteBatchTg(List<Long> ids) {
+	public void deleteBatchTg(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllTgById(ids);
 		transportationGroupRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -110,11 +129,25 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 	}
 
 	private TransportationGroup findTgById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<TransportationGroup> transportationGroup = transportationGroupRepository.findById(id);
 		if (transportationGroup.isEmpty()) {
 			throw new ResourceNotFoundException("Transportation Group not found with this Id");
 		}
 		return transportationGroup.get();
+	}
+
+	private List<TransportationGroup> findAllTgById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<TransportationGroup> groups = transportationGroupRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> groups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Transportation Group with IDs " + missingIds + " not found");
+		}
+		return groups;
 	}
 
 }

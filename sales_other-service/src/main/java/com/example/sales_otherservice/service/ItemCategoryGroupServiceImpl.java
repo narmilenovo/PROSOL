@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.ItemCategoryGroupRequest;
 import com.example.sales_otherservice.dto.response.ItemCategoryGroupResponse;
 import com.example.sales_otherservice.entity.ItemCategoryGroup;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.ItemCategoryGroupRepository;
 import com.example.sales_otherservice.service.interfaces.ItemCategoryGroupService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,16 +52,16 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	}
 
 	@Override
+	public ItemCategoryGroupResponse getIcgById(Long id) throws ResourceNotFoundException {
+		ItemCategoryGroup itemCategoryGroup = this.findIcgById(id);
+		return mapToItemCategoryGroupResponse(itemCategoryGroup);
+	}
+
+	@Override
 	public List<ItemCategoryGroupResponse> getAllIcg() {
 		List<ItemCategoryGroup> categoryGroups = itemCategoryGroupRepository.findAll();
 		return categoryGroups.stream().sorted(Comparator.comparing(ItemCategoryGroup::getId))
 				.map(this::mapToItemCategoryGroupResponse).toList();
-	}
-
-	@Override
-	public ItemCategoryGroupResponse getIcgById(Long id) throws ResourceNotFoundException {
-		ItemCategoryGroup itemCategoryGroup = this.findIcgById(id);
-		return mapToItemCategoryGroupResponse(itemCategoryGroup);
 	}
 
 	@Override
@@ -73,6 +74,7 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	@Override
 	public ItemCategoryGroupResponse updateIcg(Long id, ItemCategoryGroupRequest updateItemCategoryGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String icgCode = updateItemCategoryGroupRequest.getIcgCode();
 		String icgName = updateItemCategoryGroupRequest.getIcgName();
 		ItemCategoryGroup existingCategoryGroup = this.findIcgById(id);
@@ -95,13 +97,30 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	}
 
 	@Override
+	public ItemCategoryGroupResponse updateIcgStatus(Long id) throws ResourceNotFoundException {
+		ItemCategoryGroup categoryGroup = this.findIcgById(id);
+		categoryGroup.setIcgStatus(!categoryGroup.getIcgStatus());
+		itemCategoryGroupRepository.save(categoryGroup);
+		return mapToItemCategoryGroupResponse(categoryGroup);
+	}
+
+	@Override
+	public List<ItemCategoryGroupResponse> updateBatchIcgStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<ItemCategoryGroup> groups = this.findAllIcgById(ids);
+		groups.forEach(group -> group.setIcgStatus(!group.getIcgStatus()));
+		itemCategoryGroupRepository.saveAll(groups);
+		return groups.stream().map(this::mapToItemCategoryGroupResponse).toList();
+	}
+
+	@Override
 	public void deleteIcgById(Long id) throws ResourceNotFoundException {
 		ItemCategoryGroup categoryGroup = this.findIcgById(id);
 		itemCategoryGroupRepository.deleteById(categoryGroup.getId());
 	}
 
 	@Override
-	public void deleteBatchIcg(List<Long> ids) {
+	public void deleteBatchIcg(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllIcgById(ids);
 		itemCategoryGroupRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -110,11 +129,26 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	}
 
 	private ItemCategoryGroup findIcgById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<ItemCategoryGroup> categoryGroup = itemCategoryGroupRepository.findById(id);
 		if (categoryGroup.isEmpty()) {
 			throw new ResourceNotFoundException("Item Category Group not found with this Id");
 		}
 		return categoryGroup.get();
+	}
+
+	private List<ItemCategoryGroup> findAllIcgById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<ItemCategoryGroup> groups = itemCategoryGroupRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> groups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Item Category Group with IDs " + missingIds + " not found.");
+		}
+		return groups;
 	}
 
 }

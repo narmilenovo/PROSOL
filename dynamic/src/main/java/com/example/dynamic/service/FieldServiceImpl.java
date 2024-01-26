@@ -1,5 +1,6 @@
 package com.example.dynamic.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -24,6 +25,7 @@ import com.example.dynamic.exceptions.ResourceNotFoundException;
 import com.example.dynamic.repository.FieldRepository;
 import com.example.dynamic.repository.FormRepository;
 import com.example.dynamic.service.interfaces.FieldService;
+import com.example.dynamic.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +34,6 @@ import lombok.RequiredArgsConstructor;
 public class FieldServiceImpl implements FieldService {
 
 	private final FieldRepository fieldRepository;
-	// private final FormFieldDropDownRepository dropDownRepository;
 	private final FormRepository formRepository;
 	private final ModelMapper modelMapper;
 
@@ -93,6 +94,7 @@ public class FieldServiceImpl implements FieldService {
 
 	@Override
 	public FieldResponse getFieldById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Field field = this.getById(id);
 		return mapToFieldResponse(field);
 	}
@@ -100,16 +102,14 @@ public class FieldServiceImpl implements FieldService {
 	@Override
 	public List<FieldResponse> getAllFieldsByForm(String formName) {
 		List<Field> fields = fieldRepository.findAllByForm_FormName(formName);
-		return fields
-				.stream()
-				.sorted(Comparator.comparing(Field::getId))
-				.map(this::mapToFieldResponse)
-				.toList();
+		return fields.stream().sorted(Comparator.comparing(Field::getId)).map(this::mapToFieldResponse).toList();
 	}
 
 	@Override
+	@Transactional
 	public FieldResponse updateFieldById(Long id, FieldRequest updateFieldRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		Field existingField = getById(id);
 		modelMapper.map(updateFieldRequest, existingField);
 		existingField.setId(id);
@@ -117,10 +117,10 @@ public class FieldServiceImpl implements FieldService {
 		// Map and set drop-down values
 		List<DropDown> dropDownValues = mapDropDownValues(updateFieldRequest.getDropDowns(), existingField);
 		existingField.setDropDowns(dropDownValues);
+
 		// Update field by checking
 		String formName = existingField.getForm().getFormName();
-		boolean exists = this.checkNotIdFieldInForm(existingField.getFieldName(),
-				formName, id);
+		boolean exists = this.checkNotIdFieldInForm(existingField.getFieldName(), formName, id);
 		if (exists) {
 			throw new ResourceFoundException("Field with name '" + existingField.getFieldName()
 					+ "' already exists in form '" + formName + "'.");
@@ -153,44 +153,34 @@ public class FieldServiceImpl implements FieldService {
 
 	@Override
 	public void removeFieldById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Field field = this.getById(id);
-		fieldRepository.delete(field);
+		if (field != null) {
+			fieldRepository.delete(field);
+		}
 	}
 
 	private void conversionEquals(Field field) {
 		field.setDataType(setFieldConversion(field.getDataType()));
 		if (TEXT_FIELD_TYPE.equalsIgnoreCase(field.getDataType())
-				|| TEXT_AREA_TYPE.equalsIgnoreCase(field.getDataType())) {
+				|| TEXT_AREA_TYPE.equalsIgnoreCase(field.getDataType())
+				|| FILE_TYPE.equalsIgnoreCase(field.getDataType())) {
 			field.setDropDowns(null);
 			field.setEnums(null);
-		}
-		if (DROPDOWN_TYPE.equalsIgnoreCase(field.getDataType())) {
+		} else if (DROPDOWN_TYPE.equalsIgnoreCase(field.getDataType())) {
 			field.setEnums(null);
-		} else {
+		} else if (CHECKBOX_TYPE.equalsIgnoreCase(field.getDataType())) {
 			field.setDropDowns(null);
-		}
-
-		if (CHECKBOX_TYPE.equalsIgnoreCase(field.getDataType())) {
-			field.setDropDowns(null);
-		} else {
-			field.setEnums(null);
-		}
-
-		if (field.getDropDowns() == null) {
-			field.setDropDowns(null);
-		}
-
-		if (field.getEnums() == null) {
-			field.setEnums(null);
-		}
-
-		if (FILE_TYPE.equalsIgnoreCase(field.getDataType())) {
-			field.setDataType(field.getDataType());
+		} else if (field.getEnums() == null) {
+			field.setEnums(new ArrayList<>());
+		} else if (field.getDropDowns() == null) {
+			field.setDropDowns(new ArrayList<>());
 		}
 
 	}
 
 	private Field getById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<Field> field = fieldRepository.findById(id);
 		if (field.isEmpty()) {
 			throw new ResourceNotFoundException("Field is not present");

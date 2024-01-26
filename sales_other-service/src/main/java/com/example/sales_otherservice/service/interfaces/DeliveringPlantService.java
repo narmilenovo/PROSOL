@@ -12,20 +12,24 @@ public interface DeliveringPlantService {
 	DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
+	DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException;
+
+	DpPlant getDpPlantById(Long id) throws ResourceNotFoundException;
+
 	List<DeliveringPlantResponse> getAllDp();
 
-	DeliveringPlantResponse getDpById(Long id) throws ResourceNotFoundException;
+	List<DpPlant> getAllDpPlant();
 
 	List<DeliveringPlantResponse> findAllStatusTrue();
 
 	DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	DeliveringPlantResponse updateDpStatus(Long id) throws ResourceNotFoundException;
+
+	List<DeliveringPlantResponse> updateBatchDpStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteDpId(Long id) throws ResourceNotFoundException;
 
-	List<DpPlant> getAllDpPlant();
-
-	DpPlant getDpPlantById(Long id) throws ResourceNotFoundException;
-
-	void deleteBatchDp(List<Long> ids);
+	void deleteBatchDp(List<Long> ids) throws ResourceNotFoundException;
 }

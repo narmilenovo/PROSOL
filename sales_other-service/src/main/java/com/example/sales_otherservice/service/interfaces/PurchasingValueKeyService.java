@@ -11,16 +11,21 @@ public interface PurchasingValueKeyService {
 	PurchasingValueKeyResponse savePvk(PurchasingValueKeyRequest purchasingValueKeyRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<PurchasingValueKeyResponse> getAllPvk();
-
 	PurchasingValueKeyResponse getPvkById(Long id) throws ResourceNotFoundException;
+
+	List<PurchasingValueKeyResponse> getAllPvk();
 
 	List<PurchasingValueKeyResponse> findAllStatusTrue();
 
 	PurchasingValueKeyResponse updatePvk(Long id, PurchasingValueKeyRequest updatePurchasingValueKeyRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	PurchasingValueKeyResponse updatePvkStatus(Long id) throws ResourceNotFoundException;
+
+	List<PurchasingValueKeyResponse> updateBatchPvkStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deletePvkById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchPvk(List<Long> ids);
+	void deleteBatchPvk(List<Long> ids) throws ResourceNotFoundException;
+
 }

@@ -3,9 +3,11 @@ package com.example.sales_otherservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class PurchasingGroupController {
 		return ResponseEntity.created(uri).body(savePg);
 	}
 
+	@GetMapping("/getPgById/{id}")
+	public ResponseEntity<Object> getPgById(@PathVariable Long id) throws ResourceNotFoundException {
+		PurchasingGroupResponse dpById = purchasingGroupService.getPgById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(dpById);
+	}
+
 	@GetMapping("/getAllPg")
 	public ResponseEntity<Object> getAllPg() {
 		List<PurchasingGroupResponse> allPg = purchasingGroupService.getAllPg();
 		return ResponseEntity.ok(allPg);
-	}
-
-	@GetMapping("/getPgById/{id}")
-	public ResponseEntity<Object> getPgById(@PathVariable Long id) throws ResourceNotFoundException {
-		PurchasingGroupResponse dpById = purchasingGroupService.getPgById(id);
-		return ResponseEntity.ok(dpById);
 	}
 
 	@GetMapping("/getAllPgTrue")
@@ -61,6 +63,18 @@ public class PurchasingGroupController {
 		return ResponseEntity.ok(updatePg);
 	}
 
+	@PatchMapping("/updatePgStatus/{id}")
+	public ResponseEntity<Object> updatePgStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		PurchasingGroupResponse pgResponse = purchasingGroupService.updatePgStatus(id);
+		return ResponseEntity.ok(pgResponse);
+	}
+
+	@PatchMapping("/updateBatchPgStatus")
+	public ResponseEntity<Object> updateBatchPgStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		List<PurchasingGroupResponse> pgResponses = purchasingGroupService.updateBatchPgStatus(ids);
+		return ResponseEntity.ok(pgResponses);
+	}
+
 	@DeleteMapping("/deletePg/{id}")
 	public ResponseEntity<Object> deletePg(@PathVariable Long id) throws ResourceNotFoundException {
 		purchasingGroupService.deletePgById(id);
@@ -70,6 +84,6 @@ public class PurchasingGroupController {
 	@DeleteMapping("/deleteBatchPg")
 	public ResponseEntity<Object> deleteBatchPg(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		purchasingGroupService.deleteBatchPg(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

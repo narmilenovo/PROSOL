@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.IndustrySectorRepository;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,18 +53,18 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 
 	@Override
 	@Cacheable("sector")
-	public List<IndustrySectorResponse> getAllSector() {
-		List<IndustrySector> sectorResponses = sectorRepository.findAll();
-		return sectorResponses.stream().sorted(Comparator.comparing(IndustrySector::getId))
-				.map(this::mapToIndustrySectorResponse).toList();
-	}
-
-	@Override
-	@Cacheable("sector")
 	public IndustrySectorResponse getSectorById(Long id) throws ResourceNotFoundException {
 		IndustrySector industrySector = this.findSectorById(id);
 		return mapToIndustrySectorResponse(industrySector);
 
+	}
+
+	@Override
+	@Cacheable("sector")
+	public List<IndustrySectorResponse> getAllSector() {
+		List<IndustrySector> sectorResponses = sectorRepository.findAll();
+		return sectorResponses.stream().sorted(Comparator.comparing(IndustrySector::getId))
+				.map(this::mapToIndustrySectorResponse).toList();
 	}
 
 	@Override
@@ -77,6 +78,7 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	@Override
 	public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateindustrysectorrequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String sectorCode = updateindustrysectorrequest.getSectorCode();
 		String sectorName = updateindustrysectorrequest.getSectorName();
 		IndustrySector existingIndustrySector = this.findSectorById(id);
@@ -100,13 +102,33 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	}
 
 	@Override
+	public IndustrySectorResponse updateSectorStatus(Long id) throws ResourceNotFoundException {
+		IndustrySector existingSector = this.findSectorById(id);
+		existingSector.setSectorStatus(!existingSector.getSectorStatus());
+		sectorRepository.save(existingSector);
+		return this.mapToIndustrySectorResponse(existingSector);
+	}
+
+	@Override
+	public List<IndustrySectorResponse> updateBatchSectorResponseStatus(List<Long> ids) {
+		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
+		industrySectors.forEach(industrySector -> {
+			industrySector.setSectorStatus(!industrySector.getSectorStatus());
+			sectorRepository.save(industrySector);
+		});
+		return industrySectors.stream().sorted(Comparator.comparing(IndustrySector::getId))
+				.map(this::mapToIndustrySectorResponse).toList();
+	}
+
+	@Override
 	public void deleteSectorId(Long id) throws ResourceNotFoundException {
 		IndustrySector industrySector = this.findSectorById(id);
 		sectorRepository.deleteById(industrySector.getId());
 	}
 
 	@Override
-	public void deleteBatchSector(List<Long> ids) {
+	public void deleteBatchSector(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		sectorRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -115,11 +137,26 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	}
 
 	private IndustrySector findSectorById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<IndustrySector> sector = sectorRepository.findById(id);
 		if (sector.isEmpty()) {
 			throw new ResourceNotFoundException("No Industry Sector found with this Id");
 		}
 		return sector.get();
+	}
+
+	private List<IndustrySector> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> industrySectors.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+		}
+		return industrySectors;
 	}
 
 }

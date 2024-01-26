@@ -3,9 +3,11 @@ package com.example.generalservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class InspectionCodeController {
 		return ResponseEntity.created(uri).body(inCode);
 	}
 
+	@GetMapping("/getInCodeById/{id}")
+	public ResponseEntity<Object> getInCodeById(@PathVariable Long id) throws ResourceNotFoundException {
+		InspectionCodeResponse codeResponse = inspectionCodeService.getInCodeById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(codeResponse);
+	}
+
 	@GetMapping("/getAllInCode")
 	public ResponseEntity<Object> getAllInCode() {
 		List<InspectionCodeResponse> codeResponses = inspectionCodeService.getAllInCode();
 		return ResponseEntity.ok(codeResponses);
-	}
-
-	@GetMapping("/getInCodeById/{id}")
-	public ResponseEntity<Object> getInCodeById(@PathVariable Long id) throws ResourceNotFoundException {
-		InspectionCodeResponse codeResponse = inspectionCodeService.getInCodeById(id);
-		return ResponseEntity.ok(codeResponse);
 	}
 
 	@GetMapping("/getAllInCodeTrue")
@@ -61,6 +63,19 @@ public class InspectionCodeController {
 		return ResponseEntity.ok(codeResponse);
 	}
 
+	@PatchMapping("/updateInCodeStatus/{id}")
+	public ResponseEntity<Object> updateInCodeStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		InspectionCodeResponse codeResponse = inspectionCodeService.updateInCodeStatus(id);
+		return ResponseEntity.ok(codeResponse);
+	}
+
+	@PatchMapping("/updateBatchInCodeStatus")
+	public ResponseEntity<Object> updateBatchInCodeStatus(@RequestBody List<Long> ids)
+			throws ResourceNotFoundException {
+		List<InspectionCodeResponse> codeResponses = inspectionCodeService.updateBatchInCodeStatus(ids);
+		return ResponseEntity.ok(codeResponses);
+	}
+
 	@DeleteMapping("/deleteInCode/{id}")
 	public ResponseEntity<Object> deleteInCode(@PathVariable Long id) throws ResourceNotFoundException {
 		inspectionCodeService.deleteInCodeId(id);
@@ -70,6 +85,6 @@ public class InspectionCodeController {
 	@DeleteMapping("/deleteBatchInCode")
 	public ResponseEntity<Object> deleteBatchInCode(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		inspectionCodeService.deleteBatchInCode(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

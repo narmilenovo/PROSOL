@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.PurchasingGroupRequest;
 import com.example.sales_otherservice.dto.response.PurchasingGroupResponse;
 import com.example.sales_otherservice.entity.PurchasingGroup;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.PurchasingGroupRepository;
 import com.example.sales_otherservice.service.interfaces.PurchasingGroupService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,17 +52,17 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	}
 
 	@Override
+	public PurchasingGroupResponse getPgById(Long id) throws ResourceNotFoundException {
+		PurchasingGroup purchasingGroup = this.findPgById(id);
+		return mapToPurchasingGroupResponse(purchasingGroup);
+	}
+
+	@Override
 	public List<PurchasingGroupResponse> getAllPg() {
 		List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAll();
 		return purchasingGroups.stream().sorted(Comparator.comparing(PurchasingGroup::getId))
 				.map(this::mapToPurchasingGroupResponse).toList();
 
-	}
-
-	@Override
-	public PurchasingGroupResponse getPgById(Long id) throws ResourceNotFoundException {
-		PurchasingGroup purchasingGroup = this.findPgById(id);
-		return mapToPurchasingGroupResponse(purchasingGroup);
 	}
 
 	@Override
@@ -74,6 +75,7 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	@Override
 	public PurchasingGroupResponse updatePg(Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String pgCode = updatePurchasingGroupRequest.getPgCode();
 		String pgName = updatePurchasingGroupRequest.getPgName();
 		PurchasingGroup existingPurchasingGroup = this.findPgById(id);
@@ -96,13 +98,30 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	}
 
 	@Override
+	public PurchasingGroupResponse updatePgStatus(Long id) throws ResourceNotFoundException {
+		PurchasingGroup purchasingGroup = this.findPgById(id);
+		purchasingGroup.setPgStatus(!purchasingGroup.getPgStatus());
+		purchasingGroupRepository.save(purchasingGroup);
+		return mapToPurchasingGroupResponse(purchasingGroup);
+	}
+
+	@Override
+	public List<PurchasingGroupResponse> updateBatchPgStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<PurchasingGroup> purchasingGroups = this.findAllPdById(ids);
+		purchasingGroups.forEach(purchasingGroup -> purchasingGroup.setPgStatus(!purchasingGroup.getPgStatus()));
+		purchasingGroupRepository.saveAll(purchasingGroups);
+		return purchasingGroups.stream().map(this::mapToPurchasingGroupResponse).toList();
+	}
+
+	@Override
 	public void deletePgById(Long id) throws ResourceNotFoundException {
 		PurchasingGroup purchasingGroup = this.findPgById(id);
 		purchasingGroupRepository.deleteById(purchasingGroup.getId());
 	}
 
 	@Override
-	public void deleteBatchPg(List<Long> ids) {
+	public void deleteBatchPg(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllPdById(ids);
 		purchasingGroupRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -111,11 +130,25 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	}
 
 	private PurchasingGroup findPgById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<PurchasingGroup> purchasingGroup = purchasingGroupRepository.findById(id);
 		if (purchasingGroup.isEmpty()) {
 			throw new ResourceNotFoundException("Purchasing Group not found with this Id");
 		}
 		return purchasingGroup.get();
+	}
+
+	private List<PurchasingGroup> findAllPdById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> purchasingGroups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Purchasing Group with IDs " + missingIds + " not found");
+		}
+		return purchasingGroups;
 	}
 
 }

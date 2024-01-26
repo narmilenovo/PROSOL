@@ -11,16 +11,21 @@ public interface PurchasingGroupService {
 	PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<PurchasingGroupResponse> getAllPg();
-
 	PurchasingGroupResponse getPgById(Long id) throws ResourceNotFoundException;
+
+	List<PurchasingGroupResponse> getAllPg();
 
 	List<PurchasingGroupResponse> findAllStatusTrue();
 
 	PurchasingGroupResponse updatePg(Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	PurchasingGroupResponse updatePgStatus(Long id) throws ResourceNotFoundException;
+
+	List<PurchasingGroupResponse> updateBatchPgStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deletePgById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchPg(List<Long> ids);
+	void deleteBatchPg(List<Long> ids) throws ResourceNotFoundException;
+
 }

@@ -11,16 +11,21 @@ public interface IndustrySectorService {
 	IndustrySectorResponse saveSector(IndustrySectorRequest industrySectorRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<IndustrySectorResponse> getAllSector();
-
 	IndustrySectorResponse getSectorById(Long id) throws ResourceNotFoundException;
+
+	List<IndustrySectorResponse> getAllSector();
 
 	List<IndustrySectorResponse> findAllStatusTrue();
 
 	IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateindustrysectorrequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	IndustrySectorResponse updateSectorStatus(Long id) throws ResourceNotFoundException;
+
+	List<IndustrySectorResponse> updateBatchSectorResponseStatus(List<Long> ids);
+
 	void deleteSectorId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchSector(List<Long> ids);
+	void deleteBatchSector(List<Long> ids) throws ResourceNotFoundException;
+
 }

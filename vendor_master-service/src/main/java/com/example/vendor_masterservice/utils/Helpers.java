@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.example.vendor_masterservice.exceptions.DateTimeException;
+
 public class Helpers {
 
 	private Helpers() {
@@ -69,7 +71,7 @@ public class Helpers {
 		return strNull != null && !strNull.equals("");
 	}
 
-	public static String getCurrentDateTime() throws Exception {
+	public static String getCurrentDateTime() throws DateTimeException {
 		Calendar cal = Calendar.getInstance();
 		String strSysDate = "";
 		try {
@@ -88,7 +90,7 @@ public class Helpers {
 			strSysDate = strSysDay + "/" + strSysMonth + "/" + strSysYear;
 
 		} catch (Exception e) {
-			throw new Exception("*Exception in getCurrentDateTime **" + e);
+			throw new DateTimeException("*Exception in getCurrentDateTime **" + e);
 		}
 		return strSysDate;
 	}

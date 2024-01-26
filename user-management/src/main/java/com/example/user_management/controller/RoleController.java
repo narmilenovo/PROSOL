@@ -27,6 +27,7 @@ import static com.example.user_management.utils.Constants.UNAUTHORIZED_MESSAGE;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -79,19 +81,6 @@ public class RoleController {
 		return ResponseEntity.created(uri).body(savedRole);
 	}
 
-	@Operation(summary = SWG_ROLE_LIST_OPERATION, responses = {
-			@ApiResponse(responseCode = "200", description = SWG_ROLE_LIST_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = RoleResponse.class)) }),
-			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
-	@GetMapping("/getAllRoles")
-	public ResponseEntity<Object> getAllRoles() {
-		List<RoleResponse> roles = roleService.getAllRoles();
-		return ResponseEntity.ok(roles);
-	}
-
 	@Operation(summary = SWG_ROLE_ITEM_OPERATION, responses = {
 			@ApiResponse(responseCode = "200", description = SWG_ROLE_ITEM_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = RoleResponse.class)) }),
@@ -100,9 +89,33 @@ public class RoleController {
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@GetMapping("/getRoleById/{id}")
-	public ResponseEntity<Object> getRoleById(@PathVariable Long id) throws ResourceNotFoundException {
-		RoleResponse role = roleService.getRoleById(id);
-		return ResponseEntity.ok(role);
+	public ResponseEntity<Object> getRoleById(@PathVariable Long id, @RequestParam Boolean show)
+			throws ResourceNotFoundException {
+		Object role;
+		if (Boolean.TRUE.equals(show)) {
+			role = roleService.getRolePlantById(id);
+		} else {
+			role = roleService.getRoleById(id);
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(role);
+	}
+
+	@Operation(summary = SWG_ROLE_LIST_OPERATION, responses = {
+			@ApiResponse(responseCode = "200", description = SWG_ROLE_LIST_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = RoleResponse.class)) }),
+			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
+	@GetMapping("/getAllRoles")
+	public ResponseEntity<Object> getAllRoles(@RequestParam Boolean show) {
+		List<?> roles;
+		if (Boolean.TRUE.equals(show)) {
+			roles = roleService.getAllRolesPlant();
+		} else {
+			roles = roleService.getAllRoles();
+		}
+		return ResponseEntity.ok(roles);
 	}
 
 	@Operation(summary = SWG_ROLE_TRUE_LIST_OPERATION, responses = {
@@ -114,8 +127,14 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 
 	@GetMapping("/getAllRolesTrue")
-	public ResponseEntity<Object> listRoleStatusTrue() {
-		List<RoleResponse> responseList = roleService.findAllStatusTrue();
+	public ResponseEntity<Object> listRoleStatusTrue(@RequestParam Boolean show) {
+		List<?> responseList;
+		if (Boolean.TRUE.equals(show)) {
+			responseList = roleService.findAllRolesPlantStatusTrue();
+		} else {
+
+			responseList = roleService.findAllStatusTrue();
+		}
 		return ResponseEntity.ok(responseList);
 	}
 
@@ -160,8 +179,8 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@PatchMapping("/updateBulkStatusRoleId/{id}")
-	public ResponseEntity<Object> updateBulkStatusRoleId(@PathVariable List<Long> id) {
+	@PatchMapping("/updateBulkStatusRoleId")
+	public ResponseEntity<Object> updateBulkStatusRoleId(@RequestBody List<Long> id) throws ResourceNotFoundException {
 		List<RoleResponse> responseList = roleService.updateBulkStatusRoleId(id);
 		return ResponseEntity.ok(responseList);
 	}
@@ -190,8 +209,8 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@DeleteMapping("/deleteBatchRole/{id}")
-	public ResponseEntity<Object> deleteBatchRole(@PathVariable List<Long> id) {
+	@DeleteMapping("/deleteBatchRole")
+	public ResponseEntity<Object> deleteBatchRole(@RequestBody List<Long> id) throws ResourceNotFoundException {
 		roleService.deleteBatchRole(id);
 		return ResponseEntity.ok().build();
 	}

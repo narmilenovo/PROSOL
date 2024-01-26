@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +22,6 @@ import com.example.valueservice.dto.response.BadRequestResponse;
 import com.example.valueservice.dto.response.InvalidDataResponse;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.exceptions.ExcelFileException;
-import com.example.valueservice.exceptions.ResourceFoundException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.example.valueservice.service.interfaces.ValueMasterService;
 import com.itextpdf.text.DocumentException;
@@ -49,38 +49,10 @@ public class ValueMasterController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PostMapping("/saveValue")
 	public ResponseEntity<Object> saveValue(@Valid @RequestBody ValueMasterRequest valueMasterRequest)
-			throws ResourceFoundException, ResourceNotFoundException {
+			throws ResourceNotFoundException {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveValue").toUriString());
 		ValueMasterResponse savedValue = valueMasterService.saveValue(valueMasterRequest);
 		return ResponseEntity.created(uri).body(savedValue);
-	}
-
-	@Operation(summary = "Upload File", responses = {
-			@ApiResponse(responseCode = "201", description = "File uploaded successfully"),
-			@ApiResponse(responseCode = "400", description = "Bad request", content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "422", description = "Invalid data", content = {
-					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@PostMapping(value = "/uploadFile", consumes = "multipart/form-data")
-	public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file)
-			throws IOException, ExcelFileException {
-		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/uploadFile").toUriString());
-		valueMasterService.uploadData(file);
-		return ResponseEntity.created(uri).build();
-	}
-
-	@Operation(summary = "Get All Values", responses = {
-			@ApiResponse(responseCode = "200", description = "Values retrieved successfully", content = {
-					@Content(schema = @Schema(implementation = ValueMasterResponse.class)) }),
-			@ApiResponse(responseCode = "400", description = "Bad request", content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "403", description = "You dont have access to this resource", content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
-	@GetMapping("/getAllValue")
-	public ResponseEntity<Object> getAllValue(@RequestParam(required = false) Boolean attributeUom) {
-		List<?> allValue = attributeUom != null && attributeUom ? valueMasterService.getAllValueAttributeUom()
-				: valueMasterService.getAllValue(false);
-		return ResponseEntity.ok(allValue);
 	}
 
 	@Operation(summary = "Get Value By Id", responses = {
@@ -99,7 +71,22 @@ public class ValueMasterController {
 		} else {
 			valueById = valueMasterService.getValueById(id);
 		}
-		return ResponseEntity.ok(valueById);
+		return ResponseEntity.status(HttpStatus.OK).body(valueById);
+	}
+
+	@Operation(summary = "Get All Values", responses = {
+			@ApiResponse(responseCode = "200", description = "Values retrieved successfully", content = {
+					@Content(schema = @Schema(implementation = ValueMasterResponse.class)) }),
+			@ApiResponse(responseCode = "400", description = "Bad request", content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "403", description = "You dont have access to this resource", content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
+	@GetMapping("/getAllValue")
+	public ResponseEntity<Object> getAllValue(@RequestParam(required = false) Boolean attributeUom)
+			throws ResourceNotFoundException {
+		List<?> allValue = attributeUom != null && attributeUom ? valueMasterService.getAllValueAttributeUom()
+				: valueMasterService.getAllValue(false);
+		return ResponseEntity.ok(allValue);
 	}
 
 	@Operation(summary = "Update Value", responses = {
@@ -113,8 +100,7 @@ public class ValueMasterController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@PutMapping("/updateValue/{id}")
 	public ResponseEntity<Object> updateValue(@PathVariable Long id,
-			@Valid @RequestBody ValueMasterRequest updateValueMasterRequest)
-			throws ResourceNotFoundException, ResourceFoundException {
+			@Valid @RequestBody ValueMasterRequest updateValueMasterRequest) throws ResourceNotFoundException {
 		ValueMasterResponse updateValue = valueMasterService.updateValue(id, updateValueMasterRequest);
 		return ResponseEntity.ok(updateValue);
 	}
@@ -134,7 +120,7 @@ public class ValueMasterController {
 	@DeleteMapping("/deleteBatchValue")
 	public ResponseEntity<Object> deleteBatchValue(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		valueMasterService.deleteBatchValue(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 
 	@Operation(summary = "Download Template", responses = {
@@ -148,6 +134,20 @@ public class ValueMasterController {
 		valueMasterService.downloadTemplate(httpServletResponse);
 	}
 
+	@Operation(summary = "Upload File", responses = {
+			@ApiResponse(responseCode = "201", description = "File uploaded successfully"),
+			@ApiResponse(responseCode = "400", description = "Bad request", content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "422", description = "Invalid data", content = {
+					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
+	@PostMapping(value = "/uploadFile", consumes = "multipart/form-data")
+	public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file)
+			throws IOException, ExcelFileException {
+		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/uploadFile").toUriString());
+		valueMasterService.uploadData(file);
+		return ResponseEntity.created(uri).build();
+	}
+
 	@Operation(summary = "Download All Data Excel", responses = {
 			@ApiResponse(responseCode = "200", description = "All data downloaded successfully"),
 			@ApiResponse(responseCode = "400", description = "Bad request", content = {
@@ -155,7 +155,8 @@ public class ValueMasterController {
 			@ApiResponse(responseCode = "403", description = "You dont have access to this resource", content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@GetMapping("/export/AllData")
-	public void excelAll(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException {
+	public void excelAll(HttpServletResponse httpServletResponse)
+			throws IOException, ExcelFileException, ResourceNotFoundException {
 		valueMasterService.downloadAllData(httpServletResponse);
 	}
 
@@ -166,8 +167,8 @@ public class ValueMasterController {
 			@ApiResponse(responseCode = "403", description = "You dont have access to this resource", content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@GetMapping("/exportPdf/AllData")
-	public void exportPdf(HttpServletResponse httpServletResponse)
-			throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
+	public void exportPdf(HttpServletResponse httpServletResponse) throws IOException, IllegalAccessException,
+			ExcelFileException, DocumentException, ResourceNotFoundException {
 		valueMasterService.exportPdf(httpServletResponse);
 	}
 }

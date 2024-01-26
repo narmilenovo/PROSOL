@@ -11,16 +11,21 @@ public interface InspectionCodeService {
 	InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<InspectionCodeResponse> getAllInCode();
-
 	InspectionCodeResponse getInCodeById(Long id) throws ResourceNotFoundException;
+
+	List<InspectionCodeResponse> getAllInCode();
 
 	List<InspectionCodeResponse> findAllStatusTrue();
 
 	InspectionCodeResponse updateInCode(Long id, InspectionCodeRequest updateInspectionCodeRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	InspectionCodeResponse updateInCodeStatus(Long id) throws ResourceNotFoundException;
+
+	List<InspectionCodeResponse> updateBatchInCodeStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteInCodeId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchInCode(List<Long> ids);
+	void deleteBatchInCode(List<Long> ids) throws ResourceNotFoundException;
+
 }

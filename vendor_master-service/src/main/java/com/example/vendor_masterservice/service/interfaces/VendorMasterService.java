@@ -11,9 +11,9 @@ public interface VendorMasterService {
 
     List<VendorMasterResponse> saveAllVm(List<VendorMasterRequest> vendorMasterRequests);
 
-    List<VendorMasterResponse> getAllVm();
-
     VendorMasterResponse getVmById(Long id) throws ResourceNotFoundException;
+
+    List<VendorMasterResponse> getAllVm();
 
     List<VendorMasterResponse> findAllStatusTrue();
 

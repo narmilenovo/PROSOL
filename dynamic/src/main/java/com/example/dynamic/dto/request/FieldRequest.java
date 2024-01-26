@@ -1,5 +1,6 @@
 package com.example.dynamic.dto.request;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -17,7 +18,7 @@ public class FieldRequest {
     private String dataType;
     private String identity;
 
-    private List<String> pattern;
+    private List<String> pattern = new ArrayList<>();
 
     private Integer min;
     private Integer max;
@@ -30,9 +31,9 @@ public class FieldRequest {
     private Boolean writable = true;
     private Boolean showAsColumn = true;
 
-    private List<DropDownRequest> dropDowns;
+    private List<DropDownRequest> dropDowns = new ArrayList<>();
 
-    private List<String> enums;
+    private List<String> enums = new ArrayList<>();
 
     @JsonIgnore
     private FormRequest form;

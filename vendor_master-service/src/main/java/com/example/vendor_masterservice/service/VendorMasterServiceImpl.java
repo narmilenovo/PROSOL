@@ -55,18 +55,18 @@ public class VendorMasterServiceImpl implements VendorMasterService {
     }
 
     @Override
+    public VendorMasterResponse getVmById(Long id) throws ResourceNotFoundException {
+        VendorMaster vendorMaster = this.findVmById(id);
+        return mapToVendorMasterResponse(vendorMaster);
+    }
+
+    @Override
     public List<VendorMasterResponse> getAllVm() {
         List<VendorMaster> vendorMasters = vendorMasterRepository.findAll();
         return vendorMasters.stream()
                 .sorted(Comparator.comparing(VendorMaster::getId))
                 .map(this::mapToVendorMasterResponse)
                 .toList();
-    }
-
-    @Override
-    public VendorMasterResponse getVmById(Long id) throws ResourceNotFoundException {
-        VendorMaster vendorMaster = this.findVmById(id);
-        return mapToVendorMasterResponse(vendorMaster);
     }
 
     @Override

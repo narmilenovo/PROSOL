@@ -11,16 +11,21 @@ public interface MaterialTypeService {
 	MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<MaterialTypeResponse> getAllMaterial();
-
 	MaterialTypeResponse getMaterialById(Long id) throws ResourceNotFoundException;
+
+	List<MaterialTypeResponse> getAllMaterial();
 
 	List<MaterialTypeResponse> findAllStatusTrue();
 
 	MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	MaterialTypeResponse updateMaterialStatus(Long id) throws ResourceNotFoundException;
+
+	List<MaterialTypeResponse> updateBatchMaterialStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteMaterialId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchMaterial(List<Long> ids);
+	void deleteBatchMaterial(List<Long> ids) throws ResourceNotFoundException;
+
 }

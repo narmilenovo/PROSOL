@@ -17,27 +17,30 @@ import jakarta.servlet.http.HttpServletResponse;
 public interface ValueMasterService {
 	ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) throws ResourceNotFoundException;
 
-	List<ValueMasterResponse> getAllValue(boolean attributeUom);
-
 	ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException;
+
+	ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException;
+
+	List<ValueMasterResponse> getAllValue(boolean attributeUom) throws ResourceNotFoundException;
+
+	List<ValueAttributeUom> getAllValueAttributeUom() throws ResourceNotFoundException;
 
 	ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest)
 			throws ResourceNotFoundException;
 
 	void deleteValueId(Long id) throws ResourceNotFoundException;
 
-	void downloadTemplate(HttpServletResponse httpServletResponse) throws IOException;
+	void deleteBatchValue(List<Long> ids) throws ResourceNotFoundException;
 
-	void downloadAllData(HttpServletResponse httpServletResponse) throws IOException, ExcelFileException;
+	void downloadTemplate(HttpServletResponse httpServletResponse) throws IOException;
 
 	void uploadData(MultipartFile file) throws IOException, ExcelFileException;
 
+	void downloadAllData(HttpServletResponse httpServletResponse)
+			throws IOException, ExcelFileException, ResourceNotFoundException;
+
 	void exportPdf(HttpServletResponse httpServletResponse)
-			throws IOException, IllegalAccessException, ExcelFileException, DocumentException;
+			throws IOException, IllegalAccessException, ExcelFileException, DocumentException,
+			ResourceNotFoundException;
 
-	List<ValueAttributeUom> getAllValueAttributeUom();
-
-	ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException;
-
-	void deleteBatchValue(List<Long> ids);
 }

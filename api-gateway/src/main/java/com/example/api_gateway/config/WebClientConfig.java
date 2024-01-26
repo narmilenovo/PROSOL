@@ -11,22 +11,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebClientConfig {
 
-    private final LoadBalancedExchangeFilterFunction filterFunction;
+	private final LoadBalancedExchangeFilterFunction filterFunction;
 
-    @Bean
-    WebClient userWebClientClient() {
-        return WebClient.builder()
-                .baseUrl("http://USER-SERVICE")
-                .filter(filterFunction)
-                .build();
-    }
-
-    // @Bean
-    // public UserApiClient userClient() {
-    // HttpServiceProxyFactory httpServiceProxyFactory = HttpServiceProxyFactory
-    // .builder(WebClientAdapter.forClient(userWebClientClient()))
-    // .build();
-    // return httpServiceProxyFactory.createClient(UserApiClient.class);
-    // }
+	@Bean
+	WebClient userWebClientClient() {
+		return WebClient.builder().baseUrl("http://USER-SERVICE").filter(filterFunction).build();
+	}
 
 }

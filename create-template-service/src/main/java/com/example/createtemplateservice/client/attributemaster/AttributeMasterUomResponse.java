@@ -1,13 +1,15 @@
 package com.example.createtemplateservice.client.attributemaster;
 
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Date;
-import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,13 +17,14 @@ import java.util.List;
 public class AttributeMasterUomResponse {
     private Long id;
     private String attributeName;
-    @Enumerated(EnumType.STRING)
+    // @Enumerated(EnumType.STRING)
     private FieldType fieldType;
     private List<AttributeUomResponse> listUom;
     private String createdBy;
     private String updatedBy;
     private Date createdAt;
     private Date updatedAt;
-
-
+    @JsonAnyGetter
+    @JsonIgnore
+    private Map<String, Object> dynamicFields;
 }

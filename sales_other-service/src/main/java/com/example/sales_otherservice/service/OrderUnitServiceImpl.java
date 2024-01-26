@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.OrderUnitRequest;
 import com.example.sales_otherservice.dto.response.OrderUnitResponse;
 import com.example.sales_otherservice.entity.OrderUnit;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.OrderUnitRepository;
 import com.example.sales_otherservice.service.interfaces.OrderUnitService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -74,6 +75,7 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	@Override
 	public OrderUnitResponse updateOu(Long id, OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String ouCode = updateOrderUnitRequest.getOuCode();
 		String ouName = updateOrderUnitRequest.getOuName();
 		OrderUnit existingOrderUnit = this.findOuById(id);
@@ -96,13 +98,33 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	}
 
 	@Override
+	public OrderUnitResponse updateOuStatus(Long id) throws ResourceNotFoundException {
+		OrderUnit orderUnit = this.findOuById(id);
+		orderUnit.setOuStatus(!orderUnit.getOuStatus());
+		OrderUnit updatedOrderUnit = orderUnitRepository.save(orderUnit);
+		return mapToOrderUnitResponse(updatedOrderUnit);
+	}
+
+	@Override
+	public List<OrderUnitResponse> updateBatchOuStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<OrderUnit> orderUnits = this.findAllOuById(ids);
+		for (OrderUnit orderUnit : orderUnits) {
+			orderUnit.setOuStatus(!orderUnit.getOuStatus());
+		}
+		orderUnitRepository.saveAll(orderUnits);
+		return orderUnits.stream().map(this::mapToOrderUnitResponse).toList();
+
+	}
+
+	@Override
 	public void deleteOuById(Long id) throws ResourceNotFoundException {
 		OrderUnit orderUnit = this.findOuById(id);
 		orderUnitRepository.deleteById(orderUnit.getId());
 	}
 
 	@Override
-	public void deleteBatchOu(List<Long> ids) {
+	public void deleteBatchOu(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllOuById(ids);
 		orderUnitRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -111,11 +133,26 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	}
 
 	private OrderUnit findOuById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<OrderUnit> orderUnit = orderUnitRepository.findById(id);
 		if (orderUnit.isEmpty()) {
 			throw new ResourceNotFoundException("Order Unit not found with this Id");
 		}
 		return orderUnit.get();
+	}
+
+	private List<OrderUnit> findAllOuById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<OrderUnit> orderUnits = orderUnitRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> orderUnits.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Order Unit with IDs " + missingIds + " not found.");
+		}
+		return orderUnits;
 	}
 
 }

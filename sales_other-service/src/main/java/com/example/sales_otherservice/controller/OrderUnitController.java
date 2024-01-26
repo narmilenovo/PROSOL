@@ -3,9 +3,11 @@ package com.example.sales_otherservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class OrderUnitController {
 		return ResponseEntity.created(uri).body(saveOu);
 	}
 
+	@GetMapping("/getOuById/{id}")
+	public ResponseEntity<Object> getOuById(@PathVariable Long id) throws ResourceNotFoundException {
+		OrderUnitResponse dpById = orderUnitService.getOuById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(dpById);
+	}
+
 	@GetMapping("/getAllOu")
 	public ResponseEntity<Object> getAllOu() {
 		List<OrderUnitResponse> allOu = orderUnitService.getAllOu();
 		return ResponseEntity.ok(allOu);
-	}
-
-	@GetMapping("/getOuById/{id}")
-	public ResponseEntity<Object> getOuById(@PathVariable Long id) throws ResourceNotFoundException {
-		OrderUnitResponse dpById = orderUnitService.getOuById(id);
-		return ResponseEntity.ok(dpById);
 	}
 
 	@GetMapping("/getAllOuTrue")
@@ -61,6 +63,18 @@ public class OrderUnitController {
 		return ResponseEntity.ok(updateOu);
 	}
 
+	@PatchMapping("/updateOuStatus/{id}")
+	public ResponseEntity<Object> updateOuStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		OrderUnitResponse ouResponse = orderUnitService.updateOuStatus(id);
+		return ResponseEntity.ok(ouResponse);
+	}
+
+	@PatchMapping("/updateBatchOuStatus")
+	public ResponseEntity<Object> updateBatchOuStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		List<OrderUnitResponse> ouResponses = orderUnitService.updateBatchOuStatus(ids);
+		return ResponseEntity.ok(ouResponses);
+	}
+
 	@DeleteMapping("/deleteOu/{id}")
 	public ResponseEntity<Object> deleteOu(@PathVariable Long id) throws ResourceNotFoundException {
 		orderUnitService.deleteOuById(id);
@@ -70,6 +84,6 @@ public class OrderUnitController {
 	@DeleteMapping("/deleteBatchOu")
 	public ResponseEntity<Object> deleteBatchOu(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		orderUnitService.deleteBatchOu(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

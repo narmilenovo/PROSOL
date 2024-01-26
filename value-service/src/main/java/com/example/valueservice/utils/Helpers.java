@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.example.valueservice.exceptions.DateTimeException;
+
 public class Helpers {
 
 	private Helpers() {
@@ -112,7 +114,7 @@ public class Helpers {
 		return strNull != null && !strNull.equals("");
 	}
 
-	public static String getCurrentDateTime() throws Exception {
+	public static String getCurrentDateTime() throws DateTimeException {
 		Calendar cal = Calendar.getInstance();
 		String strSysDate = "";
 		try {
@@ -131,9 +133,20 @@ public class Helpers {
 			strSysDate = strSysDay + "/" + strSysMonth + "/" + strSysYear;
 
 		} catch (Exception e) {
-			throw new Exception("*Exception in getCurrentDateTime **" + e);
+			throw new DateTimeException("*Exception in getCurrentDateTime **" + e);
 		}
 		return strSysDate;
 	}
 
+	public static void validateId(Long id) {
+		if (id == null || id <= 0) {
+			throw new NullPointerException("Input Id is null or less then zero");
+		}
+	}
+
+	public static void validateIds(List<Long> ids) {
+		if (ids == null || ids.isEmpty() || ids.stream().anyMatch(id -> id == null || id <= 0)) {
+			throw new NullPointerException("one of the Input Id's is null or less then zero");
+		}
+	}
 }

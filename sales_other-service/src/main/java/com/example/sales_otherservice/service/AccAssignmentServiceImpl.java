@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import com.example.sales_otherservice.clients.DynamicClient;
+import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.AccAssignmentRequest;
 import com.example.sales_otherservice.dto.response.AccAssignmentResponse;
 import com.example.sales_otherservice.entity.AccAssignment;
@@ -16,6 +16,7 @@ import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.AccAssignmentRepository;
 import com.example.sales_otherservice.service.interfaces.AccAssignmentService;
+import com.example.sales_otherservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -73,6 +74,7 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	@Override
 	public AccAssignmentResponse updateAcc(Long id, AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		AccAssignment existingAssignment = this.findAccById(id);
 		String accCode = updateAccAssignmentRequest.getAccCode();
 		String accName = updateAccAssignmentRequest.getAccName();
@@ -95,13 +97,31 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	}
 
 	@Override
+	public AccAssignmentResponse updateAccStatus(Long id) throws ResourceNotFoundException {
+		AccAssignment accAssignment = this.findAccById(id);
+		accAssignment.setAccStatus(!accAssignment.getAccStatus());
+		accAssignmentRepository.save(accAssignment);
+		return mapToAccAssignmentResponse(accAssignment);
+	}
+
+	@Override
+	public List<AccAssignmentResponse> updateBatchAccStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<AccAssignment> accAssignments = this.findAllAccById(ids);
+		accAssignments.forEach(accAssignment -> accAssignment.setAccStatus(!accAssignment.getAccStatus()));
+		accAssignmentRepository.saveAll(accAssignments);
+		return accAssignments.stream().sorted(Comparator.comparing(AccAssignment::getId))
+				.map(this::mapToAccAssignmentResponse).toList();
+	}
+
+	@Override
 	public void deleteAccId(Long id) throws ResourceNotFoundException {
 		AccAssignment accAssignment = this.findAccById(id);
 		accAssignmentRepository.deleteById(accAssignment.getId());
 	}
 
 	@Override
-	public void deleteBatchAcc(List<Long> ids) {
+	public void deleteBatchAcc(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllAccById(ids);
 		accAssignmentRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -110,11 +130,26 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	}
 
 	private AccAssignment findAccById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<AccAssignment> accAssignment = accAssignmentRepository.findById(id);
 		if (accAssignment.isEmpty()) {
 			throw new ResourceNotFoundException("Account Assignment not found with this Id");
 		}
 		return accAssignment.get();
+	}
+
+	private List<AccAssignment> findAllAccById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<AccAssignment> accAssignments = accAssignmentRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> accAssignments.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+		}
+		return accAssignments;
 	}
 
 }

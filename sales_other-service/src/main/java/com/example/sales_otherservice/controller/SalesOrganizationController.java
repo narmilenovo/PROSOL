@@ -3,9 +3,11 @@ package com.example.sales_otherservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class SalesOrganizationController {
 		return ResponseEntity.created(uri).body(saveSo);
 	}
 
+	@GetMapping("/getSoById/{id}")
+	public ResponseEntity<Object> getSoById(@PathVariable Long id) throws ResourceNotFoundException {
+		SalesOrganizationResponse dpById = salesOrganizationService.getSoById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(dpById);
+	}
+
 	@GetMapping("/getAllSo")
 	public ResponseEntity<Object> getAllSo() {
 		List<SalesOrganizationResponse> allSo = salesOrganizationService.getAllSo();
 		return ResponseEntity.ok(allSo);
-	}
-
-	@GetMapping("/getSoById/{id}")
-	public ResponseEntity<Object> getSoById(@PathVariable Long id) throws ResourceNotFoundException {
-		SalesOrganizationResponse dpById = salesOrganizationService.getSoById(id);
-		return ResponseEntity.ok(dpById);
 	}
 
 	@GetMapping("/getAllSoTrue")
@@ -61,6 +63,18 @@ public class SalesOrganizationController {
 		return ResponseEntity.ok(updateSo);
 	}
 
+	@PatchMapping("/updateSoStatus/{id}")
+	public ResponseEntity<Object> updateSoStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		SalesOrganizationResponse soResponse = salesOrganizationService.updateSoStatus(id);
+		return ResponseEntity.ok(soResponse);
+	}
+
+	@PatchMapping("/updateBatchSoStatus")
+	public ResponseEntity<Object> updateBatchSoStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+		List<SalesOrganizationResponse> soResponses = salesOrganizationService.updateBatchSoStatus(ids);
+		return ResponseEntity.ok(soResponses);
+	}
+
 	@DeleteMapping("/deleteSo/{id}")
 	public ResponseEntity<Object> deleteSo(@PathVariable Long id) throws ResourceNotFoundException {
 		salesOrganizationService.deleteSoById(id);
@@ -70,6 +84,6 @@ public class SalesOrganizationController {
 	@DeleteMapping("/deleteBatchSo")
 	public ResponseEntity<Object> deleteBatchSo(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		salesOrganizationService.deleteBatchSo(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

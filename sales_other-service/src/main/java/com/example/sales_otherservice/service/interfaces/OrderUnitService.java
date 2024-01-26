@@ -11,16 +11,21 @@ public interface OrderUnitService {
 	OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<OrderUnitResponse> getAllOu();
-
 	OrderUnitResponse getOuById(Long id) throws ResourceNotFoundException;
 
+	List<OrderUnitResponse> getAllOu();
+
 	List<OrderUnitResponse> findAllStatusTrue();
+
+	OrderUnitResponse updateOuStatus(Long id) throws ResourceNotFoundException;
+
+	List<OrderUnitResponse> updateBatchOuStatus(List<Long> ids) throws ResourceNotFoundException;
 
 	OrderUnitResponse updateOu(Long id, OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
 	void deleteOuById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchOu(List<Long> ids);
+	void deleteBatchOu(List<Long> ids) throws ResourceNotFoundException;
+
 }

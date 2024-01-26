@@ -2,6 +2,7 @@ package com.example.valueservice.client;
 
 import java.util.Date;
 
+import com.example.valueservice.client.GeneralSetting.AttributeUom;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Data;

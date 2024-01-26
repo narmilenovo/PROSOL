@@ -18,10 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.requestitemservice.dto.request.RequestItemRequest;
 import com.example.requestitemservice.dto.response.RequestItemResponse;
-import com.example.requestitemservice.exceptions.ResourceNotFoundException;
 import com.example.requestitemservice.service.interfaces.RequestItemService;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,8 +47,8 @@ public class RequestItemController {
 		}
 	}
 
-	@GetMapping("/getRequest/{id}")
-	public ResponseEntity<Object> getRequestItem(@PathVariable("id") Long id,
+	@GetMapping("/getRequestById/{id}")
+	public ResponseEntity<Object> getRequestItemById(@PathVariable("id") Long id,
 			@RequestParam(required = false) @Pattern(regexp = "full") String show) {
 		Object requestItem;
 		if (show == null || !show.equalsIgnoreCase("full")) {
@@ -80,8 +78,7 @@ public class RequestItemController {
 	@PutMapping(value = "/updateRequest/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<Object> update(@PathVariable("id") Long id,
 			@Parameter(name = "updatedItem", required = true, schema = @Schema(implementation = RequestItemRequest.class), description = "source") @RequestPart String source,
-			@RequestParam(value = "file", required = true) MultipartFile file)
-			throws JsonMappingException, JsonProcessingException {
+			@RequestParam(value = "file", required = true) MultipartFile file) throws JsonProcessingException {
 		RequestItemRequest updatedItem = this.convert(source);
 		RequestItemResponse updatedRequestItem = requestItemService.update(id, updatedItem, file);
 		return new ResponseEntity<>(updatedRequestItem, HttpStatus.OK);
@@ -98,12 +95,12 @@ public class RequestItemController {
 	}
 
 	@DeleteMapping("/deleteBatchRequest")
-	public ResponseEntity<Object> deleteBatchRequest(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchRequest(@RequestBody List<Long> ids) {
 		requestItemService.deleteBatchRequest(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
 	}
 
-	private RequestItemRequest convert(String source) throws JsonMappingException, JsonProcessingException {
+	private RequestItemRequest convert(String source) throws JsonProcessingException {
 		return new ObjectMapper().readValue(source, RequestItemRequest.class);
 	}
 }

@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.MaterialTypeRepository;
 import com.example.generalservice.service.interfaces.MaterialTypeService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,17 +53,17 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 
 	@Override
 	@Cacheable("material")
-	public List<MaterialTypeResponse> getAllMaterial() {
-		List<MaterialType> materialTypes = materialTypeRepository.findAll();
-		return materialTypes.stream().sorted(Comparator.comparing(MaterialType::getId))
-				.map(this::mapToMaterialTypeResponse).toList();
+	public MaterialTypeResponse getMaterialById(Long id) throws ResourceNotFoundException {
+		MaterialType materialType = this.findMaterialById(id);
+		return mapToMaterialTypeResponse(materialType);
 	}
 
 	@Override
 	@Cacheable("material")
-	public MaterialTypeResponse getMaterialById(Long id) throws ResourceNotFoundException {
-		MaterialType materialType = this.findMaterialById(id);
-		return mapToMaterialTypeResponse(materialType);
+	public List<MaterialTypeResponse> getAllMaterial() {
+		List<MaterialType> materialTypes = materialTypeRepository.findAll();
+		return materialTypes.stream().sorted(Comparator.comparing(MaterialType::getId))
+				.map(this::mapToMaterialTypeResponse).toList();
 	}
 
 	@Override
@@ -76,6 +77,7 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	@Override
 	public MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.validateId(id);
 		String materialCode = updateMaterialTypeRequest.getMaterialCode();
 		String materialName = updateMaterialTypeRequest.getMaterialName();
 		MaterialType existingMaterialType = this.findMaterialById(id);
@@ -99,13 +101,30 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	}
 
 	@Override
+	public MaterialTypeResponse updateMaterialStatus(Long id) throws ResourceNotFoundException {
+		MaterialType existingMaterialType = this.findMaterialById(id);
+		existingMaterialType.setMaterialStatus(!existingMaterialType.getMaterialStatus());
+		materialTypeRepository.save(existingMaterialType);
+		return mapToMaterialTypeResponse(existingMaterialType);
+	}
+
+	@Override
+	public List<MaterialTypeResponse> updateBatchMaterialStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<MaterialType> materialTypes = this.findAllById(ids);
+		materialTypes.forEach(materialType -> materialType.setMaterialStatus(!materialType.getMaterialStatus()));
+		materialTypeRepository.saveAll(materialTypes);
+		return materialTypes.stream().map(this::mapToMaterialTypeResponse).toList();
+	}
+
+	@Override
 	public void deleteMaterialId(Long id) throws ResourceNotFoundException {
 		MaterialType materialType = this.findMaterialById(id);
 		materialTypeRepository.deleteById(materialType.getId());
 	}
 
 	@Override
-	public void deleteBatchMaterial(List<Long> ids) {
+	public void deleteBatchMaterial(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		materialTypeRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -114,11 +133,25 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	}
 
 	private MaterialType findMaterialById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<MaterialType> materialType = materialTypeRepository.findById(id);
 		if (materialType.isEmpty()) {
 			throw new ResourceNotFoundException("No material found with this Id");
 		}
 		return materialType.get();
+	}
+
+	private List<MaterialType> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<MaterialType> materialTypes = materialTypeRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> materialTypes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Material Type with IDs " + missingIds + " not found");
+		}
+		return materialTypes;
 	}
 
 }

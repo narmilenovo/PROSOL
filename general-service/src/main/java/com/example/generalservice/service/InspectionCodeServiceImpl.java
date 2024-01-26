@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.InspectionCodeRepository;
 import com.example.generalservice.service.interfaces.InspectionCodeService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,17 +54,17 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 
 	@Override
 	@Cacheable("inCode")
-	public List<InspectionCodeResponse> getAllInCode() {
-		List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAll();
-		return inspectionCodes.stream().sorted(Comparator.comparing(InspectionCode::getId)).map(this::mapToCodeResponse)
-				.toList();
+	public InspectionCodeResponse getInCodeById(Long id) throws ResourceNotFoundException {
+		InspectionCode inspectionCode = this.findInCodeById(id);
+		return mapToCodeResponse(inspectionCode);
 	}
 
 	@Override
 	@Cacheable("inCode")
-	public InspectionCodeResponse getInCodeById(Long id) throws ResourceNotFoundException {
-		InspectionCode inspectionCode = this.findInCodeById(id);
-		return mapToCodeResponse(inspectionCode);
+	public List<InspectionCodeResponse> getAllInCode() {
+		List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAll();
+		return inspectionCodes.stream().sorted(Comparator.comparing(InspectionCode::getId)).map(this::mapToCodeResponse)
+				.toList();
 	}
 
 	@Override
@@ -77,6 +78,7 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	@Override
 	public InspectionCodeResponse updateInCode(Long id, InspectionCodeRequest updateInspectionCodeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String inCodeCode = updateInspectionCodeRequest.getInCodeCode();
 		String inCodeName = updateInspectionCodeRequest.getInCodeName();
 		InspectionCode existingInspectionCode = this.findInCodeById(id);
@@ -100,13 +102,30 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	}
 
 	@Override
+	public InspectionCodeResponse updateInCodeStatus(Long id) throws ResourceNotFoundException {
+		InspectionCode existingInspectionCode = this.findInCodeById(id);
+		existingInspectionCode.setInCodeStatus(!existingInspectionCode.getInCodeStatus());
+		inspectionCodeRepository.save(existingInspectionCode);
+		return mapToCodeResponse(existingInspectionCode);
+	}
+
+	@Override
+	public List<InspectionCodeResponse> updateBatchInCodeStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<InspectionCode> inspectionCodes = this.findAllById(ids);
+		inspectionCodes.forEach(inspectionCode -> inspectionCode.setInCodeStatus(!inspectionCode.getInCodeStatus()));
+		inspectionCodeRepository.saveAll(inspectionCodes);
+		return inspectionCodes.stream().map(this::mapToCodeResponse).toList();
+	}
+
+	@Override
 	public void deleteInCodeId(Long id) throws ResourceNotFoundException {
 		InspectionCode inspectionCode = this.findInCodeById(id);
 		inspectionCodeRepository.deleteById(inspectionCode.getId());
 	}
 
 	@Override
-	public void deleteBatchInCode(List<Long> ids) {
+	public void deleteBatchInCode(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		inspectionCodeRepository.deleteAllByIdInBatch(ids);
 	}
 
@@ -115,11 +134,25 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	}
 
 	private InspectionCode findInCodeById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<InspectionCode> inspectionCode = inspectionCodeRepository.findById(id);
 		if (inspectionCode.isEmpty()) {
 			throw new ResourceNotFoundException("No Inspection found with this Id");
 		}
 		return inspectionCode.get();
+	}
+
+	private List<InspectionCode> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> inspectionCodes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Inspection Code with IDs " + missingIds + " not found");
+		}
+		return inspectionCodes;
 	}
 
 }

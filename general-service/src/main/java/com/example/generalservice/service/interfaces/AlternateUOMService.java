@@ -11,16 +11,20 @@ public interface AlternateUOMService {
 	AlternateUOMResponse saveUom(AlternateUOMRequest alternateUOMRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<AlternateUOMResponse> getAllUom();
-
 	AlternateUOMResponse getUomById(Long id) throws ResourceNotFoundException;
 
-	List<AlternateUOMResponse> findAllStatusTrue();
+	List<AlternateUOMResponse> getAllUom() throws ResourceNotFoundException;
+
+	List<AlternateUOMResponse> findAllStatusTrue() throws ResourceNotFoundException;
 
 	AlternateUOMResponse updateUom(Long id, AlternateUOMRequest updateAlternateUOMRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
 	void deleteUomId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchUom(List<Long> ids);
+	void deleteBatchUom(List<Long> ids) throws ResourceNotFoundException;
+
+	AlternateUOMResponse updateUomStatus(Long id) throws ResourceNotFoundException;
+
+	List<AlternateUOMResponse> updateBatchUomStatus(List<Long> ids) throws ResourceNotFoundException;
 }

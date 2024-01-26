@@ -11,17 +11,21 @@ public interface TransportationGroupService {
 	TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<TransportationGroupResponse> getAllTg();
-
 	TransportationGroupResponse getTgById(Long id) throws ResourceNotFoundException;
+
+	List<TransportationGroupResponse> getAllTg();
 
 	List<TransportationGroupResponse> findAllStatusTrue();
 
 	TransportationGroupResponse updateTg(Long id, TransportationGroupRequest updateTransportationGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	TransportationGroupResponse updateTgStatus(Long id) throws ResourceNotFoundException;
+
+	List<TransportationGroupResponse> updateBatchTgStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteTgById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchTg(List<Long> ids);
+	void deleteBatchTg(List<Long> ids) throws ResourceNotFoundException;
 
 }

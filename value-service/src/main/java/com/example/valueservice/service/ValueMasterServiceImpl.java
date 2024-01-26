@@ -15,10 +15,10 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.valueservice.client.AttributeUom;
-import com.example.valueservice.client.DynamicClient;
-import com.example.valueservice.client.SettingClient;
 import com.example.valueservice.client.ValueAttributeUom;
+import com.example.valueservice.client.Dynamic.DynamicClient;
+import com.example.valueservice.client.GeneralSetting.AttributeUom;
+import com.example.valueservice.client.GeneralSetting.SettingClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.entity.ValueMaster;
@@ -27,6 +27,7 @@ import com.example.valueservice.exceptions.ResourceNotFoundException;
 import com.example.valueservice.repository.ValueMasterRepository;
 import com.example.valueservice.service.interfaces.ValueMasterService;
 import com.example.valueservice.utils.ExcelFileHelper;
+import com.example.valueservice.utils.Helpers;
 import com.example.valueservice.utils.PdfFileHelper;
 import com.itextpdf.text.DocumentException;
 
@@ -71,24 +72,6 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	@Override
-	@CachePut(value = "valueMaster")
-	public List<ValueMasterResponse> getAllValue(boolean attributeUom) {
-		List<ValueMaster> allValues = valueMasterRepository.findAll();
-		log.info("Fetch Data from Db {}", allValues);
-		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueMasterResponse)
-				.toList();
-	}
-
-	@Override
-	@CachePut(value = "valueAttributeUom")
-	public List<ValueAttributeUom> getAllValueAttributeUom() {
-		List<ValueMaster> allValues = valueMasterRepository.findAll();
-		log.info("Fetch Data from Db {}", allValues);
-		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueAttributeUom)
-				.toList();
-	}
-
-	@Override
 	@Cacheable(value = "valueMaster", key = "#id")
 	public ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException {
 		ValueMaster valueMaster = findValueById(id);
@@ -105,10 +88,29 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	@Override
+	@CachePut(value = "valueMaster")
+	public List<ValueMasterResponse> getAllValue(boolean attributeUom) throws ResourceNotFoundException {
+		List<ValueMaster> allValues = this.findAllValues();
+		log.info("Fetch Data from Db {}", allValues);
+		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueMasterResponse)
+				.toList();
+	}
+
+	@Override
+	@CachePut(value = "valueAttributeUom")
+	public List<ValueAttributeUom> getAllValueAttributeUom() throws ResourceNotFoundException {
+		List<ValueMaster> allValues = this.findAllValues();
+		log.info("Fetch Data from Db {}", allValues);
+		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueAttributeUom)
+				.toList();
+	}
+
+	@Override
 	@CachePut(value = "valueMaster", key = "#id")
 	public ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest)
 			throws ResourceNotFoundException {
 		try {
+			Helpers.validateId(id);
 			ValueMaster existingValueMaster = findValueById(id);
 			modelMapper.map(updateValueMasterRequest, existingValueMaster);
 			for (Map.Entry<String, Object> entryField : existingValueMaster.getDynamicFields().entrySet()) {
@@ -140,7 +142,8 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	@Override
-	public void deleteBatchValue(List<Long> ids) {
+	public void deleteBatchValue(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllValuesById(ids);
 		valueMasterRepository.deleteAllByIdInBatch(ids);
 
 	}
@@ -156,7 +159,18 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	@Override
-	public void downloadAllData(HttpServletResponse response) throws IOException, ExcelFileException {
+	public void uploadData(MultipartFile file) throws IOException, ExcelFileException {
+		List<ValueMasterRequest> fromExcel = excelFileHelper.readDataFromExcel(file.getInputStream(),
+				ValueMasterRequest.class);
+		List<ValueMaster> valueMasters = modelMapper.map(fromExcel, new TypeToken<List<ValueMaster>>() {
+		}.getType());
+		valueMasters.forEach(valueMaster -> valueMaster.setId(null));
+		valueMasterRepository.saveAll(valueMasters);
+	}
+
+	@Override
+	public void downloadAllData(HttpServletResponse response)
+			throws IOException, ExcelFileException, ResourceNotFoundException {
 		String sheetName = "ValueMaster";
 		Class<?> clazz = ValueMasterResponse.class;
 		String contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -168,7 +182,8 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 	@Override
 	public void exportPdf(HttpServletResponse response)
-			throws IOException, IllegalAccessException, ExcelFileException, DocumentException {
+			throws IOException, IllegalAccessException, ExcelFileException, DocumentException,
+			ResourceNotFoundException {
 		String headerName = "list Of values";
 		Class<?> clazz = ValueMasterResponse.class;
 		String contentType = "application/pdf";
@@ -178,19 +193,31 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 		pdfFileHelper.export(response, headerName, clazz, contentType, extension, prefix, allValues);
 	}
 
-	@Override
-	public void uploadData(MultipartFile file) throws IOException, ExcelFileException {
-		List<ValueMasterRequest> fromExcel = excelFileHelper.readDataFromExcel(file.getInputStream(),
-				ValueMasterRequest.class);
-		List<ValueMaster> valueMasters = modelMapper.map(fromExcel, new TypeToken<List<ValueMaster>>() {
-		}.getType());
-		valueMasters.forEach(valueMaster -> valueMaster.setId(null));
-		valueMasterRepository.saveAll(valueMasters);
-	}
-
 	private ValueMaster findValueById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<ValueMaster> valueMaster = valueMasterRepository.findById(id);
 		return valueMaster.orElseThrow(() -> new ResourceNotFoundException("Value Master with this ID Not found"));
+	}
+
+	private List<ValueMaster> findAllValues() throws ResourceNotFoundException {
+		List<ValueMaster> valueMasters = valueMasterRepository.findAll();
+		if (valueMasters.isEmpty()) {
+			throw new ResourceNotFoundException("Value Master Data is Empty !!!");
+		}
+		return valueMasters;
+	}
+
+	private List<ValueMaster> findAllValuesById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<ValueMaster> valueMasters = valueMasterRepository.findAllById(ids);
+		List<Long> missingIds = ids.stream()
+				.filter(id -> valueMasters.stream().noneMatch(entity -> entity.getId().equals(id)))
+				.toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("AttributeMaster with IDs " + missingIds + " not found.");
+		}
+		return valueMasters;
 	}
 
 	private ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster) {
@@ -203,6 +230,9 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 		Span attributeUomLookUp = tracer.nextSpan().name("AttributeUomLookUp");
 
 		try (Tracer.SpanInScope aUom = tracer.withSpan(attributeUomLookUp.start())) {
+			if (settingClient == null) {
+				throw new IllegalStateException("Setting Client is not initiated");
+			}
 			AttributeUom abbreviationUnit = settingClient.getAttributeUomById(valueMaster.getAbbreviationUnit());
 			AttributeUom equivalentUnit = settingClient.getAttributeUomById(valueMaster.getEquivalentUnit());
 			valueAttributeUom.setAbbreviationUnit(abbreviationUnit);

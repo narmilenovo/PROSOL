@@ -13,6 +13,7 @@ import com.example.dynamic.entity.Form;
 import com.example.dynamic.exceptions.ResourceNotFoundException;
 import com.example.dynamic.repository.FormRepository;
 import com.example.dynamic.service.interfaces.FormService;
+import com.example.dynamic.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +33,7 @@ public class FormServiceImpl implements FormService {
 
 	@Override
 	public FormResponse getFormById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Form form = getById(id);
 		return this.mapToFormResponse(form);
 	}
@@ -48,6 +50,7 @@ public class FormServiceImpl implements FormService {
 
 	private Form getById(Long id) throws ResourceNotFoundException {
 		// Implement the code to retrieve the form by id from the form repository
+		Helpers.validateId(id);
 		Optional<Form> optionalForm = formRepository.findById(id);
 
 		// Throw an exception if the form is not found
@@ -84,6 +87,7 @@ public class FormServiceImpl implements FormService {
 
 	@Override
 	public void deleteFormById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Form form = getById(id);
 		formRepository.delete(form);
 	}

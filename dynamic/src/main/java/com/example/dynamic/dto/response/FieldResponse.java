@@ -12,33 +12,31 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class FieldResponse {
 
-    private Long id;
-    private String fieldName;
-    private String dataType;
-    private String identity;
+	private Long id;
+	private String fieldName;
+	private String dataType;
+	private String identity;
 
-    private List<String> pattern;
+	private List<String> pattern;
 
-    private Integer min;
-    private Integer max;
-    private Integer minLength;
-    private Integer maxLength;
+	private Integer min;
+	private Integer max;
+	private Integer minLength;
+	private Integer maxLength;
 
-    private Boolean required;
-    private Boolean extraField;
-    private Boolean readable;
-    private Boolean writable;
-    private Boolean showAsColumn;
+	private Boolean required;
+	private Boolean extraField;
+	private Boolean readable;
+	private Boolean writable;
+	private Boolean showAsColumn;
 
-    private List<DropDownResponse> dropDowns;
+	private List<DropDownResponse> dropDowns;
 
-    private List<String> enums;
+	private List<String> enums;
 
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
+	private String createdBy;
+	private String updatedBy;
+	private Date createdAt;
+	private Date updatedAt;
 
-    // @JsonIgnore
-    // private FormResponse form;
 }

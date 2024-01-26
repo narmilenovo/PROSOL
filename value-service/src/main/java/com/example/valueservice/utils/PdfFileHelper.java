@@ -78,7 +78,6 @@ public class PdfFileHelper extends AbstractExporter {
 		document.add(table);
 	}
 
-	@SuppressWarnings("squid:S3011")
 	private void writeDataLines(List<?> list) throws DocumentException {
 		List<Field> fields = getCachedFields(list.get(0).getClass());
 		PdfPTable table = createPdfPTable(fields.size());

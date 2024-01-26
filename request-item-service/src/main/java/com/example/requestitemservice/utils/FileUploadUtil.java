@@ -95,7 +95,7 @@ public class FileUploadUtil {
 
 			return deletedFile;
 		} catch (IOException e) {
-			throw new RuntimeException("Error: " + e.getMessage());
+			throw new FileStorageException("Error: " + e.getMessage());
 		}
 	}
 
@@ -113,7 +113,7 @@ public class FileUploadUtil {
 			}
 
 		} catch (IOException e) {
-			throw new RuntimeException(
+			throw new FileStorageException(
 					"Error deleting file " + fileName + " from the Id directory: " + e.getMessage());
 		}
 	}

@@ -11,16 +11,21 @@ public interface AccAssignmentService {
 	AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	List<AccAssignmentResponse> getAllAcc();
-
 	AccAssignmentResponse getAccById(Long id) throws ResourceNotFoundException;
+
+	List<AccAssignmentResponse> getAllAcc();
 
 	List<AccAssignmentResponse> findAllStatusTrue();
 
 	AccAssignmentResponse updateAcc(Long id, AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
+	AccAssignmentResponse updateAccStatus(Long id) throws ResourceNotFoundException;
+
+	List<AccAssignmentResponse> updateBatchAccStatus(List<Long> ids) throws ResourceNotFoundException;
+
 	void deleteAccId(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchAcc(List<Long> ids);
+	void deleteBatchAcc(List<Long> ids) throws ResourceNotFoundException;
+
 }

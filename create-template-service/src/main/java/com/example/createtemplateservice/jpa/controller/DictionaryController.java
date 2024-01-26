@@ -16,13 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,8 +40,7 @@ public class DictionaryController {
 	@Operation(summary = "Save Dictionary with Image", description = "Save a dictionary entry along with an image.")
 	public ResponseEntity<Object> saveDictionary(
 			@Parameter(name = "dictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
-			@RequestParam(value = "file", required = true) MultipartFile file)
-			throws ResourceFoundException, JsonMappingException, JsonProcessingException {
+			@RequestParam(value = "file", required = true) MultipartFile file) throws JsonProcessingException {
 		DictionaryRequest dictionaryRequest = this.convert(source);
 		URI uri = URI.create(
 				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
@@ -51,23 +48,8 @@ public class DictionaryController {
 		return ResponseEntity.created(uri).body(savedDictionary);
 	}
 
-	private DictionaryRequest convert(String source) throws JsonMappingException, JsonProcessingException {
+	private DictionaryRequest convert(String source) throws JsonProcessingException {
 		return new ObjectMapper().readValue(source, DictionaryRequest.class);
-	}
-
-	@GetMapping("/getAllDictionary")
-	public ResponseEntity<Object> getAllDictionary(
-			@Pattern(regexp = "uom") @RequestParam(required = false) String show) {
-		List<?> allDictionary;
-		if (show == null) {
-			allDictionary = dictionaryService.getAllDictionary(show);
-		} else if (show.equals("uom")) {
-			allDictionary = dictionaryService.getAllDictionaryNmUom(show);
-		} else {
-			allDictionary = dictionaryService.getAllDictionary(show);
-
-		}
-		return ResponseEntity.ok(allDictionary);
 	}
 
 	@GetMapping("/getDictionaryById/{id}")
@@ -81,7 +63,22 @@ public class DictionaryController {
 		} else {
 			dictionaryById = dictionaryService.getDictionaryById(id, show);
 		}
-		return ResponseEntity.ok(dictionaryById);
+		return ResponseEntity.ok().body(dictionaryById);
+	}
+
+	@GetMapping("/getAllDictionary")
+	public ResponseEntity<Object> getAllDictionary(@Pattern(regexp = "uom") @RequestParam(required = false) String show)
+			throws ResourceNotFoundException {
+		List<?> allDictionary;
+		if (show == null) {
+			allDictionary = dictionaryService.getAllDictionary(show);
+		} else if (show.equals("uom")) {
+			allDictionary = dictionaryService.getAllDictionaryNmUom(show);
+		} else {
+			allDictionary = dictionaryService.getAllDictionary(show);
+
+		}
+		return ResponseEntity.ok().body(allDictionary);
 	}
 
 	@GetMapping("/noun-suggestions")
@@ -100,7 +97,7 @@ public class DictionaryController {
 	public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
 			@Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
 			@RequestParam(value = "file", required = true) MultipartFile file)
-			throws ResourceNotFoundException, ResourceFoundException, JsonMappingException, JsonProcessingException {
+			throws ResourceNotFoundException, JsonProcessingException {
 		DictionaryRequest updateDictionaryRequest = this.convert(source);
 		DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest, file);
 		return ResponseEntity.ok(updateDictionary);
@@ -113,7 +110,7 @@ public class DictionaryController {
 	}
 
 	@DeleteMapping(value = "/deleteBatchDictionary")
-	public ResponseEntity<Object> deleteBatchDictionary(@PathVariable List<Long> ids) {
+	public ResponseEntity<Object> deleteBatchDictionary(@PathVariable List<Long> ids) throws ResourceNotFoundException {
 		dictionaryService.deleteBatchDictionary(ids);
 		return ResponseEntity.ok("Successfully deleted !!!");
 	}

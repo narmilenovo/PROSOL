@@ -3,9 +3,11 @@ package com.example.generalservice.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,16 +37,16 @@ public class MaterialTypeController {
 		return ResponseEntity.created(uri).body(savedMaterial);
 	}
 
+	@GetMapping("/getMaterialById/{id}")
+	public ResponseEntity<Object> getMaterialById(@PathVariable Long id) throws ResourceNotFoundException {
+		MaterialTypeResponse materialTypeResponse = materialTypeService.getMaterialById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(materialTypeResponse);
+	}
+
 	@GetMapping("/getAllMaterial")
 	public ResponseEntity<Object> getAllMaterial() {
 		List<MaterialTypeResponse> allMaterial = materialTypeService.getAllMaterial();
 		return ResponseEntity.ok(allMaterial);
-	}
-
-	@GetMapping("/getMaterialById/{id}")
-	public ResponseEntity<Object> getMaterialById(@PathVariable Long id) throws ResourceNotFoundException {
-		MaterialTypeResponse materialTypeResponse = materialTypeService.getMaterialById(id);
-		return ResponseEntity.ok(materialTypeResponse);
 	}
 
 	@GetMapping("/getAllMaterialTrue")
@@ -61,6 +63,19 @@ public class MaterialTypeController {
 		return ResponseEntity.ok(updatedMaterial);
 	}
 
+	@PatchMapping("/updateMaterialStatus/{id}")
+	public ResponseEntity<Object> updateMaterialStatus(@PathVariable Long id) throws ResourceNotFoundException {
+		MaterialTypeResponse updatedMaterial = materialTypeService.updateMaterialStatus(id);
+		return ResponseEntity.ok(updatedMaterial);
+	}
+
+	@PatchMapping("/updateBatchMaterialStatus")
+	public ResponseEntity<Object> updateBatchMaterialStatus(@RequestBody List<Long> ids)
+			throws ResourceNotFoundException {
+		List<MaterialTypeResponse> updatedMaterials = materialTypeService.updateBatchMaterialStatus(ids);
+		return ResponseEntity.ok(updatedMaterials);
+	}
+
 	@DeleteMapping("/deleteMaterial/{id}")
 	public ResponseEntity<Object> deleteMaterial(@PathVariable Long id) throws ResourceNotFoundException {
 		materialTypeService.deleteMaterialId(id);
@@ -70,6 +85,6 @@ public class MaterialTypeController {
 	@DeleteMapping("/deleteBatchMaterial")
 	public ResponseEntity<Object> deleteBatchMaterial(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		materialTypeService.deleteBatchMaterial(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 }

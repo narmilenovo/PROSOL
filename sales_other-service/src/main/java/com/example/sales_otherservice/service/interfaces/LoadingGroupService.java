@@ -22,5 +22,9 @@ public interface LoadingGroupService {
 
 	void deleteLgById(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchLg(List<Long> ids);
+	void deleteBatchLg(List<Long> ids) throws ResourceNotFoundException;
+
+	List<LoadingGroupResponse> updateBatchLgStatus(List<Long> ids) throws ResourceNotFoundException;
+
+	LoadingGroupResponse updateLgStatus(Long id) throws ResourceNotFoundException;
 }

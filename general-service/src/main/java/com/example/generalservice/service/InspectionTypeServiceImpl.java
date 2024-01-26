@@ -17,6 +17,7 @@ import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.InspectionTypeRepository;
 import com.example.generalservice.service.interfaces.InspectionTypeService;
+import com.example.generalservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -54,17 +55,17 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 
 	@Override
 	@Cacheable("inType")
-	public List<InspectionTypeResponse> getAllInType() {
-		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAll();
-		return inspectionTypes.stream().sorted(Comparator.comparing(InspectionType::getId))
-				.map(this::mapToInspectionTypeResponse).toList();
+	public InspectionTypeResponse getInTypeById(Long id) throws ResourceNotFoundException {
+		InspectionType inspectionType = this.findInTypeById(id);
+		return mapToInspectionTypeResponse(inspectionType);
 	}
 
 	@Override
 	@Cacheable("inType")
-	public InspectionTypeResponse getInTypeById(Long id) throws ResourceNotFoundException {
-		InspectionType inspectionType = this.findInTypeById(id);
-		return mapToInspectionTypeResponse(inspectionType);
+	public List<InspectionTypeResponse> getAllInType() {
+		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAll();
+		return inspectionTypes.stream().sorted(Comparator.comparing(InspectionType::getId))
+				.map(this::mapToInspectionTypeResponse).toList();
 	}
 
 	@Override
@@ -78,6 +79,7 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	@Override
 	public InspectionTypeResponse updateInType(Long id, InspectionTypeRequest updateInspectionTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
+		Helpers.validateId(id);
 		String inTypeCode = updateInspectionTypeRequest.getInTypeCode();
 		String inTypeName = updateInspectionTypeRequest.getInTypeName();
 		InspectionType existingInspectionType = this.findInTypeById(id);
@@ -101,13 +103,30 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	}
 
 	@Override
+	public InspectionTypeResponse updateInTypeStatus(Long id) throws ResourceNotFoundException {
+		InspectionType inspectionType = this.findInTypeById(id);
+		inspectionType.setInTypeStatus(!inspectionType.getInTypeStatus());
+		inspectionTypeRepository.save(inspectionType);
+		return this.mapToInspectionTypeResponse(inspectionType);
+	}
+
+	@Override
+	public List<InspectionTypeResponse> updateBatchInTypeStatus(List<Long> ids) throws ResourceNotFoundException {
+		List<InspectionType> inspectionTypes = this.findAllById(ids);
+		inspectionTypes.forEach(inspectionType -> inspectionType.setInTypeStatus(!inspectionType.getInTypeStatus()));
+		inspectionTypeRepository.saveAll(inspectionTypes);
+		return inspectionTypes.stream().map(this::mapToInspectionTypeResponse).toList();
+	}
+
+	@Override
 	public void deleteInTypeId(Long id) throws ResourceNotFoundException {
 		InspectionType inspectionType = this.findInTypeById(id);
 		inspectionTypeRepository.deleteById(inspectionType.getId());
 	}
 
 	@Override
-	public void deleteBatchInType(List<Long> ids) {
+	public void deleteBatchInType(List<Long> ids) throws ResourceNotFoundException {
+		this.findAllById(ids);
 		inspectionTypeRepository.deleteAllById(ids);
 	}
 
@@ -116,11 +135,25 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	}
 
 	private InspectionType findInTypeById(Long id) throws ResourceNotFoundException {
+		Helpers.validateId(id);
 		Optional<InspectionType> inspectionType = inspectionTypeRepository.findById(id);
 		if (inspectionType.isEmpty()) {
 			throw new ResourceNotFoundException("No Inspection found with this Id");
 		}
 		return inspectionType.get();
+	}
+
+	private List<InspectionType> findAllById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAllById(ids);
+		// Check for missing IDs
+		List<Long> missingIds = ids.stream()
+				.filter(id -> inspectionTypes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		if (!missingIds.isEmpty()) {
+			// Handle missing IDs, you can log a message or throw an exception
+			throw new ResourceNotFoundException("Inspection Type with IDs " + missingIds + " not found");
+		}
+		return inspectionTypes;
 	}
 
 }
