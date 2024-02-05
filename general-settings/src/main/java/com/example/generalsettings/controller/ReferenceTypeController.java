@@ -64,16 +64,30 @@ public class ReferenceTypeController {
 		return ResponseEntity.ok().body(updateReferenceType);
 	}
 
-	@PatchMapping("/updateReferenceTypeById/{id}")
-	public ResponseEntity<Object> updateReferenceTypeStatusId(@PathVariable Long id) throws ResourceNotFoundException {
+	@PatchMapping("/updateReferenceStatusTypeById/{id}")
+	public ResponseEntity<Object> updateReferenceStatusTypeById(@PathVariable Long id)
+			throws ResourceNotFoundException {
 		ReferenceTypeResponse response = referenceTypeService.updateStatusUsingReferenceTypeId(id);
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusReferenceTypeId/{id}")
-	public ResponseEntity<Object> updateBulkStatusReferenceTypeId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusReferenceTypeId")
+	public ResponseEntity<Object> updateBulkStatusReferenceTypeId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<ReferenceTypeResponse> responseList = referenceTypeService.updateBulkStatusReferenceTypeId(id);
+		return ResponseEntity.ok(responseList);
+	}
+
+	@PatchMapping("/updateRefrenceDupCheckById/{id}")
+	public ResponseEntity<Object> updateRefrenceDupCheckById(@PathVariable Long id) throws ResourceNotFoundException {
+		ReferenceTypeResponse response = referenceTypeService.updateRefrenceDupCheckById(id);
+		return ResponseEntity.ok(response);
+	}
+
+	@PatchMapping("/updateBulkReferenceDupCheckTypeId")
+	public ResponseEntity<Object> updateBulkReferenceDupCheckTypeId(@RequestBody List<Long> id)
+			throws ResourceNotFoundException {
+		List<ReferenceTypeResponse> responseList = referenceTypeService.updateBulkReferenceDupCheckTypeId(id);
 		return ResponseEntity.ok(responseList);
 	}
 

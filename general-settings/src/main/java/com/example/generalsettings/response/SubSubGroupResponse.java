@@ -10,14 +10,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubSubGroupResponse {
-    private Long Id;
-    private String subSubGroupCode;
-    private String subSubGroupName;
-    private Boolean subSubGroupStatus;
-    private Long mainGroupCodesId;
-    private Long subGroupCodesId;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
+	private Long id;
+	private String subSubGroupCode;
+	private String subSubGroupName;
+	private Boolean subSubGroupStatus;
+	private MainGroupCodesResponse mainGroupCodesId;
+	private SubGroupCodesResponse subGroupCodesId;
+	private String createdBy;
+	private String updatedBy;
+	private Date createdAt;
+	private Date updatedAt;
 }

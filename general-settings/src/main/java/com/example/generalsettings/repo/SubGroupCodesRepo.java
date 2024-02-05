@@ -11,11 +11,13 @@ import com.example.generalsettings.entity.SubGroupCodes;
 @Repository
 public interface SubGroupCodesRepo extends JpaRepository<SubGroupCodes, Long> {
 
-    Optional<SubGroupCodes> findBySubGroupName(String subMainGroupTitle);
+	Optional<SubGroupCodes> findBySubGroupName(String subMainGroupTitle);
 
-    boolean existsBySubGroupCodeAndSubGroupName(String code, String name);
+	boolean existsBySubGroupCodeAndSubGroupName(String code, String name);
 
-    boolean existsBySubGroupCodeAndSubGroupNameAndIdNot(String code, String name, Long id);
+	boolean existsBySubGroupCodeAndSubGroupNameAndIdNot(String code, String name, Long id);
 
-    List<SubGroupCodes> findAllByOrderByIdAsc();
+	List<SubGroupCodes> findAllByOrderByIdAsc();
+
+	List<SubGroupCodes> findAllByMainGroupCodesId_Id(Long id);
 }

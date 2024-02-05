@@ -23,8 +23,6 @@ import com.example.generalsettings.entity.SubSubGroup;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
 import com.example.generalsettings.request.SubSubGroupRequest;
-import com.example.generalsettings.response.MainGroupCodesResponse;
-import com.example.generalsettings.response.SubGroupCodesResponse;
 import com.example.generalsettings.response.SubSubGroupResponse;
 import com.example.generalsettings.service.MainGroupCodesService;
 import com.example.generalsettings.service.SubGroupService;
@@ -64,18 +62,6 @@ public class SubSubGroupController {
 		return ResponseEntity.ok(subChildGroup);
 	}
 
-	@GetMapping("/getAllSubMainGroup1")
-	public ResponseEntity<Object> getAllSubMainGroup1() {
-		List<SubGroupCodesResponse> subGroup = subGroupService.getAllSubMainGroup();
-		return ResponseEntity.ok(subGroup);
-	}
-
-	@GetMapping("/getAllMainGroupCodes1")
-	public ResponseEntity<Object> getAllMainGroupCodes1() {
-		List<MainGroupCodesResponse> mainGroup = mainGroupCodesService.getAllMainGroupCodes();
-		return ResponseEntity.ok(mainGroup);
-	}
-
 	@PutMapping("/updateSubSubGroup/{id}")
 	public ResponseEntity<Object> updateStorageLocation(@PathVariable Long id,
 			@RequestBody SubSubGroupRequest subSubGroupRequest)
@@ -84,14 +70,14 @@ public class SubSubGroupController {
 		return ResponseEntity.ok().body(updateSubChildGroup);
 	}
 
-	@PatchMapping("/updateStorageLocationStatusById/{id}")
+	@PatchMapping("/updateSubSubGroupStatusById/{id}")
 	public ResponseEntity<Object> updateSubSubGroupStatusId(@PathVariable Long id) throws ResourceNotFoundException {
 		SubSubGroupResponse response = subSubGroupService.updateStatusUsingSubChildGroupId(id);
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStorageLocationId/{id}")
-	public ResponseEntity<Object> updateBulkStatusSubSubGroupId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusSubSubGroupId")
+	public ResponseEntity<Object> updateBulkStatusSubSubGroupId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<SubSubGroupResponse> responseList = subSubGroupService.updateBulkStatusSubChildGroupId(id);
 		return ResponseEntity.ok(responseList);

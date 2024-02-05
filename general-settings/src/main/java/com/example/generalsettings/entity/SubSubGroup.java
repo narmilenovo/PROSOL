@@ -17,18 +17,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class SubSubGroup extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
-    private String subSubGroupCode;
-    private String subSubGroupName;
-    private Boolean subSubGroupStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String subSubGroupCode;
+	private String subSubGroupName;
+	private Boolean subSubGroupStatus;
 
-    @ManyToOne
-    @JoinColumn(name = "mainGroupCodes_id")
-    private MainGroupCodes mainGroupCodesId;
+	@ManyToOne
+	@JoinColumn(name = "mainGroupCodes_id")
+	private MainGroupCodes mainGroupCodesId;
 
-    @ManyToOne
-    @JoinColumn(name = "subGroup_id")
-    private SubGroupCodes subGroupCodesId;
+	@ManyToOne
+	@JoinColumn(name = "subGroup_id")
+	private SubGroupCodes subGroupCodesId;
 }

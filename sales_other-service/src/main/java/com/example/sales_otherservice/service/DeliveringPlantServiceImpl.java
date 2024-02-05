@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.DpPlant;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.clients.Plant.PlantClient;
+import com.example.sales_otherservice.clients.Plant.PlantResponse;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
 import com.example.sales_otherservice.entity.DeliveringPlant;
@@ -148,9 +149,9 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	private DpPlant mapToDpPlant(DeliveringPlant deliveringPlant) {
 		DpPlant dpPlant = modelMapper.map(deliveringPlant, DpPlant.class);
 		// Check if the id is null before getting the plant information
-		if (deliveringPlant.getPlantId() != null) {
-			dpPlant.setPlant(plantClient.getPlantById(deliveringPlant.getPlantId()));
-		}
+		PlantResponse plant = plantClient.getPlantById(deliveringPlant.getPlantId());
+		plant.setDynamicFields(plant.getDynamicFields());
+		dpPlant.setPlant(plant);
 		return dpPlant;
 	}
 

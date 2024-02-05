@@ -27,7 +27,9 @@ public interface StorageLocationService {
 
 	List<StorageLocation> findAll();
 
-	List<StorageLocationResponse> getAllPlantByName(String name);
+	List<StorageLocationResponse> getAllByPlantByName(String name);
+
+	List<StorageLocationResponse> getAllByPlantById(Long id);
 
 	StorageLocationResponse updateStorageLocation(Long id, StorageLocationRequest storageLocationRequest)
 			throws ResourceNotFoundException, AlreadyExistsException;

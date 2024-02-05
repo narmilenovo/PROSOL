@@ -75,8 +75,8 @@ public class AvailCheckController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusAvailCheckId/{id}")
-	public ResponseEntity<Object> updateBulkStatusAvailCheckId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusAvailCheckId")
+	public ResponseEntity<Object> updateBulkStatusAvailCheckId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<AvailCheckResponse> responseList = availCheckService.updateBulkStatusAvailCheckId(id);
 		return ResponseEntity.ok(responseList);

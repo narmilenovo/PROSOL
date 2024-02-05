@@ -23,7 +23,6 @@ import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
 import com.example.generalsettings.request.SubGroupCodesRequest;
-import com.example.generalsettings.response.MainGroupCodesResponse;
 import com.example.generalsettings.response.SubGroupCodesResponse;
 import com.example.generalsettings.service.MainGroupCodesService;
 import com.example.generalsettings.service.SubGroupService;
@@ -54,16 +53,16 @@ public class SubGroupController {
 		return ResponseEntity.status(HttpStatus.OK).body(foundSubMainGroup);
 	}
 
-	@GetMapping("/getGroupCodesAll")
-	public ResponseEntity<Object> getGroupCodesAll() {
-		List<MainGroupCodesResponse> mainGroup = mainGroupCodesService.getAllMainGroupCodes();
-		return ResponseEntity.ok(mainGroup);
-	}
-
 	@GetMapping("/getAllSubGroupCodes")
 	public ResponseEntity<Object> getAllSubGroupCodes() {
 		List<SubGroupCodesResponse> subMainGroups = subGroupService.getAllSubMainGroup();
 		return ResponseEntity.ok(subMainGroups);
+	}
+
+	@GetMapping("/getAllSubGroupCodesByMainGroupId/{id}")
+	public ResponseEntity<Object> getAllSubGroupCodesByMainGroupId(@PathVariable Long id) {
+		List<SubGroupCodesResponse> subGroups = subGroupService.getAllSubGroupCodesByMainGroupId(id);
+		return ResponseEntity.ok(subGroups);
 	}
 
 	@PutMapping("/updateSubGroupCodes/{id}")
@@ -80,8 +79,8 @@ public class SubGroupController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusSubGroupCodestId/{id}")
-	public ResponseEntity<Object> updateBulkStatusSubGroupCodesId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusSubGroupCodestId")
+	public ResponseEntity<Object> updateBulkStatusSubGroupCodesId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<SubGroupCodesResponse> responseList = subGroupService.updateBulkStatusSubMainGroupId(id);
 		return ResponseEntity.ok(responseList);

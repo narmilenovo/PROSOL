@@ -70,8 +70,8 @@ public class EquipmentUnitController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusEquipmentUnitId/{id}")
-	public ResponseEntity<Object> updateBulkStatusEquipmentUnitId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusEquipmentUnitId")
+	public ResponseEntity<Object> updateBulkStatusEquipmentUnitId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<EquipmentUnitResponse> responseList = equipmentUnitService.updateBulkStatusEquipmentUnitId(id);
 		return ResponseEntity.ok(responseList);

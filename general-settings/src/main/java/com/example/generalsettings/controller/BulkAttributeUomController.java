@@ -1,25 +1,25 @@
 package com.example.generalsettings.controller;
 
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.example.generalsettings.entity.AttributeUom;
 import org.springframework.http.HttpHeaders;
-import com.example.generalsettings.exception.AlreadyExistsException;
-import com.example.generalsettings.config.GeneratePdfReport;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.generalsettings.config.GeneratePdfReport;
+import com.example.generalsettings.entity.AttributeUom;
+import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.service.ExcelParserService;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-
-
 
 @RestController
 @RequiredArgsConstructor
@@ -28,19 +28,18 @@ public class BulkAttributeUomController {
 	private final ExcelParserService excelParserService;
 	private final GeneratePdfReport generatePdfReport;
 
-	@PostMapping(value = "/upload-data",
-			consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
-			produces = {MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<Object> uploadData(@RequestPart("file") MultipartFile file) throws AlreadyExistsException ,IOException{
+	@PostMapping(value = "/upload-data", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }, produces = {
+			MediaType.APPLICATION_JSON_VALUE })
+	public ResponseEntity<Object> uploadData(@RequestPart("file") MultipartFile file)
+			throws AlreadyExistsException, IOException {
 		this.excelParserService.saveDataToDatabase(file);
-		return ResponseEntity
-				.ok(Map.of("Message", " Data uploaded and saved to database successfully"));
+		return ResponseEntity.ok(Map.of("Message", " Data uploaded and saved to database successfully"));
 	}
 
 	@GetMapping("/exportData")
-	public ResponseEntity<Object> exportExcel(HttpServletResponse response)  {
+	public ResponseEntity<Object> exportExcel(HttpServletResponse response) {
 		List<String> headers = excelParserService.getHeadersFromEntity();
-		this.excelParserService.exportEmptyExcel(response,headers);
+		this.excelParserService.exportEmptyExcel(response, headers);
 		return ResponseEntity.ok("Excel file exported successfully");
 	}
 
@@ -55,5 +54,9 @@ public class BulkAttributeUomController {
 		return ResponseEntity.ok().headers(headers).body(pdfContents);
 	}
 
+	@GetMapping("/exportTemplateAttributeUom")
+	public void exportExcelTemplatePlant(HttpServletResponse response) throws IOException {
+		excelParserService.downloadTemplate(response);
+	}
 
 }

@@ -29,6 +29,10 @@ public interface ReferenceTypeService {
 
 	List<ReferenceTypeResponse> updateBulkStatusReferenceTypeId(List<Long> id) throws ResourceNotFoundException;
 
+	ReferenceTypeResponse updateRefrenceDupCheckById(Long id) throws ResourceNotFoundException;
+
+	List<ReferenceTypeResponse> updateBulkReferenceDupCheckTypeId(List<Long> id) throws ResourceNotFoundException;
+
 	void deleteReferenceType(Long id) throws ResourceNotFoundException;
 
 	void deleteBatchReferenceType(List<Long> ids) throws ResourceNotFoundException;

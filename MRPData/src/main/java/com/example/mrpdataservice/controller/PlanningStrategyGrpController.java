@@ -79,8 +79,8 @@ public class PlanningStrategyGrpController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusPlanningStrgyGrpId/{id}")
-	public ResponseEntity<Object> updateBulkStatusPlanningStrgyGrpId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusPlanningStrgyGrpId")
+	public ResponseEntity<Object> updateBulkStatusPlanningStrgyGrpId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<PlanningStrgyGrpResponse> responseList = planningStrgyGrpService.updateBulkStatusPlanningStrgyGrpId(id);
 		return ResponseEntity.ok(responseList);

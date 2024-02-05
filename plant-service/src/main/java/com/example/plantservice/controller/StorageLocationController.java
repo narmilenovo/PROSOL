@@ -72,9 +72,15 @@ public class StorageLocationController {
 		return ResponseEntity.ok(plants);
 	}
 
-	@GetMapping("/getAllByPlant/{name}")
-	public ResponseEntity<Object> getAllByPlant(@PathVariable String name) {
-		List<StorageLocationResponse> plantResponses = storageLocationService.getAllPlantByName(name);
+	@GetMapping("/getAllByPlantByName/{name}")
+	public ResponseEntity<Object> getAllByPlantByName(@PathVariable String name) {
+		List<StorageLocationResponse> plantResponses = storageLocationService.getAllByPlantByName(name);
+		return new ResponseEntity<>(plantResponses, HttpStatus.OK);
+	}
+
+	@GetMapping("/getAllByPlantById/{id}")
+	public ResponseEntity<Object> getAllByPlantById(@PathVariable Long id) {
+		List<StorageLocationResponse> plantResponses = storageLocationService.getAllByPlantById(id);
 		return new ResponseEntity<>(plantResponses, HttpStatus.OK);
 	}
 

@@ -74,8 +74,8 @@ public class LotSizeController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusLotSizeId/{id}")
-	public ResponseEntity<Object> updateBulkStatusLotSizeId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusLotSizeId")
+	public ResponseEntity<Object> updateBulkStatusLotSizeId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<LotSizeResponse> responseList = lotSizeService.updateBulkStatusLotSizeId(id);
 		return ResponseEntity.ok(responseList);

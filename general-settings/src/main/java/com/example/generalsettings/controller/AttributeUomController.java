@@ -44,11 +44,6 @@ public class AttributeUomController {
 		return ResponseEntity.status(HttpStatus.OK).body(foundAttributeUom);
 	}
 
-	@GetMapping(value = "/getAllAttributeUom/{uomId}", produces = "application/json")
-	public AttributeUomResponse getUomById(@PathVariable Long uomId) throws ResourceNotFoundException {
-		return attributeUomService.getAttributeUomById(uomId);
-	}
-
 	@GetMapping("/getAllAttributeUom")
 	public ResponseEntity<Object> getAllAttributeUom() {
 		List<AttributeUomResponse> attributeUom = attributeUomService.getAllAttributeUom();

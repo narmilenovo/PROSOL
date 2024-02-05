@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -118,6 +119,18 @@ public class VendorMasterController {
 		return ResponseEntity.ok(masterResponse);
 	}
 
+	@PatchMapping("/updateVmStatusById/{id}")
+	public ResponseEntity<Object> updateVmStatusById(@PathVariable Long id) throws ResourceNotFoundException {
+		VendorMasterResponse response = vendorMasterService.updateVmStatusById(id);
+		return ResponseEntity.ok().body(response);
+	}
+
+	@PatchMapping("/updateBulkStatusVmId")
+	public ResponseEntity<Object> updateBulkStatusVmId(@RequestBody List<Long> id) throws ResourceNotFoundException {
+		List<VendorMasterResponse> responseList = vendorMasterService.updateBulkStatusVmId(id);
+		return ResponseEntity.ok(responseList);
+	}
+
 	@Operation(summary = "Delete Vendor Master", responses = {
 			@ApiResponse(responseCode = "204", description = "Vendor Master deleted successfully", content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
@@ -130,4 +143,11 @@ public class VendorMasterController {
 		vendorMasterService.deleteVmId(id);
 		return ResponseEntity.noContent().build();
 	}
+
+	@DeleteMapping("/deleteVmBatchById")
+	public ResponseEntity<Object> deleteVmBatchById(@RequestBody List<Long> id) throws ResourceNotFoundException {
+		vendorMasterService.deleteVmBatchById(id);
+		return ResponseEntity.noContent().build();
+	}
+
 }

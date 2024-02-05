@@ -76,8 +76,8 @@ public class ScheduleMarginController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusScheduleMarginId/{id}")
-	public ResponseEntity<Object> updateBulkStatusScheduleMarginId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusScheduleMarginId")
+	public ResponseEntity<Object> updateBulkStatusScheduleMarginId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<ScheduleMarginResponse> responseList = scheduleMarginService.updateBulkStatusScheduleMarginId(id);
 		return ResponseEntity.ok(responseList);

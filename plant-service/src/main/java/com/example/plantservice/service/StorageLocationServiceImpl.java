@@ -47,9 +47,8 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	@Override
 	public StorageLocationResponse saveStorageLocation(StorageLocationRequest storageLocationRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = storageLocationRepo
-				.existsByStorageLocationCodeAndStorageLocationName(storageLocationRequest.getStorageLocationCode(),
-						storageLocationRequest.getStorageLocationName());
+		boolean exists = storageLocationRepo.existsByStorageLocationCodeAndStorageLocationName(
+				storageLocationRequest.getStorageLocationCode(), storageLocationRequest.getStorageLocationName());
 		if (!exists) {
 			StorageLocation storageLocation = modelMapper.map(storageLocationRequest, StorageLocation.class);
 			for (Map.Entry<String, Object> entryField : storageLocation.getDynamicFields().entrySet()) {
@@ -78,8 +77,15 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	}
 
 	@Override
-	public List<StorageLocationResponse> getAllPlantByName(String name) {
+	public List<StorageLocationResponse> getAllByPlantByName(String name) {
 		List<StorageLocation> storageLocations = storageLocationRepo.findByPlant_PlantName(name);
+		return storageLocations.stream().sorted(Comparator.comparing(StorageLocation::getId))
+				.map(this::mapToStorageLocationResponse).toList();
+	}
+
+	@Override
+	public List<StorageLocationResponse> getAllByPlantById(Long id) {
+		List<StorageLocation> storageLocations = storageLocationRepo.findByPlant_Id(id);
 		return storageLocations.stream().sorted(Comparator.comparing(StorageLocation::getId))
 				.map(this::mapToStorageLocationResponse).toList();
 	}
@@ -102,8 +108,8 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 		Helpers.validateId(id);
 		String existCode = storageLocationRequest.getStorageLocationCode();
 		String existName = storageLocationRequest.getStorageLocationName();
-		boolean exists = storageLocationRepo
-				.existsByStorageLocationCodeAndStorageLocationNameAndIdNot(existCode, existName, id);
+		boolean exists = storageLocationRepo.existsByStorageLocationCodeAndStorageLocationNameAndIdNot(existCode,
+				existName, id);
 		if (!exists) {
 			StorageLocation existingStorageLocation = this.findStorageLocationById(id);
 			existingStorageLocation.setStorageLocationCode(storageLocationRequest.getStorageLocationCode());

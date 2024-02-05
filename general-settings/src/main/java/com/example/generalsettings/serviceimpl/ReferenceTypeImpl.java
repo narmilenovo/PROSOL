@@ -97,6 +97,25 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 	}
 
 	@Override
+	public ReferenceTypeResponse updateRefrenceDupCheckById(Long id) throws ResourceNotFoundException {
+		ReferenceType existingReferenceType = this.findReferenceTypeById(id);
+		existingReferenceType.setDuplicateCheck(!existingReferenceType.getDuplicateCheck());
+		referenceTypeRepo.save(existingReferenceType);
+		return mapToReferenceTypeResponse(existingReferenceType);
+	}
+
+	@Override
+	public List<ReferenceTypeResponse> updateBulkReferenceDupCheckTypeId(List<Long> id)
+			throws ResourceNotFoundException {
+		List<ReferenceType> existingReferenceType = this.findAllRefTypeById(id);
+		for (ReferenceType referenceType : existingReferenceType) {
+			referenceType.setDuplicateCheck(!referenceType.getDuplicateCheck());
+		}
+		referenceTypeRepo.saveAll(existingReferenceType);
+		return existingReferenceType.stream().map(this::mapToReferenceTypeResponse).toList();
+	}
+
+	@Override
 	public void deleteReferenceType(Long id) throws ResourceNotFoundException {
 		ReferenceType referenceType = this.findReferenceTypeById(id);
 		referenceTypeRepo.deleteById(referenceType.getId());
@@ -139,8 +158,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		Helpers.validateIds(ids);
 		List<ReferenceType> types = referenceTypeRepo.findAllById(ids);
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {
@@ -149,4 +167,5 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		}
 		return types;
 	}
+
 }

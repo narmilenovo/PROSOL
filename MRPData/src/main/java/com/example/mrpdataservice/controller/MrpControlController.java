@@ -87,8 +87,8 @@ public class MrpControlController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusMrpControlId/{id}")
-	public ResponseEntity<Object> updateBulkStatusMrpControlId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusMrpControlId")
+	public ResponseEntity<Object> updateBulkStatusMrpControlId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<MrpControlResponse> responseList = mrpControlService.updateBulkStatusMrpControlId(id);
 		return ResponseEntity.ok(responseList);

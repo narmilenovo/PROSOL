@@ -42,8 +42,11 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 				subSubGroupRequest.getSubSubGroupCode(), subSubGroupRequest.getSubSubGroupName());
 		if (!exists) {
 			SubSubGroup subChildGroup = modelMapper.map(subSubGroupRequest, SubSubGroup.class);
-			subChildGroup.setMainGroupCodesId(setToString(subSubGroupRequest.getMainGroupCodesId()));
-			subChildGroup.setSubGroupCodesId(setToString1(subSubGroupRequest.getSubGroupId()));
+			subChildGroup.setId(null);
+			MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
+			SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
+			subChildGroup.setMainGroupCodesId(mainGroupCodes);
+			subChildGroup.setSubGroupCodesId(subGroupCodes);
 			SubSubGroup saved = subSubGroupRepo.save(subChildGroup);
 			return mapToSubChildGroupResponse(saved);
 		} else {
@@ -77,8 +80,14 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		boolean exists = subSubGroupRepo.existsBySubSubGroupCodeAndSubSubGroupNameAndIdNot(code, name, subId);
 		if (!exists) {
 			SubSubGroup existSubChildGroup1 = this.findSubChildGroupById(subId);
-			modelMapper.map(subSubGroupRequest, existSubChildGroup1);
 			existSubChildGroup1.setId(subId);
+			existSubChildGroup1.setSubSubGroupCode(code);
+			existSubChildGroup1.setSubSubGroupName(name);
+			existSubChildGroup1.setSubSubGroupStatus(subSubGroupRequest.getSubSubGroupStatus());
+			MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
+			SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
+			existSubChildGroup1.setMainGroupCodesId(mainGroupCodes);
+			existSubChildGroup1.setSubGroupCodesId(subGroupCodes);
 			subSubGroupRepo.save(existSubChildGroup1);
 			return mapToSubChildGroupResponse(existSubChildGroup1);
 		} else {
@@ -130,13 +139,13 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		return dataList;
 	}
 
-	private MainGroupCodes setToString(Long mainId) {
+	private MainGroupCodes findMainGroupCodesById(Long mainId) {
 		Optional<MainGroupCodes> fetchplantOptional = mainGroupCodesRepo.findById(mainId);
 		return fetchplantOptional.orElse(null);
 
 	}
 
-	private SubGroupCodes setToString1(Long subId) {
+	private SubGroupCodes findSubGroupCodesById(Long subId) {
 		Optional<SubGroupCodes> fetchStorageOptional1 = subGroupCodesRepo.findById(subId);
 		return fetchStorageOptional1.orElse(null);
 

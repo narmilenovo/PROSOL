@@ -78,8 +78,8 @@ public class ProcurementTypeController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusProcurementTypeId/{id}")
-	public ResponseEntity<Object> updateBulkStatusProcurementTypeId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusProcurementTypeId")
+	public ResponseEntity<Object> updateBulkStatusProcurementTypeId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<ProcurementTypeResponse> responseList = procurementTypeService.updateBulkStatusProcurementTypeId(id);
 		return ResponseEntity.ok(responseList);

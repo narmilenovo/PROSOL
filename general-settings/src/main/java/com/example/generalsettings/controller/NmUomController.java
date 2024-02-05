@@ -68,9 +68,8 @@ public class NmUomController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusNmUomId/{id}")
-	public ResponseEntity<Object> updateBulkStatusNmUomId(@PathVariable List<Long> id)
-			throws ResourceNotFoundException {
+	@PatchMapping("/updateBulkStatusNmUomId")
+	public ResponseEntity<Object> updateBulkStatusNmUomId(@RequestBody List<Long> id) throws ResourceNotFoundException {
 		List<NmUomResponse> responseList = nmUomService.updateBulkStatusNmUomId(id);
 		return ResponseEntity.ok(responseList);
 	}

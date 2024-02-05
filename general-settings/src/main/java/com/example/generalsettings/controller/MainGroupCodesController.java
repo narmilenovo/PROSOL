@@ -71,8 +71,8 @@ public class MainGroupCodesController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusMainGroupCodesId/{id}")
-	public ResponseEntity<Object> updateBulkStatusMainGroupCodesId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusMainGroupCodesId")
+	public ResponseEntity<Object> updateBulkStatusMainGroupCodesId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<MainGroupCodesResponse> responseList = mainGroupCodesService.updateBulkStatusMainGroupCodesId(id);
 		return ResponseEntity.ok(responseList);

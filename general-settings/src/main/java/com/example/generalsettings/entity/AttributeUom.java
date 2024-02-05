@@ -16,10 +16,10 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 
 public class AttributeUom extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String attributeUomName;
-    private String attributeUnit;
-    private Boolean attributeUomStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String attributeUomName;
+	private String attributeUomUnit;
+	private Boolean attributeUomStatus;
 }

@@ -69,8 +69,8 @@ public class SourceTypeController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusSourceTypeId/{id}")
-	public ResponseEntity<Object> updateBulkStatusSourceTypeId(@PathVariable List<Long> id)
+	@PatchMapping("/updateBulkStatusSourceTypeId")
+	public ResponseEntity<Object> updateBulkStatusSourceTypeId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
 		List<SourceTypeResponse> responseList = sourceTypeService.updateBulkStatusSourceTypeId(id);
 		return ResponseEntity.ok(responseList);

@@ -52,6 +52,15 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 			profitCenter.setId(null);
 			Plant plant = this.getPlantById(profitCenterRequest.getPlantId());
 			profitCenter.setPlant(plant);
+			for (Map.Entry<String, Object> entryField : profitCenterRequest.getDynamicFields().entrySet()) {
+				String fieldName = entryField.getKey();
+				String formName = ProfitCenter.class.getSimpleName();
+				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+				if (!fieldExists) {
+					throw new ResourceNotFoundException("Field of '" + fieldName
+							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+				}
+			}
 			ProfitCenter savedProfitCenter = profitCenterRepo.save(profitCenter);
 			return this.mapToProfitCenterResponse(savedProfitCenter);
 		} else {
@@ -94,6 +103,16 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 				existingPlant = this.getPlantById(profitCenterRequest.getPlantId());
 				existingProfitCenter.setPlant(existingPlant);
 			}
+			for (Map.Entry<String, Object> entryField : existingProfitCenter.getDynamicFields().entrySet()) {
+				String fieldName = entryField.getKey();
+				String formName = ProfitCenter.class.getSimpleName();
+				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+				if (!fieldExists) {
+					throw new ResourceNotFoundException("Field of '" + fieldName
+							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+				}
+			}
+			existingProfitCenter.setDynamicFields(profitCenterRequest.getDynamicFields());
 			ProfitCenter savedProfitCenter = profitCenterRepo.save(existingProfitCenter);
 			return this.mapToProfitCenterResponse(savedProfitCenter);
 		} else {

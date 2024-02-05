@@ -48,14 +48,15 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 				}
 			}
 			channel.setId(null);
-			channel.setSalesOrganization(setSalesOrg(deliveringPlantRequest.getSalesOrganizationId()));
+			SalesOrganization salesOrganization = findSalesOrgById(deliveringPlantRequest.getSalesOrganizationId());
+			channel.setSalesOrganization(salesOrganization);
 			DistributionChannel savedChannel = distributionChannelRepository.save(channel);
 			return mapToDistributionChannelResponse(savedChannel);
 		}
 		throw new ResourceFoundException("Distributed Channel Already Exists");
 	}
 
-	private SalesOrganization setSalesOrg(Long salesOrganizationId) throws ResourceNotFoundException {
+	private SalesOrganization findSalesOrgById(Long salesOrganizationId) throws ResourceNotFoundException {
 		Optional<SalesOrganization> organization = organizationRepository.findById(salesOrganizationId);
 		if (organization.isEmpty()) {
 			throw new ResourceNotFoundException("No organization Found");
@@ -92,7 +93,6 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 		DistributionChannel existingChannel = this.findDCById(id);
 		boolean exists = distributionChannelRepository.existsByDcCodeAndIdNotOrDcNameAndIdNot(dcCode, id, dcName, id);
 		if (!exists) {
-			modelMapper.map(updateDistributionChannelRequest, existingChannel);
 			for (Map.Entry<String, Object> entryField : existingChannel.getDynamicFields().entrySet()) {
 				String fieldName = entryField.getKey();
 				String formName = DistributionChannel.class.getSimpleName();
@@ -103,8 +103,12 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 				}
 			}
 			existingChannel.setId(id);
-			existingChannel
-					.setSalesOrganization(setSalesOrg(updateDistributionChannelRequest.getSalesOrganizationId()));
+			existingChannel.setDcCode(dcCode);
+			existingChannel.setDcName(dcName);
+			existingChannel.setDcStatus(updateDistributionChannelRequest.getDcStatus());
+			SalesOrganization salesOrganization = findSalesOrgById(
+					updateDistributionChannelRequest.getSalesOrganizationId());
+			existingChannel.setSalesOrganization(salesOrganization);
 			DistributionChannel updatedChannel = distributionChannelRepository.save(existingChannel);
 			return mapToDistributionChannelResponse(updatedChannel);
 		}

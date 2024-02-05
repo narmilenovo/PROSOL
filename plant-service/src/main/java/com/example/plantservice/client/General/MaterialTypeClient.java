@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.plantservice.exception.ResourceNotFoundException;
 
-@FeignClient(name = "GENERAL-SERVICE")
+@FeignClient(name = "general-service", url = "http://localhost:8002")
 public interface MaterialTypeClient {
 
-    @GetMapping("/getMaterialById/{id}")
-    MaterialTypeResponse getMaterialById(@PathVariable Long id) throws ResourceNotFoundException;
+	@GetMapping("/getMaterialById/{id}")
+	MaterialTypeResponse getMaterialById(@PathVariable Long id) throws ResourceNotFoundException;
 }

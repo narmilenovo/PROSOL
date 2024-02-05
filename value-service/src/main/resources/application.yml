@@ -9,7 +9,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: VALUE-SERVICE # The server application name
+    name: value-service # The server application name
 
   # Db Configuration
   datasource:
@@ -29,6 +29,11 @@ spring:
         #        generate_statistics: true
         format_sql: true
     show-sql: true
+  
+  servlet:
+    multipart:
+      max-file-size: 3MB
+      max-request-size: 3MB
 
   cache:
     type: redis

@@ -11,16 +11,18 @@ import com.example.plantservice.entity.StorageLocation;
 @Repository
 public interface StorageLocationRepo extends JpaRepository<StorageLocation, Long> {
 
-    Optional<StorageLocation> findByStorageLocationName(String title);
+	Optional<StorageLocation> findByStorageLocationName(String title);
 
-    Optional<StorageLocation> findById(Long id);
+	Optional<StorageLocation> findById(Long id);
 
-    boolean existsByStorageLocationCodeAndStorageLocationName(String code, String name);
+	boolean existsByStorageLocationCodeAndStorageLocationName(String code, String name);
 
-    boolean existsByStorageLocationCodeAndStorageLocationNameAndIdNot(String code, String name, Long id);
+	boolean existsByStorageLocationCodeAndStorageLocationNameAndIdNot(String code, String name, Long id);
 
-    List<StorageLocation> findByPlant_PlantName(String plantName);
+	List<StorageLocation> findByPlant_PlantName(String plantName);
 
-    List<StorageLocation> findAllByOrderByIdAsc();
+	List<StorageLocation> findByPlant_Id(Long plantId);
+
+	List<StorageLocation> findAllByOrderByIdAsc();
 
 }

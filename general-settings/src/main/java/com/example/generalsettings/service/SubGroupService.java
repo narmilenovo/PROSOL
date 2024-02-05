@@ -20,6 +20,8 @@ public interface SubGroupService {
 
 	List<SubGroupCodesResponse> getAllSubMainGroup();
 
+	List<SubGroupCodesResponse> getAllSubGroupCodesByMainGroupId(Long id);
+
 	List<SubGroupCodes> findAll();
 
 	SubGroupCodesResponse updateSubMainGroup(Long id, SubGroupCodesRequest subGroupCodesRequest)

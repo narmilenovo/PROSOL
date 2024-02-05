@@ -3,7 +3,7 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.105.122
+  address: 192.168.1.7
   # address: 192.168.1.51
 
 # Spring configuration
@@ -11,7 +11,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
   application:
-    name: GATEWAY-SERVICE # The server application name
+    name: gateway-service # The server application name
   cloud:
     gateway:
       default-filters:
@@ -33,7 +33,7 @@ spring:
 
       # User Service
       routes:
-        - id: USER-SERVICE
+        - id: user-service
           uri: lb://USER-SERVICE
           predicates:
             - Path=/user/**
@@ -41,7 +41,7 @@ spring:
             - RewritePath=/user/(?<path>.*), /$\{path}
 
         # Plant Service
-        - id: PLANT-SERVICE
+        - id: plant-service
           uri: lb://PLANT-SERVICE
           predicates:
             - Path=/plant/**
@@ -49,7 +49,7 @@ spring:
             - RewritePath=/plant/(?<path>.*), /$\{path}
 
         # General Service
-        - id: GENERAL-SERVICE
+        - id: general-service
           uri: lb://GENERAL-SERVICE
           predicates:
             - Path=/general/**
@@ -57,7 +57,7 @@ spring:
             - RewritePath=/general/(?<path>.*), /$\{path}
 
         # MrpData Service
-        - id: MRP-SERVICE
+        - id: mrp-service
           uri: lb://MRP-SERVICE
           predicates:
             - Path=/mrp/**
@@ -65,7 +65,7 @@ spring:
             - RewritePath=/mrp/(?<path>.*), /$\{path}
 
         # Sales Service
-        - id: SALES-SERVICE
+        - id: sales-service
           uri: lb://SALES-SERVICE
           predicates:
             - Path=/sales/**
@@ -73,7 +73,7 @@ spring:
             - RewritePath=/sales/(?<path>.*), /$\{path}
 
         # Vendor Service
-        - id: VENDOR-SERVICE
+        - id: vendor-service
           uri: lb://VENDOR-SERVICE
           predicates:
             - Path=/vendor/**
@@ -81,7 +81,7 @@ spring:
             - RewritePath=/vendor/(?<path>.*), /$\{path}
 
           # Setting Service
-        - id: SETTING-SERVICE
+        - id: setting-service
           uri: lb://SETTING-SERVICE
           predicates:
             - Path=/setting/**
@@ -89,7 +89,7 @@ spring:
             - RewritePath=/setting/(?<path>.*), /$\{path}
 
         # Value Service
-        - id: VALUE-SERVICE
+        - id: value-service
           uri: lb://VALUE-SERVICE
           predicates:
             - Path=/value/**
@@ -97,7 +97,7 @@ spring:
             - RewritePath=/value/(?<path>.*), /$\{path}
 
         # Attribute Service
-        - id: ATTRIBUTE-SERVICE
+        - id: attribute-service
           uri: lb://ATTRIBUTE-SERVICE
           predicates:
             - Path=/attribute/**
@@ -105,7 +105,7 @@ spring:
             - RewritePath=/attribute/(?<path>.*), /$\{path}
 
         # Dictionary Service
-        - id: DICTIONARY-SERVICE
+        - id: dictionary-service
           uri: lb://DICTIONARY-SERVICE
           predicates:
             - Path=/dictionary/**
@@ -113,7 +113,7 @@ spring:
             - RewritePath=/dictionary/(?<path>.*), /$\{path}
 
         # Request Item Service
-        - id: REQUEST-SERVICE
+        - id: request-service
           uri: lb://REQUEST-SERVICE
           predicates:
             - Path=/request/**
@@ -121,7 +121,7 @@ spring:
             - RewritePath=/request/(?<path>.*), /$\{path}
 
         # Dynamic Service
-        - id: DYNAMIC-SERVICE
+        - id: dynamic-service
           uri: lb://DYNAMIC-SERVICE
           predicates:
             - Path=/dynamic/**
@@ -191,55 +191,55 @@ springdoc:
     show-extensions: false
     use-root-path: true
     urls:
-      - name: GATEWAY-SERVICE
+      - name: gateway-service
         url: /v3/api-docs
         display-name: Gateway
 
-      - name: USER-SERVICE
+      - name: user-service
         url: /v3/api-docs/user
         display-name: User
 
-      - name: PLANT-SERVICE
+      - name: plant-service
         url: /v3/api-docs/plant
         display-name: Plant
 
-      - name: GENERAL-SERVICE
+      - name: general-service
         url: /v3/api-docs/general
         display-name: General
 
-      - name: MRP-SERVICE
+      - name: mrp-service
         url: /v3/api-docs/mrp
         display-name: Mrp Data
 
-      - name: SALES-SERVICE
+      - name: sales-service
         url: /v3/api-docs/sales
         display-name: Sales
 
-      - name: VENDOR-SERVICE
+      - name: vendor-service
         url: /v3/api-docs/vendor
         display-name: Vendor
 
-      - name: SETTING-SERVICE
+      - name: setting-service
         url: /v3/api-docs/setting
         display-name: Setting
 
-      - name: VALUE-SERVICE
+      - name: value-service
         url: /v3/api-docs/value
         display-name: Value
 
-      - name: ATTRIBUTE-SERVICE
+      - name: attribute-service
         url: /v3/api-docs/attribute
         display-name: Attribute
 
-      - name: DICTIONARY-SERVICE
+      - name: dictionary-service
         url: /v3/api-docs/dictionary
         display-name: Create Template
 
-      - name: REQUEST-SERVICE
+      - name: request-service
         url: /v3/api-docs/request
         display-name: Request Item
 
-      - name: DYNAMIC-SERVICE
+      - name: dynamic-service
         url: /v3/api-docs/dynamic
         display-name: Dynamic
 

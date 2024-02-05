@@ -62,8 +62,8 @@ public class HsnController {
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStatusHsnId/{id}")
-	public ResponseEntity<Object> updateBulkStatusHsnId(@PathVariable List<Long> id) throws ResourceNotFoundException {
+	@PatchMapping("/updateBulkStatusHsnId")
+	public ResponseEntity<Object> updateBulkStatusHsnId(@RequestBody List<Long> id) throws ResourceNotFoundException {
 		List<HsnResponse> responseList = hsnService.updateBulkStatusHsnId(id);
 		return ResponseEntity.ok(responseList);
 	}
