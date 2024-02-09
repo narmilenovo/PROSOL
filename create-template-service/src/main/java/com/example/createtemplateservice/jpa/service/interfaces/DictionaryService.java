@@ -24,10 +24,13 @@ public interface DictionaryService {
 
 	List<String> getModifiersByNoun(String noun);
 
+	DictionaryResponse getRecordByNounAndModifer(String noun, String modifier);
+
 	DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
 			throws ResourceNotFoundException;
 
 	void deleteDictionaryId(Long id) throws ResourceNotFoundException;
 
 	void deleteBatchDictionary(List<Long> ids) throws ResourceNotFoundException;
+
 }

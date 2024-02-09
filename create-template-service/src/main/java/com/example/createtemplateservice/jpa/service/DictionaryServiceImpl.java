@@ -80,7 +80,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 	public DictionaryAllResponse getDictionaryNmUomById(Long id, String show) throws ResourceNotFoundException {
 		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
-		return mapTODictionaryAll(dictionary);
+		return mapToDictionaryAll(dictionary);
 	}
 
 	@Override
@@ -93,7 +93,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 	@Override
 	public List<DictionaryAllResponse> getAllDictionaryNmUom(String show) throws ResourceNotFoundException {
 		List<Dictionary> dictionaries = this.findAll();
-		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapTODictionaryAll)
+		return dictionaries.stream().sorted(Comparator.comparing(Dictionary::getId)).map(this::mapToDictionaryAll)
 				.toList();
 	}
 
@@ -105,6 +105,12 @@ public class DictionaryServiceImpl implements DictionaryService {
 	@Override
 	public List<String> getModifiersByNoun(String noun) {
 		return dictionaryRepository.findModifiersByNoun(noun);
+	}
+
+	@Override
+	public DictionaryResponse getRecordByNounAndModifer(String noun, String modifier) {
+		Dictionary dictionary = dictionaryRepository.findByNounAndModifier(noun, modifier);
+		return this.mapToDictionaryResponse(dictionary);
 	}
 
 	@Override
@@ -188,7 +194,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 		return modelMapper.map(dictionaryAttribute, DictionaryAttributeResponse.class);
 	}
 
-	private DictionaryAllResponse mapTODictionaryAll(Dictionary dictionary) {
+	private DictionaryAllResponse mapToDictionaryAll(Dictionary dictionary) {
 		DictionaryAllResponse dictionaryNmUom = modelMapper.map(dictionary, DictionaryAllResponse.class);
 		List<NmUom> nmUoms = new ArrayList<>();
 		for (Long id : dictionary.getNmUoms()) {

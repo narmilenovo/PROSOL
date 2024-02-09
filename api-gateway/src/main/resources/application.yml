@@ -3,8 +3,6 @@ server:
   port: 9191
   forward-headers-strategy: framework
   shutdown: graceful
-  address: 192.168.1.7
-  # address: 192.168.1.51
 
 # Spring configuration
 spring:
@@ -130,7 +128,8 @@ spring:
 
         # Common OpenApi
         - id: openapi
-          uri: http://${server.address}:${server.port}
+#          uri: http://${server.address}:${server.port}
+          uri: lb://GATEWAY-SERVICE
           predicates:
             - Path=/v3/api-docs/**
           filters:

@@ -251,7 +251,8 @@ public class UserController {
 	}
 
 	private String applicationUrl(HttpServletRequest request) {
-		return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+//		return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+		return "http://localhost:3000";
 	}
 
 	@Operation(summary = SWG_RES_PWD_RESET_OPERATION, responses = {
@@ -268,7 +269,7 @@ public class UserController {
 		}
 		userService.updatePassword(userAccount.getUser().getId(), resetPasswordRequest.getPassword());
 		userAccountService.delete(userAccount.getId());
-		return ResponseEntity.badRequest().body(RESET_PASSWORD_SUCCESS_MESSAGE);
+		return ResponseEntity.ok().body(RESET_PASSWORD_SUCCESS_MESSAGE);
 	}
 
 	@Operation(summary = SWG_USER_DELETE_OPERATION, responses = {

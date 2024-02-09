@@ -7,8 +7,8 @@ import org.springframework.stereotype.Repository;
 
 import com.example.user_management.entity.User;
 
-//@Repository(value = "com.example.user_management.repository.UserRepository")
-@Repository("userRepository")
+@Repository(value = "com.example.user_management.repository.UserRepository")
+//@Repository("userRepository")
 public interface UserRepository extends JpaRepository<User, Long> {
 
 	boolean existsByEmail(String email);
@@ -16,4 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	boolean existsByEmailAndIdNot(String email, Long id);
 
 	Optional<User> findByEmail(String email);
+
+	String findUserByEmail(String email);
 }

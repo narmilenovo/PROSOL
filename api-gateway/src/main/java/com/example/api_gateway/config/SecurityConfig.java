@@ -32,7 +32,9 @@ public class SecurityConfig {
 
 	protected static final List<String> SWAGGER = List.of("/v3/api-docs/**", "/swagger-resources/**",
 			"/configuration/ui/**", "/configuration/security/**", "/swagger-ui/**", "/webjars/**", "/swagger-ui.html");
-	protected static final List<String> USER = List.of("/user/auth/**", "/user/v3/api-docs", "/actuator/**"
+
+	protected static final List<String> USER = List.of("/user/auth/**", "/user/v3/api-docs", "/actuator/**",
+			"user/forgotPassword", "/user/resetPassword**"
 
 	);
 	protected static final List<String> PERMIT_ALL_URLS = new ArrayList<>();

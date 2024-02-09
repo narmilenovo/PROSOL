@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -93,6 +94,12 @@ public class DictionaryController {
 		return ResponseEntity.ok(modifiers);
 	}
 
+	@GetMapping("/findByNounAndModifier")
+	public ResponseEntity<Object> getRecordByNounAndModifer(@RequestParam String noun, @RequestParam String modifier) {
+		DictionaryResponse dictionaryResponse = dictionaryService.getRecordByNounAndModifer(noun, modifier);
+		return ResponseEntity.ok(dictionaryResponse);
+	}
+
 	@PutMapping(value = "/updatedDictionary/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
 			@Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
@@ -110,9 +117,9 @@ public class DictionaryController {
 	}
 
 	@DeleteMapping(value = "/deleteBatchDictionary")
-	public ResponseEntity<Object> deleteBatchDictionary(@PathVariable List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchDictionary(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		dictionaryService.deleteBatchDictionary(ids);
-		return ResponseEntity.ok("Successfully deleted !!!");
+		return ResponseEntity.noContent().build();
 	}
 
 }

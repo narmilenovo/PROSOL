@@ -10,12 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AttributeUom {
-    private Long id;
-    private String attributeUomName;
-    private String attributeUnit;
-    private Boolean attributeUomStatus;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
+	private Long id;
+	private String attributeUomName;
+	private String attributeUomUnit;
+	private Boolean attributeUomStatus;
+	private String createdBy;
+	private String updatedBy;
+	private Date createdAt;
+	private Date updatedAt;
 }
