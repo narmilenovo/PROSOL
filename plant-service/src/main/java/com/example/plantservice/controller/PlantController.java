@@ -33,9 +33,11 @@ import com.example.plantservice.service.interfaces.PlantService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class PlantController {
 
 	private final PlantService plantService;

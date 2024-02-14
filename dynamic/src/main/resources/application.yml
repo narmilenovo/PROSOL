@@ -77,3 +77,6 @@ springdoc:
     disabled: false
   show-actuator: false
   writer-with-default-pretty-printer: true
+  
+file:
+  upload-dir: ./images

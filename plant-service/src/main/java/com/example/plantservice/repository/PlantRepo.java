@@ -11,13 +11,14 @@ import com.example.plantservice.entity.Plant;
 @Repository
 public interface PlantRepo extends JpaRepository<Plant, Long> {
 
-    Optional<Plant> findByPlantName(String plantName);
+	Optional<Plant> findByPlantName(String plantName);
 
-    Optional<Plant> findById(Long plantId);
+	Optional<Plant> findById(Long plantId);
 
-    boolean existsByPlantCodeAndPlantName(String code, String plantName);
+	boolean existsByPlantCodeAndPlantName(String code, String plantName);
 
-    boolean existsByPlantCodeAndPlantNameAndIdNot(String code, String plantName, Long id);
+	boolean existsByPlantCodeAndPlantNameAndIdNot(String code, String plantName, Long id);
 
-    List<Plant> findAllByOrderByIdAsc();
+	List<Plant> findAllByOrderByIdAsc();
+
 }

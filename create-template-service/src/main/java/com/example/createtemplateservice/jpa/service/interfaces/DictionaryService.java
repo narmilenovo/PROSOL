@@ -5,12 +5,14 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.createtemplateservice.client.DictionaryAllResponse;
+import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
 
 public interface DictionaryService {
-	DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file);
+	DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file)
+			throws ResourceFoundException;
 
 	DictionaryResponse getDictionaryById(Long id, String show) throws ResourceNotFoundException;
 
@@ -27,7 +29,7 @@ public interface DictionaryService {
 	DictionaryResponse getRecordByNounAndModifer(String noun, String modifier);
 
 	DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
-			throws ResourceNotFoundException;
+			throws ResourceNotFoundException, ResourceFoundException;
 
 	void deleteDictionaryId(Long id) throws ResourceNotFoundException;
 

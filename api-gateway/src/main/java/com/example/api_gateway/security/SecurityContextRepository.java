@@ -1,11 +1,13 @@
 package com.example.api_gateway.security;
 
-import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.web.server.context.ServerSecurityContextRepository;
@@ -15,11 +17,13 @@ import org.springframework.web.server.ServerWebExchange;
 import com.example.api_gateway.util.Jwt;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityContextRepository implements ServerSecurityContextRepository {
 
 	private final AuthenticationManager authenticationManager;
@@ -35,17 +39,26 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
 		return Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
 				.filter(authHeader -> authHeader.startsWith("Bearer ")).flatMap(authHeader -> {
 					String authToken = authHeader.substring(7);
+
 					String email = jwtUtil.extractUsername(authToken);
-					Authentication auth = new UsernamePasswordAuthenticationToken(authToken, authToken);
-					Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
+					List<String> authorities = jwtUtil.extractAuthorities(authToken);
+
+					// Convert authorities to GrantedAuthority objects
+					List<GrantedAuthority> grantedAuthorities = authorities.stream().map(SimpleGrantedAuthority::new)
+							.collect(Collectors.toList());
+
+					Authentication auth = new UsernamePasswordAuthenticationToken(email, authToken, grantedAuthorities);
 
 					// Create a new ServerWebExchange with modified headers
-					ServerWebExchange exchangeWithHeaders = exchange.mutate().request(exchange.getRequest().mutate()
-							.header("X-User-Id", email).header("X-User-Authorities", authorities.toString()).build())
+					ServerWebExchange exchangeWithHeaders = exchange.mutate()
+							.request(exchange.getRequest().mutate().header("X-User-Id", email)
+									.header("X-User-Authorities", grantedAuthorities.toString()).build())
 							.build();
+
 					return this.authenticationManager.authenticate(auth).map(SecurityContextImpl::new)
 							.contextWrite(Context.of(ServerWebExchange.class, exchangeWithHeaders));
 				});
+
 	}
 
 }

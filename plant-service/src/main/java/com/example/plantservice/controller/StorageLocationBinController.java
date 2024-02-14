@@ -23,7 +23,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.plantservice.config.GeneratePdfReport;
 import com.example.plantservice.dto.request.StorageBinRequest;
-import com.example.plantservice.dto.response.PlantResponse;
 import com.example.plantservice.dto.response.StorageBinResponse;
 import com.example.plantservice.dto.response.StorageLocationResponse;
 import com.example.plantservice.entity.StorageBin;
@@ -68,11 +67,11 @@ public class StorageLocationBinController {
 		return ResponseEntity.ok(storageLocationBin);
 	}
 
-	@GetMapping("/getPlantAll2")
-	public ResponseEntity<Object> getAllStorageLocation() {
-		List<PlantResponse> plants = plantService.getAllPlants();
-		return ResponseEntity.ok(plants);
-	}
+//	@GetMapping("/getPlantAll2")
+//	public ResponseEntity<Object> getAllStorageLocation() {
+//		List<PlantResponse> plants = plantService.getAllPlants();
+//		return ResponseEntity.ok(plants);
+//	}
 
 	@GetMapping("/getAllStorageLocation1")
 	public ResponseEntity<Object> getAllPlant() {

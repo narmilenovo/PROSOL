@@ -46,7 +46,7 @@ public class SecurityConfig {
 	private static final List<String> SETTINGS = List.of("/setting/v3/api-docs");
 	private static final List<String> VALUE = List.of("/value/v3/api-docs");
 	private static final List<String> ATTRIBUTE = List.of("/attribute/v3/api-docs");
-	private static final List<String> DICTIONARY = List.of("/dictionary/v3/api-docs");
+	private static final List<String> DICTIONARY = List.of("/dictionary/v3/api-docs", "dictionary/downloadFile/**");
 	private static final List<String> REQUEST = List.of("/request/v3/api-docs");
 	private static final List<String> DYNAMIC = List.of("/dynamic/v3/api-docs");
 

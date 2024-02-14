@@ -19,6 +19,7 @@ import com.example.createtemplateservice.client.generalsettings.GeneralSettingCl
 import com.example.createtemplateservice.client.generalsettings.NmUom;
 import com.example.createtemplateservice.client.valuemaster.ValueAttributeUom;
 import com.example.createtemplateservice.client.valuemaster.ValueMasterClient;
+import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryAttributeResponse;
@@ -47,26 +48,36 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	@Override
 	@Transactional
-	public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file) {
-		Dictionary dictionary = modelMapper.map(dictionaryRequest, Dictionary.class);
-		dictionary.setId(null);
-		Dictionary saveEmptyDicId = dictionaryRepository.save(dictionary);
+	public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file)
+			throws ResourceFoundException {
+		String noun = dictionaryRequest.getNoun();
+		String modifier = dictionaryRequest.getModifier();
 
-		String fileName = fileUploadUtil.storeFile(file, saveEmptyDicId.getId());
-		saveEmptyDicId.setImage(fileName);
+		boolean exists = dictionaryRepository.existsByNounAndModifier(noun, modifier);
 
-		// Set the parent reference in each child entity
-		List<DictionaryAttribute> attributes = dictionary.getAttributes();
-		if (attributes != null && !attributes.isEmpty()) {
-			for (DictionaryAttribute attribute : attributes) {
-				attribute.setDictionary(saveEmptyDicId);
+		if (!exists) {
+			Dictionary dictionary = modelMapper.map(dictionaryRequest, Dictionary.class);
+			dictionary.setId(null);
+			Dictionary saveEmptyDicId = dictionaryRepository.save(dictionary);
+
+			String fileName = fileUploadUtil.storeFile(file, saveEmptyDicId.getId());
+			saveEmptyDicId.setImage(fileName);
+
+			// Set the parent reference in each child entity
+			List<DictionaryAttribute> attributes = dictionary.getAttributes();
+			if (attributes != null && !attributes.isEmpty()) {
+				for (DictionaryAttribute attribute : attributes) {
+					attribute.setDictionary(saveEmptyDicId);
+				}
+				// Save the child entities (DictionaryAttribute)
+				List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
+				saveEmptyDicId.setAttributes(savedAttributes);
 			}
-			// Save the child entities (DictionaryAttribute)
-			List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
-			saveEmptyDicId.setAttributes(savedAttributes);
+			Dictionary savedDictionary = dictionaryRepository.save(saveEmptyDicId);
+			return mapToDictionaryResponse(savedDictionary);
+		} else {
+			throw new ResourceFoundException("Record with noun and modifer already exists !!!");
 		}
-		Dictionary savedDictionary = dictionaryRepository.save(saveEmptyDicId);
-		return mapToDictionaryResponse(savedDictionary);
 	}
 
 	@Override
@@ -115,27 +126,34 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	@Override
 	public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
-			throws ResourceNotFoundException {
+			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
-		Dictionary existingDictionary = findDictionaryById(id);
-		modelMapper.map(updateDictionaryRequest, existingDictionary);
-		existingDictionary.setId(id);
-		String existingFile = existingDictionary.getImage();
-		fileUploadUtil.deleteFile(existingFile, id);
-		String newFile = fileUploadUtil.storeFile(file, id);
-		existingDictionary.setImage(newFile);
-		Dictionary updatedDictionary = dictionaryRepository.save(existingDictionary);
-		// Set the parent reference in each child entity
-		List<DictionaryAttribute> attributes = existingDictionary.getAttributes();
-		if (attributes != null && !attributes.isEmpty()) {
-			for (DictionaryAttribute attribute : attributes) {
-				attribute.setDictionary(updatedDictionary);
+		String noun = updateDictionaryRequest.getNoun();
+		String modifier = updateDictionaryRequest.getModifier();
+		boolean exist = dictionaryRepository.existsByNounAndModifierAndIdNot(noun, modifier, id);
+		if (!exist) {
+			Dictionary existingDictionary = findDictionaryById(id);
+			modelMapper.map(updateDictionaryRequest, existingDictionary);
+			existingDictionary.setId(id);
+			String existingFile = existingDictionary.getImage();
+			fileUploadUtil.deleteFile(existingFile, id);
+			String newFile = fileUploadUtil.storeFile(file, id);
+			existingDictionary.setImage(newFile);
+			Dictionary updatedDictionary = dictionaryRepository.save(existingDictionary);
+			// Set the parent reference in each child entity
+			List<DictionaryAttribute> attributes = existingDictionary.getAttributes();
+			if (attributes != null && !attributes.isEmpty()) {
+				for (DictionaryAttribute attribute : attributes) {
+					attribute.setDictionary(updatedDictionary);
+				}
+				// Save the child entities (DictionaryAttribute)
+				List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
+				updatedDictionary.setAttributes(savedAttributes);
 			}
-			// Save the child entities (DictionaryAttribute)
-			List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
-			updatedDictionary.setAttributes(savedAttributes);
+			return mapToDictionaryResponse(updatedDictionary);
+		} else {
+			throw new ResourceFoundException("Record with noun and modifier already exists in db !!!");
 		}
-		return mapToDictionaryResponse(updatedDictionary);
 	}
 
 	@Override

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
@@ -41,7 +42,8 @@ public class DictionaryController {
 	@Operation(summary = "Save Dictionary with Image", description = "Save a dictionary entry along with an image.")
 	public ResponseEntity<Object> saveDictionary(
 			@Parameter(name = "dictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
-			@RequestParam(value = "file", required = true) MultipartFile file) throws JsonProcessingException {
+			@RequestParam(value = "file", required = true) MultipartFile file)
+			throws JsonProcessingException, ResourceFoundException {
 		DictionaryRequest dictionaryRequest = this.convert(source);
 		URI uri = URI.create(
 				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveDictionaryImage").toUriString());
@@ -104,7 +106,7 @@ public class DictionaryController {
 	public ResponseEntity<Object> updateDictionary(@PathVariable Long id,
 			@Parameter(name = "updateDictionaryRequest", required = true, schema = @Schema(implementation = DictionaryRequest.class), description = "source") @RequestPart String source,
 			@RequestParam(value = "file", required = true) MultipartFile file)
-			throws ResourceNotFoundException, JsonProcessingException {
+			throws ResourceNotFoundException, JsonProcessingException, ResourceFoundException {
 		DictionaryRequest updateDictionaryRequest = this.convert(source);
 		DictionaryResponse updateDictionary = dictionaryService.updateDictionary(id, updateDictionaryRequest, file);
 		return ResponseEntity.ok(updateDictionary);

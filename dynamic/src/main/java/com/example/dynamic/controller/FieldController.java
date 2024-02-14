@@ -28,10 +28,10 @@ public class FieldController {
 	private final FieldService fieldService;
 
 	@PostMapping("/saveField/{formName}")
-	public ResponseEntity<Object> createField(@PathVariable String formName,
-			@RequestBody FieldRequest fieldRequest) throws ResourceFoundException {
+	public ResponseEntity<Object> createField(@PathVariable String formName, @RequestBody FieldRequest fieldRequest)
+			throws ResourceFoundException {
 		FieldResponse savedField = fieldService.createField(formName, fieldRequest);
-		return ResponseEntity.status(HttpStatus.CREATED).body(savedField);
+		return ResponseEntity.ok(savedField);
 	}
 
 	@GetMapping("/getFieldById/{id}")
@@ -44,10 +44,10 @@ public class FieldController {
 	public ResponseEntity<Object> getAllFieldsByForm(@PathVariable String formName) {
 		List<FieldResponse> response = fieldService.getAllFieldsByForm(formName);
 		if (response != null && !response.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.OK).body(response);
+			return ResponseEntity.ok(response);
 		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body("No Fields Found with the associate formName : '" + formName + "'");
+			return new ResponseEntity<>("No Fields Found with the associate formName : '" + formName + "'",
+					HttpStatus.BAD_REQUEST);
 		}
 	}
 
@@ -58,8 +58,8 @@ public class FieldController {
 	}
 
 	@PutMapping("/updateFieldById/{id}")
-	public ResponseEntity<Object> updateFieldById(@PathVariable Long id,
-			@RequestBody FieldRequest updateFieldRequest) throws ResourceNotFoundException, ResourceFoundException {
+	public ResponseEntity<Object> updateFieldById(@PathVariable Long id, @RequestBody FieldRequest updateFieldRequest)
+			throws ResourceNotFoundException, ResourceFoundException {
 		FieldResponse field = fieldService.updateFieldById(id, updateFieldRequest);
 		return ResponseEntity.ok(field);
 	}
@@ -67,7 +67,7 @@ public class FieldController {
 	@DeleteMapping("/{id}/removeField")
 	public ResponseEntity<String> removeFieldById(@PathVariable Long id) throws ResourceNotFoundException {
 		fieldService.removeFieldById(id);
-		return ResponseEntity.accepted().body("Field of '" + id + "' is deleted Successfully");
+		return ResponseEntity.noContent().build();
 	}
 
 }

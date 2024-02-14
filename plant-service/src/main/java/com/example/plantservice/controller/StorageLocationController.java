@@ -23,7 +23,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.plantservice.config.GeneratePdfReport;
 import com.example.plantservice.dto.request.StorageLocationRequest;
-import com.example.plantservice.dto.response.PlantResponse;
 import com.example.plantservice.dto.response.StorageLocationResponse;
 import com.example.plantservice.entity.StorageLocation;
 import com.example.plantservice.exception.AlreadyExistsException;
@@ -66,11 +65,11 @@ public class StorageLocationController {
 		return ResponseEntity.ok(storageLocation);
 	}
 
-	@GetMapping("/getPlantAll3")
-	public ResponseEntity<Object> getAllPlant() {
-		List<PlantResponse> plants = plantService.getAllPlants();
-		return ResponseEntity.ok(plants);
-	}
+//	@GetMapping("/getPlantAll3")
+//	public ResponseEntity<Object> getAllPlant() {
+//		List<PlantResponse> plants = plantService.getAllPlants();
+//		return ResponseEntity.ok(plants);
+//	}
 
 	@GetMapping("/getAllByPlantByName/{name}")
 	public ResponseEntity<Object> getAllByPlantByName(@PathVariable String name) {

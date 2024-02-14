@@ -10,10 +10,12 @@ import com.example.dynamic.entity.Field;
 @Repository
 public interface FieldRepository extends JpaRepository<Field, Long> {
 
-    List<Field> findAllByForm_FormName(String formName);
+	List<Field> findAllByForm_FormName(String formName);
 
-    boolean existsByFieldNameAndForm_FormName(String fieldName, String formName);
+	boolean existsByFieldNameAndForm_FormName(String fieldName, String formName);
 
-    boolean existsByFieldNameAndForm_FormNameAndIdNot(String fieldName, String formName, Long id);
+	boolean existsByFieldNameAndDataTypeAndForm_FormName(String fieldName, String dataType, String formName);
+
+	boolean existsByFieldNameAndForm_FormNameAndIdNot(String fieldName, String formName, Long id);
 
 }

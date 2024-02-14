@@ -46,8 +46,7 @@ public class PlantServiceImpl implements PlantService {
 			for (Map.Entry<String, Object> entryField : plant.getDynamicFields().entrySet()) {
 				String fieldName = entryField.getKey();
 				String formName = Plant.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName,
-						formName);
+				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
 				if (!fieldExists) {
 					throw new ResourceNotFoundException("Field of '" + fieldName
 							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
@@ -97,8 +96,7 @@ public class PlantServiceImpl implements PlantService {
 			for (Map.Entry<String, Object> entryField : existingPlant.getDynamicFields().entrySet()) {
 				String fieldName = entryField.getKey();
 				String formName = Plant.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName,
-						formName);
+				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
 				if (!fieldExists) {
 					throw new ResourceNotFoundException("Field of: '" + fieldName
 							+ "' not exist in Dynamic Field creation of form: '" + formName + "' !!!");

@@ -1,6 +1,5 @@
 package com.example.dynamic.controller;
 
-import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.dynamic.dto.request.FormRequest;
 import com.example.dynamic.dto.response.FormResponse;
@@ -28,9 +26,8 @@ public class FormController {
 
 	@PostMapping("/createForm")
 	public ResponseEntity<Object> createForm(@RequestBody FormRequest formRequest) {
-		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/createForm").toUriString());
 		FormResponse formResponse = formService.createForm(formRequest);
-		return ResponseEntity.created(uri).body(formResponse);
+		return new ResponseEntity<>(formResponse, HttpStatus.CREATED);
 	}
 
 	@GetMapping("/getFormById/{id}")
@@ -49,16 +46,16 @@ public class FormController {
 	public ResponseEntity<Object> getAllForm() {
 		List<FormResponse> response = formService.getAllForm();
 		if (!response.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.OK).body(response);
+			return new ResponseEntity<>(response, HttpStatus.OK);
 		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No Forms Found !!");
+			return new ResponseEntity<>("No Forms Found !!", HttpStatus.NOT_FOUND);
 		}
 	}
 
 	@DeleteMapping("/deleteFormById{id}")
 	public ResponseEntity<String> deleteFormById(@PathVariable("id") Long id) throws ResourceNotFoundException {
 		formService.deleteFormById(id);
-		return ResponseEntity.accepted().body("Form of '" + id + "' is deleted Successfully");
+		return new ResponseEntity<>("Form of '" + id + "' is deleted Successfully", HttpStatus.NO_CONTENT);
 	}
 
 }

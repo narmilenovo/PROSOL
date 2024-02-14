@@ -23,7 +23,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.plantservice.config.GeneratePdfReport;
 import com.example.plantservice.dto.request.ProfitCenterRequest;
-import com.example.plantservice.dto.response.PlantResponse;
 import com.example.plantservice.dto.response.ProfitCenterResponse;
 import com.example.plantservice.entity.ProfitCenter;
 import com.example.plantservice.exception.AlreadyExistsException;
@@ -65,11 +64,11 @@ public class ProfitCenterController {
 		return ResponseEntity.ok(profitCenters);
 	}
 
-	@GetMapping("/getPlantAll1")
-	public ResponseEntity<Object> getAllPlant() {
-		List<PlantResponse> plants = plantService.getAllPlants();
-		return ResponseEntity.ok().body(plants);
-	}
+//	@GetMapping("/getPlantAll1")
+//	public ResponseEntity<Object> getAllPlant() {
+//		List<PlantResponse> plants = plantService.getAllPlants();
+//		return ResponseEntity.ok().body(plants);
+//	}
 
 	@PutMapping("/updateProfitCenter/{id}")
 	public ResponseEntity<Object> updateProfitCenter(@PathVariable Long id,

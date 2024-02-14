@@ -18,4 +18,8 @@ public interface DictionaryRepository extends JpaRepository<Dictionary, Long> {
 	List<String> findModifiersByNoun(String noun);
 
 	Dictionary findByNounAndModifier(String noun, String modifier);
+
+	boolean existsByNounAndModifier(String noun, String modifier);
+
+	boolean existsByNounAndModifierAndIdNot(String noun, String modifier, Long id);
 }

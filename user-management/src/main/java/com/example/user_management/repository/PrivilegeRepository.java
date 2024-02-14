@@ -12,4 +12,5 @@ public interface PrivilegeRepository extends JpaRepository<Privilege, Long> {
 	boolean existsByName(String privilegeName);
 
 	boolean existsByNameAndIdNot(String privilegeName, Long id);
+
 }
