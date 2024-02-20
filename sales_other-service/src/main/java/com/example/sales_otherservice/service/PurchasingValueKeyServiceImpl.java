@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.PurchasingValueKeyRequest;
 import com.example.sales_otherservice.dto.response.PurchasingValueKeyResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.PurchasingValueKey;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
 	@Override
 	public PurchasingValueKeyResponse savePvk(PurchasingValueKeyRequest purchasingValueKeyRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(purchasingValueKeyRequest);
 		String pvkCode = purchasingValueKeyRequest.getPvkCode();
 		String pvkName = purchasingValueKeyRequest.getPvkName();
 		boolean exists = purchasingValueKeyRepository.existsByPvkCodeOrPvkName(pvkCode, pvkName);
@@ -75,22 +78,40 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
 	public PurchasingValueKeyResponse updatePvk(Long id, PurchasingValueKeyRequest updatePurchasingValueKeyRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updatePurchasingValueKeyRequest);
 		String pvkCode = updatePurchasingValueKeyRequest.getPvkCode();
 		String pvkName = updatePurchasingValueKeyRequest.getPvkName();
 		PurchasingValueKey existingValueKey = this.findPvkById(id);
 		boolean exists = purchasingValueKeyRepository.existsByPvkCodeAndIdNotOrPvkNameAndIdNot(pvkCode, id, pvkName,
 				id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updatePurchasingValueKeyRequest, existingValueKey);
-			for (Map.Entry<String, Object> entryField : existingValueKey.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PurchasingValueKey.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingValueKey.getPvkCode().equals(pvkCode)) {
+				auditFields.add(new AuditFields(null, "Pvk Code", existingValueKey.getPvkCode(), pvkCode));
+				existingValueKey.setPvkCode(pvkCode);
+			}
+			if (!existingValueKey.getPvkName().equals(pvkName)) {
+				auditFields.add(new AuditFields(null, "Pvk Name", existingValueKey.getPvkName(), pvkName));
+				existingValueKey.setPvkName(pvkName);
+			}
+			if (!existingValueKey.getPvkStatus().equals(updatePurchasingValueKeyRequest.getPvkStatus())) {
+				auditFields.add(new AuditFields(null, "Pvk Status", existingValueKey.getPvkStatus(),
+						updatePurchasingValueKeyRequest.getPvkStatus()));
+				existingValueKey.setPvkStatus(updatePurchasingValueKeyRequest.getPvkStatus());
+			}
+			if (!existingValueKey.getDynamicFields().equals(updatePurchasingValueKeyRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updatePurchasingValueKeyRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingValueKey.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingValueKey.getDynamicFields().put(fieldName, newValue);
+					}
 				}
 			}
+			existingValueKey.updateAuditHistory(auditFields);
 			PurchasingValueKey updatedValueKey = purchasingValueKeyRepository.save(existingValueKey);
 			return mapToPurchasingValueKeyResponse(updatedValueKey);
 		}
@@ -99,16 +120,33 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
 
 	@Override
 	public PurchasingValueKeyResponse updatePvkStatus(Long id) throws ResourceNotFoundException {
-		PurchasingValueKey valueKey = this.findPvkById(id);
-		valueKey.setPvkStatus(!valueKey.getPvkStatus());
-		purchasingValueKeyRepository.save(valueKey);
-		return mapToPurchasingValueKeyResponse(valueKey);
+		PurchasingValueKey existingValueKey = this.findPvkById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingValueKey.getPvkStatus() != null) {
+			auditFields.add(new AuditFields(null, "Pvk Status", existingValueKey.getPvkStatus(),
+					!existingValueKey.getPvkStatus()));
+			existingValueKey.setPvkStatus(!existingValueKey.getPvkStatus());
+		}
+		existingValueKey.updateAuditHistory(auditFields);
+		purchasingValueKeyRepository.save(existingValueKey);
+		return mapToPurchasingValueKeyResponse(existingValueKey);
 	}
 
 	@Override
 	public List<PurchasingValueKeyResponse> updateBatchPvkStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<PurchasingValueKey> valueKeys = this.findAllPvkById(ids);
-		valueKeys.forEach(valueKey -> valueKey.setPvkStatus(!valueKey.getPvkStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		valueKeys.forEach(existingValueKey -> {
+			if (existingValueKey.getPvkStatus() != null) {
+				auditFields.add(new AuditFields(null, "Pvk Status", existingValueKey.getPvkStatus(),
+						!existingValueKey.getPvkStatus()));
+				existingValueKey.setPvkStatus(!existingValueKey.getPvkStatus());
+			}
+			existingValueKey.updateAuditHistory(auditFields);
+
+		});
 		purchasingValueKeyRepository.saveAll(valueKeys);
 		return valueKeys.stream().map(this::mapToPurchasingValueKeyResponse).toList();
 	}

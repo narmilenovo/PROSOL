@@ -1,10 +1,13 @@
 package com.example.generalsettings.response;
 
+import java.util.Date;
+import java.util.List;
+
+import com.example.generalsettings.entity.UpdateAuditHistory;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -15,8 +18,8 @@ public class ReferenceTypeResponse {
     private String referenceTypeName;
     private Boolean referenceTypeStatus;
     private Boolean duplicateCheck;
+
     private String createdBy;
-    private String updatedBy;
     private Date createdAt;
-    private Date updatedAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

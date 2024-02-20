@@ -16,27 +16,27 @@ import com.example.plantservice.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
-public interface StorageLocationBinService {
+public interface StorageBinService {
 
-	StorageBinResponse saveStorageLocation(@Valid StorageBinRequest storageBinRequest)
+	StorageBinResponse saveStorageBin(@Valid StorageBinRequest storageBinRequest)
 			throws ResourceNotFoundException, AlreadyExistsException;
 
-	StorageBinResponse getStorageLocationBinById(Long id) throws ResourceNotFoundException;
+	StorageBinResponse getStorageBinById(Long id) throws ResourceNotFoundException;
 
-	List<StorageBinResponse> getAllStorageLocationBin();
+	List<StorageBinResponse> getAllStorageBin();
 
 	List<StorageBin> findAll();
 
-	StorageBinResponse updateStorageLocationBin(Long id, StorageBinRequest storageBinRequest)
+	StorageBinResponse updateStorageBin(Long id, StorageBinRequest storageBinRequest)
 			throws ResourceNotFoundException, AlreadyExistsException;
 
-	StorageBinResponse updateStatusUsingStorageLocationBinId(Long id) throws ResourceNotFoundException;
+	StorageBinResponse updateStatusUsingStorageBinId(Long id) throws ResourceNotFoundException;
 
-	List<StorageBinResponse> updateBulkStatusStorageLocationBinId(List<Long> id) throws ResourceNotFoundException;
+	List<StorageBinResponse> updateBulkStatusStorageBinId(List<Long> id) throws ResourceNotFoundException;
 
-	void deleteStorageLocationBin(Long id) throws ResourceNotFoundException;
+	void deleteStorageBin(Long id) throws ResourceNotFoundException;
 
-	void deleteBatchStorageLocationBin(List<Long> ids) throws ResourceNotFoundException;
+	void deleteBatchStorageBin(List<Long> ids) throws ResourceNotFoundException;
 
 	void downloadTemplate(HttpServletResponse response) throws IOException;
 

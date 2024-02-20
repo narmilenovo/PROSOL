@@ -1,10 +1,12 @@
 package com.example.createtemplateservice.jpa.dto.response;
 
-import com.example.createtemplateservice.jpa.entity.Type;
-import lombok.Data;
-
 import java.util.Date;
 import java.util.List;
+
+import com.example.createtemplateservice.jpa.entity.Type;
+import com.example.createtemplateservice.jpa.entity.UpdateAuditHistory;
+
+import lombok.Data;
 
 @Data
 public class DictionaryResponse {
@@ -21,8 +23,9 @@ public class DictionaryResponse {
     private List<Long> nmUoms;
     private List<DictionaryAttributeResponse> attributes;
     private String image;
+
     private String createdBy;
-    private String updatedBy;
     private Date createdAt;
-    private Date updatedAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
+
 }

@@ -13,6 +13,7 @@ import com.example.attributemaster.client.Dynamic.DynamicClient;
 import com.example.attributemaster.client.GeneralSettings.AttributeUomClient;
 import com.example.attributemaster.client.GeneralSettings.AttributeUomResponse;
 import com.example.attributemaster.entity.AttributeMaster;
+import com.example.attributemaster.entity.AuditFields;
 import com.example.attributemaster.exception.AlreadyExistsException;
 import com.example.attributemaster.exception.ResourceNotFoundException;
 import com.example.attributemaster.repository.AttributeMasterRepo;
@@ -26,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AttributeMasterServiceImpl implements AttributeMasterService {
-	public static final String Attribute_NOT_FOUND_MESSAGE = null;
 	private final AttributeMasterRepo attributeMasterRepo;
 	private final ModelMapper modelMapper;
 	private final AttributeUomClient attributeUomClient;
@@ -35,7 +35,8 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 	@Override
 	public AttributeMasterResponse saveAttributeMaster(AttributeMasterRequest attributeMasterRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = attributeMasterRepo.existsByAttributeName(attributeMasterRequest.getAttributeName());
+		String attributeName = Helpers.capitalize(attributeMasterRequest.getAttributeName());
+		boolean exists = attributeMasterRepo.existsByAttributeName(attributeName);
 		if (!exists) {
 			AttributeMaster attributeMaster = modelMapper.map(attributeMasterRequest, AttributeMaster.class);
 			for (Map.Entry<String, Object> entryField : attributeMaster.getDynamicFields().entrySet()) {
@@ -65,9 +66,7 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 	@Override
 	public List<AttributeMasterResponse> getAllAttributeMaster() throws ResourceNotFoundException {
 		List<AttributeMaster> attributeMasters = this.findAllAttributeMasters();
-		return attributeMasters.stream()
-				.map(this::mapToAttributeMasterResponse)
-				.toList();
+		return attributeMasters.stream().map(this::mapToAttributeMasterResponse).toList();
 	}
 
 	@Override
@@ -92,21 +91,28 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 	public AttributeMasterResponse updateAttributeMaster(Long id, AttributeMasterRequest attributeMasterRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = attributeMasterRequest.getAttributeName();
-		boolean exists = attributeMasterRepo.existsByAttributeNameAndIdNot(exist, id);
+		String attributeName = Helpers.capitalize(attributeMasterRequest.getAttributeName());
+		boolean exists = attributeMasterRepo.existsByAttributeNameAndIdNot(attributeName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			AttributeMaster existingAttributeMaster = this.findAttributeMasterById(id);
-			modelMapper.map(attributeMasterRequest, existingAttributeMaster);
-			for (Map.Entry<String, Object> entryField : existingAttributeMaster.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = AttributeMaster.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
+			if (!existingAttributeMaster.getAttributeName().equals(attributeName)) {
+				auditFields.add(new AuditFields(null, "Attribute Name", existingAttributeMaster.getAttributeName(),
+						attributeName));
+				existingAttributeMaster.setAttributeName(attributeName);
 			}
-			existingAttributeMaster.setListUom(attributeMasterRequest.getListUom());
+			if (!existingAttributeMaster.getFieldType().equals(attributeMasterRequest.getFieldType())) {
+				auditFields.add(new AuditFields(null, "Field Type", existingAttributeMaster.getFieldType(),
+						attributeMasterRequest.getFieldType()));
+				existingAttributeMaster.setFieldType(attributeMasterRequest.getFieldType());
+			}
+			if (!existingAttributeMaster.getListUom().equals(attributeMasterRequest.getListUom())) {
+				auditFields.add(new AuditFields(null, "List Uom", existingAttributeMaster.getListUom(),
+						attributeMasterRequest.getListUom()));
+				existingAttributeMaster.setListUom(attributeMasterRequest.getListUom());
+			}
+			existingAttributeMaster.updateAuditHistory(auditFields);
 			AttributeMaster mrp = attributeMasterRepo.save(existingAttributeMaster);
 			return mapToAttributeMasterResponse(mrp);
 		} else {
@@ -131,8 +137,7 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 		Helpers.validateIds(ids);
 		List<AttributeMaster> attributeMasters = attributeMasterRepo.findAllById(ids);
 		List<Long> missingIds = ids.stream()
-				.filter(id -> attributeMasters.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.toList();
+				.filter(id -> attributeMasters.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("AttributeMaster with IDs " + missingIds + " not found.");
@@ -144,7 +149,7 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 		Helpers.validateId(id);
 		Optional<AttributeMaster> attribute = attributeMasterRepo.findById(id);
 		if (attribute.isEmpty()) {
-			throw new ResourceNotFoundException(Attribute_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("AttributeMaster with id " + id + " not found");
 		}
 		return attribute.get();
 	}

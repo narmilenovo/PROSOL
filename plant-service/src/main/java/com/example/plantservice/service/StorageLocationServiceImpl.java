@@ -18,6 +18,7 @@ import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.StorageLocationRequest;
 import com.example.plantservice.dto.response.DepartmentResponse;
 import com.example.plantservice.dto.response.StorageLocationResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.Plant;
 import com.example.plantservice.entity.StorageLocation;
 import com.example.plantservice.exception.AlreadyExistsException;
@@ -35,7 +36,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class StorageLocationServiceImpl implements StorageLocationService {
-	private static final String STORAGE_LOCATION_NOT_FOUND_MESSAGE = null;
 	private final ExcelFileHelper excelFileHelper;
 	private final StorageLocationRepo storageLocationRepo;
 
@@ -47,6 +47,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	@Override
 	public StorageLocationResponse saveStorageLocation(StorageLocationRequest storageLocationRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(storageLocationRequest);
 		boolean exists = storageLocationRepo.existsByStorageLocationCodeAndStorageLocationName(
 				storageLocationRequest.getStorageLocationCode(), storageLocationRequest.getStorageLocationName());
 		if (!exists) {
@@ -61,7 +62,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 				}
 			}
 			storageLocation.setId(null);
-			Plant plant = this.getPlantByid(storageLocationRequest.getPlantId());
+			Plant plant = this.getPlantById(storageLocationRequest.getPlantId());
 			storageLocation.setPlant(plant);
 			StorageLocation savedLocation = storageLocationRepo.save(storageLocation);
 			return mapToStorageLocationResponse(savedLocation);
@@ -106,29 +107,51 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	public StorageLocationResponse updateStorageLocation(Long id, StorageLocationRequest storageLocationRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(storageLocationRequest);
+
 		String existCode = storageLocationRequest.getStorageLocationCode();
 		String existName = storageLocationRequest.getStorageLocationName();
 		boolean exists = storageLocationRepo.existsByStorageLocationCodeAndStorageLocationNameAndIdNot(existCode,
 				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			StorageLocation existingStorageLocation = this.findStorageLocationById(id);
-			existingStorageLocation.setStorageLocationCode(storageLocationRequest.getStorageLocationCode());
-			existingStorageLocation.setStorageLocationName(storageLocationRequest.getStorageLocationName());
-			existingStorageLocation.setStorageLocationStatus(storageLocationRequest.getStorageLocationStatus());
-			Plant plant = existingStorageLocation.getPlant();
-			if (storageLocationRequest.getPlantId() != null) {
-				plant = this.getPlantByid(storageLocationRequest.getPlantId());
-				existingStorageLocation.setPlant(plant);
+			if (!existingStorageLocation.getStorageLocationCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "StorageLocation Code",
+						existingStorageLocation.getStorageLocationCode(), existCode));
+				existingStorageLocation.setStorageLocationCode(existCode);
 			}
-			for (Map.Entry<String, Object> entryField : existingStorageLocation.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = StorageLocation.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingStorageLocation.getStorageLocationName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "StorageLocation Name",
+						existingStorageLocation.getStorageLocationName(), existName));
+				existingStorageLocation.setStorageLocationName(existName);
+			}
+			if (!existingStorageLocation.getStorageLocationStatus()
+					.equals(storageLocationRequest.getStorageLocationStatus())) {
+				auditFields.add(new AuditFields(null, "StorageLocation Status",
+						existingStorageLocation.getStorageLocationStatus(),
+						storageLocationRequest.getStorageLocationStatus()));
+				existingStorageLocation.setStorageLocationStatus(storageLocationRequest.getStorageLocationStatus());
+			}
+			Plant existingPlant = existingStorageLocation.getPlant();
+			if (!existingPlant.equals(getPlantById(storageLocationRequest.getPlantId()))) {
+				auditFields.add(new AuditFields(null, "Plant", existingPlant, storageLocationRequest.getPlantId()));
+				existingPlant = this.getPlantById(storageLocationRequest.getPlantId());
+				existingStorageLocation.setPlant(existingPlant);
+			}
+			if (!existingPlant.getDynamicFields().equals(storageLocationRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : storageLocationRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingPlant.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingPlant.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingStorageLocation.updateAuditHistory(auditFields);
 			storageLocationRepo.save(existingStorageLocation);
 			return mapToStorageLocationResponse(existingStorageLocation);
 		} else {
@@ -139,18 +162,34 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	@Override
 	public List<StorageLocationResponse> updateBulkStatusStorageLocationId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<StorageLocation> existingStorageLocation = this.findAllStorLocById(id);
-		for (StorageLocation storageLocation : existingStorageLocation) {
-			storageLocation.setStorageLocationStatus(!storageLocation.getStorageLocationStatus());
-		}
-		storageLocationRepo.saveAll(existingStorageLocation);
-		return existingStorageLocation.stream().map(this::mapToStorageLocationResponse).toList();
+		List<StorageLocation> existingStorageLocations = this.findAllStorLocById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingStorageLocations.forEach(existingStorageLocation -> {
+			if (existingStorageLocation.getStorageLocationStatus() != null) {
+				auditFields.add(new AuditFields(null, "StorageLocation Status",
+						existingStorageLocation.getStorageLocationStatus(),
+						!existingStorageLocation.getStorageLocationStatus()));
+				existingStorageLocation.setStorageLocationStatus(!existingStorageLocation.getStorageLocationStatus());
+			}
+			existingStorageLocation.updateAuditHistory(auditFields);
+		});
+		storageLocationRepo.saveAll(existingStorageLocations);
+		return existingStorageLocations.stream().map(this::mapToStorageLocationResponse).toList();
 	}
 
 	@Override
 	public StorageLocationResponse updateStatusUsingStorageLocationId(Long id) throws ResourceNotFoundException {
 		StorageLocation existingStorageLocation = this.findStorageLocationById(id);
-		existingStorageLocation.setStorageLocationStatus(!existingStorageLocation.getStorageLocationStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingStorageLocation.getStorageLocationStatus() != null) {
+			auditFields.add(
+					new AuditFields(null, "StorageLocation Status", existingStorageLocation.getStorageLocationStatus(),
+							!existingStorageLocation.getStorageLocationStatus()));
+			existingStorageLocation.setStorageLocationStatus(!existingStorageLocation.getStorageLocationStatus());
+		}
+		existingStorageLocation.updateAuditHistory(auditFields);
 		storageLocationRepo.save(existingStorageLocation);
 		return mapToStorageLocationResponse(existingStorageLocation);
 	}
@@ -217,7 +256,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 		return data;
 	}
 
-	private Plant getPlantByid(Long plantId) throws ResourceNotFoundException {
+	private Plant getPlantById(Long plantId) throws ResourceNotFoundException {
 		Optional<Plant> fetchplantOptional = plantRepo.findById(plantId);
 		return fetchplantOptional
 				.orElseThrow(() -> new ResourceNotFoundException("Plant is not found with this id: " + plantId));
@@ -231,7 +270,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 		Helpers.validateId(id);
 		Optional<StorageLocation> storageLocation = storageLocationRepo.findById(id);
 		if (storageLocation.isEmpty()) {
-			throw new ResourceNotFoundException(STORAGE_LOCATION_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("StorageLocation with ID " + id + " not found");
 		}
 		return storageLocation.get();
 	}

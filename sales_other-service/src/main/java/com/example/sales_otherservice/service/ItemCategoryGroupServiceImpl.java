@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.ItemCategoryGroupRequest;
 import com.example.sales_otherservice.dto.response.ItemCategoryGroupResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.ItemCategoryGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	@Override
 	public ItemCategoryGroupResponse saveIcg(ItemCategoryGroupRequest itemCategoryGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(itemCategoryGroupRequest);
 		String icgCode = itemCategoryGroupRequest.getIcgCode();
 		String icgName = itemCategoryGroupRequest.getIcgName();
 		boolean exists = itemCategoryGroupRepository.existsByIcgCodeOrIcgName(icgCode, icgName);
@@ -75,21 +78,39 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	public ItemCategoryGroupResponse updateIcg(Long id, ItemCategoryGroupRequest updateItemCategoryGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateItemCategoryGroupRequest);
 		String icgCode = updateItemCategoryGroupRequest.getIcgCode();
 		String icgName = updateItemCategoryGroupRequest.getIcgName();
 		ItemCategoryGroup existingCategoryGroup = this.findIcgById(id);
 		boolean exists = itemCategoryGroupRepository.existsByIcgCodeAndIdNotOrIcgNameAndIdNot(icgCode, id, icgName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateItemCategoryGroupRequest, existingCategoryGroup);
-			for (Map.Entry<String, Object> entryField : existingCategoryGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ItemCategoryGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingCategoryGroup.getIcgCode().equals(icgCode)) {
+				auditFields.add(new AuditFields(null, "Icg Code", existingCategoryGroup.getIcgCode(), icgCode));
+				existingCategoryGroup.setIcgCode(icgCode);
+			}
+			if (!existingCategoryGroup.getIcgName().equals(icgName)) {
+				auditFields.add(new AuditFields(null, "Icg Name", existingCategoryGroup.getIcgName(), icgName));
+				existingCategoryGroup.setIcgName(icgName);
+			}
+			if (!existingCategoryGroup.getIcgStatus().equals(updateItemCategoryGroupRequest.getIcgStatus())) {
+				auditFields.add(new AuditFields(null, "Icg Status", existingCategoryGroup.getIcgStatus(),
+						updateItemCategoryGroupRequest.getIcgStatus()));
+				existingCategoryGroup.setIcgStatus(updateItemCategoryGroupRequest.getIcgStatus());
+			}
+			if (!existingCategoryGroup.getDynamicFields().equals(updateItemCategoryGroupRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateItemCategoryGroupRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingCategoryGroup.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingCategoryGroup.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingCategoryGroup.updateAuditHistory(auditFields);
 			ItemCategoryGroup updatedGroup = itemCategoryGroupRepository.save(existingCategoryGroup);
 			return mapToItemCategoryGroupResponse(updatedGroup);
 		}
@@ -98,16 +119,33 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 
 	@Override
 	public ItemCategoryGroupResponse updateIcgStatus(Long id) throws ResourceNotFoundException {
-		ItemCategoryGroup categoryGroup = this.findIcgById(id);
-		categoryGroup.setIcgStatus(!categoryGroup.getIcgStatus());
-		itemCategoryGroupRepository.save(categoryGroup);
-		return mapToItemCategoryGroupResponse(categoryGroup);
+		ItemCategoryGroup existingCategoryGroup = this.findIcgById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingCategoryGroup.getIcgStatus() != null) {
+			auditFields.add(new AuditFields(null, "Icg Status", existingCategoryGroup.getIcgStatus(),
+					!existingCategoryGroup.getIcgStatus()));
+			existingCategoryGroup.setIcgStatus(!existingCategoryGroup.getIcgStatus());
+		}
+		existingCategoryGroup.updateAuditHistory(auditFields);
+		itemCategoryGroupRepository.save(existingCategoryGroup);
+		return mapToItemCategoryGroupResponse(existingCategoryGroup);
 	}
 
 	@Override
 	public List<ItemCategoryGroupResponse> updateBatchIcgStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<ItemCategoryGroup> groups = this.findAllIcgById(ids);
-		groups.forEach(group -> group.setIcgStatus(!group.getIcgStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		groups.forEach(existingCategoryGroup -> {
+			if (existingCategoryGroup.getIcgStatus() != null) {
+				auditFields.add(new AuditFields(null, "Icg Status", existingCategoryGroup.getIcgStatus(),
+						!existingCategoryGroup.getIcgStatus()));
+				existingCategoryGroup.setIcgStatus(!existingCategoryGroup.getIcgStatus());
+			}
+			existingCategoryGroup.updateAuditHistory(auditFields);
+
+		});
 		itemCategoryGroupRepository.saveAll(groups);
 		return groups.stream().map(this::mapToItemCategoryGroupResponse).toList();
 	}

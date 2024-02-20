@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.ProcurementType;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -36,14 +37,12 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String PROCUREMENT_TYPE_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public ProcurementTypeResponse saveProcurementType(ProcurementTypeRequest procurementTypeRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = procurementTypeRepo
-				.existsByProcurementTypeCodeAndProcurementTypeName(procurementTypeRequest.getProcurementTypeCode(),
-						procurementTypeRequest.getProcurementTypeName());
+		Helpers.inputTitleCase(procurementTypeRequest);
+		boolean exists = procurementTypeRepo.existsByProcurementTypeCodeAndProcurementTypeName(
+				procurementTypeRequest.getProcurementTypeCode(), procurementTypeRequest.getProcurementTypeName());
 		if (!exists) {
 			ProcurementType procurementType = modelMapper.map(procurementTypeRequest, ProcurementType.class);
 			for (Map.Entry<String, Object> entryField : procurementType.getDynamicFields().entrySet()) {
@@ -83,22 +82,44 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 	public ProcurementTypeResponse updateProcurementType(Long id, ProcurementTypeRequest procurementTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = procurementTypeRequest.getProcurementTypeName();
+		Helpers.inputTitleCase(procurementTypeRequest);
+		String existName = procurementTypeRequest.getProcurementTypeName();
 		String existCode = procurementTypeRequest.getProcurementTypeCode();
-		boolean exists = procurementTypeRepo.existsByProcurementTypeCodeAndProcurementTypeNameAndIdNot(existCode, exist,
-				id);
+		boolean exists = procurementTypeRepo.existsByProcurementTypeCodeAndProcurementTypeNameAndIdNot(existCode,
+				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ProcurementType existingProcurementType = this.findProcurementTypeById(id);
-			modelMapper.map(procurementTypeRequest, existingProcurementType);
-			for (Map.Entry<String, Object> entryField : existingProcurementType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ProcurementType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingProcurementType.getProcurementTypeCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "ProcurementType Code",
+						existingProcurementType.getProcurementTypeCode(), existCode));
+				existingProcurementType.setProcurementTypeCode(existCode);
+			}
+			if (!existingProcurementType.getProcurementTypeName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "ProcurementType Name",
+						existingProcurementType.getProcurementTypeName(), existName));
+				existingProcurementType.setProcurementTypeName(existName);
+			}
+			if (!existingProcurementType.getProcurementTypeStatus()
+					.equals(procurementTypeRequest.getProcurementTypeStatus())) {
+				auditFields.add(new AuditFields(null, "ProcurementType Status",
+						existingProcurementType.getProcurementTypeStatus(),
+						procurementTypeRequest.getProcurementTypeStatus()));
+				existingProcurementType.setProcurementTypeStatus(procurementTypeRequest.getProcurementTypeStatus());
+			}
+			if (!existingProcurementType.getDynamicFields().equals(procurementTypeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : procurementTypeRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingProcurementType.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingProcurementType.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingProcurementType.updateAuditHistory(auditFields);
 			procurementTypeRepo.save(existingProcurementType);
 			return mapToProcurementTypeResponse(existingProcurementType);
 		} else {
@@ -109,18 +130,35 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 	@Override
 	public List<ProcurementTypeResponse> updateBulkStatusProcurementTypeId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<ProcurementType> existingProcurementType = this.findAllProcTypeById(id);
-		for (ProcurementType procurementType : existingProcurementType) {
-			procurementType.setProcurementTypeStatus(!procurementType.getProcurementTypeStatus());
-		}
-		procurementTypeRepo.saveAll(existingProcurementType);
-		return existingProcurementType.stream().map(this::mapToProcurementTypeResponse).toList();
+		List<ProcurementType> existingProcurementTypes = this.findAllProcTypeById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingProcurementTypes.forEach(existingProcurementType -> {
+			if (existingProcurementType.getProcurementTypeStatus() != null) {
+				auditFields.add(new AuditFields(null, "ProcurementType Status",
+						existingProcurementType.getProcurementTypeStatus(),
+						!existingProcurementType.getProcurementTypeStatus()));
+				existingProcurementType.setProcurementTypeStatus(!existingProcurementType.getProcurementTypeStatus());
+			}
+			existingProcurementType.updateAuditHistory(auditFields);
+
+		});
+		procurementTypeRepo.saveAll(existingProcurementTypes);
+		return existingProcurementTypes.stream().map(this::mapToProcurementTypeResponse).toList();
 	}
 
 	@Override
 	public ProcurementTypeResponse updateStatusUsingProcurementTypeId(Long id) throws ResourceNotFoundException {
 		ProcurementType existingProcurementType = this.findProcurementTypeById(id);
-		existingProcurementType.setProcurementTypeStatus(!existingProcurementType.getProcurementTypeStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingProcurementType.getProcurementTypeStatus() != null) {
+			auditFields.add(
+					new AuditFields(null, "ProcurementType Status", existingProcurementType.getProcurementTypeStatus(),
+							!existingProcurementType.getProcurementTypeStatus()));
+			existingProcurementType.setProcurementTypeStatus(!existingProcurementType.getProcurementTypeStatus());
+		}
+		existingProcurementType.updateAuditHistory(auditFields);
 		procurementTypeRepo.save(existingProcurementType);
 		return mapToProcurementTypeResponse(existingProcurementType);
 	}
@@ -194,7 +232,7 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 		Helpers.validateId(id);
 		Optional<ProcurementType> procurementType = procurementTypeRepo.findById(id);
 		if (procurementType.isEmpty()) {
-			throw new ResourceNotFoundException(PROCUREMENT_TYPE_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Procurement Type with ID " + id + " not found.");
 		}
 		return procurementType.get();
 	}
@@ -203,8 +241,7 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 		Helpers.validateIds(ids);
 		List<ProcurementType> types = procurementTypeRepo.findAllById(ids);
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {

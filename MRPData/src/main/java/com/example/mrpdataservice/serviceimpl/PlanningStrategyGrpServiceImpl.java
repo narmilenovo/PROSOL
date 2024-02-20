@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.PlanningStrategyGrp;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -36,14 +37,12 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String PLANNING_STRATEGY_GROUP_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public PlanningStrgyGrpResponse savePlanningStrgyGrp(PlanningStrgyGrpRequest planningStrgyGrpRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = planningStrgyGrpRepo
-				.existsByPlanningStrgGrpCodeAndPlanningStrgGrpName(planningStrgyGrpRequest.getPlanningStrgGrpCode(),
-						planningStrgyGrpRequest.getPlanningStrgGrpName());
+		Helpers.inputTitleCase(planningStrgyGrpRequest);
+		boolean exists = planningStrgyGrpRepo.existsByPlanningStrgGrpCodeAndPlanningStrgGrpName(
+				planningStrgyGrpRequest.getPlanningStrgGrpCode(), planningStrgyGrpRequest.getPlanningStrgGrpName());
 		if (!exists) {
 			PlanningStrategyGrp planningStrategyGrp = modelMapper.map(planningStrgyGrpRequest,
 					PlanningStrategyGrp.class);
@@ -84,22 +83,46 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 	public PlanningStrgyGrpResponse updatePlanningStrgyGrp(Long id, PlanningStrgyGrpRequest planningStrgyGrpRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = planningStrgyGrpRequest.getPlanningStrgGrpName();
+		Helpers.inputTitleCase(planningStrgyGrpRequest);
+		String existName = planningStrgyGrpRequest.getPlanningStrgGrpName();
 		String existCode = planningStrgyGrpRequest.getPlanningStrgGrpCode();
 		boolean exists = planningStrgyGrpRepo.existsByPlanningStrgGrpCodeAndPlanningStrgGrpNameAndIdNot(existCode,
-				exist, id);
+				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			PlanningStrategyGrp existingPlanningStrategyGrp = this.findPlanningStrategyGrpById(id);
-			modelMapper.map(planningStrgyGrpRequest, existingPlanningStrategyGrp);
-			for (Map.Entry<String, Object> entryField : existingPlanningStrategyGrp.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PlanningStrategyGrp.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingPlanningStrategyGrp.getPlanningStrgGrpCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "PlanningStrategyGrp Code",
+						existingPlanningStrategyGrp.getPlanningStrgGrpCode(), existCode));
+				existingPlanningStrategyGrp.setPlanningStrgGrpCode(existCode);
+			}
+			if (!existingPlanningStrategyGrp.getPlanningStrgGrpName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "PlanningStrategyGrp Name",
+						existingPlanningStrategyGrp.getPlanningStrgGrpName(), existName));
+				existingPlanningStrategyGrp.setPlanningStrgGrpName(existName);
+			}
+			if (!existingPlanningStrategyGrp.getPlanningStrgGrpStatus()
+					.equals(planningStrgyGrpRequest.getPlanningStrgGrpStatus())) {
+				auditFields.add(new AuditFields(null, "PlanningStrategyGrp Status",
+						existingPlanningStrategyGrp.getPlanningStrgGrpStatus(),
+						planningStrgyGrpRequest.getPlanningStrgGrpStatus()));
+				existingPlanningStrategyGrp
+						.setPlanningStrgGrpStatus(planningStrgyGrpRequest.getPlanningStrgGrpStatus()); // Clear status
+			}
+			if (!existingPlanningStrategyGrp.getDynamicFields().equals(planningStrgyGrpRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : planningStrgyGrpRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingPlanningStrategyGrp.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingPlanningStrategyGrp.getDynamicFields().put(fieldName, newValue); // Update the dynamic
+																									// field
+					}
 				}
 			}
+			existingPlanningStrategyGrp.updateAuditHistory(auditFields);
 			planningStrgyGrpRepo.save(existingPlanningStrategyGrp);
 			return mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
 		} else {
@@ -110,19 +133,36 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 	@Override
 	public List<PlanningStrgyGrpResponse> updateBulkStatusPlanningStrgyGrpId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<PlanningStrategyGrp> existingPlanningStrategyGrp = this.findAllStrgGrpById(id);
-		for (PlanningStrategyGrp planningStrategyGrp : existingPlanningStrategyGrp) {
-			planningStrategyGrp.setPlanningStrgGrpStatus(!planningStrategyGrp.getPlanningStrgGrpStatus());
-		}
-		planningStrgyGrpRepo.saveAll(existingPlanningStrategyGrp);
-		return existingPlanningStrategyGrp.stream().map(this::mapToPlanningStrgyGrpResponse).toList();
+		List<PlanningStrategyGrp> existingPlanningStrategyGrps = this.findAllStrgGrpById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingPlanningStrategyGrps.forEach(existingPlanningStrategyGrp -> {
+			if (existingPlanningStrategyGrp.getPlanningStrgGrpStatus() != null) {
+				auditFields.add(new AuditFields(null, "PlanningStrategyGrp Status",
+						existingPlanningStrategyGrp.getPlanningStrgGrpStatus(),
+						!existingPlanningStrategyGrp.getPlanningStrgGrpStatus()));
+				existingPlanningStrategyGrp
+						.setPlanningStrgGrpStatus(!existingPlanningStrategyGrp.getPlanningStrgGrpStatus());
+			}
+			existingPlanningStrategyGrp.updateAuditHistory(auditFields);
+		});
+		planningStrgyGrpRepo.saveAll(existingPlanningStrategyGrps);
+		return existingPlanningStrategyGrps.stream().map(this::mapToPlanningStrgyGrpResponse).toList();
 	}
 
 	@Override
 	public PlanningStrgyGrpResponse updateStatusUsingPlanningStrgyGrpId(Long id) throws ResourceNotFoundException {
 		PlanningStrategyGrp existingPlanningStrategyGrp = this.findPlanningStrategyGrpById(id);
-		existingPlanningStrategyGrp
-				.setPlanningStrgGrpStatus(!existingPlanningStrategyGrp.getPlanningStrgGrpStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingPlanningStrategyGrp.getPlanningStrgGrpStatus() != null) {
+			auditFields.add(new AuditFields(null, "PlanningStrategyGrp Status",
+					existingPlanningStrategyGrp.getPlanningStrgGrpStatus(),
+					!existingPlanningStrategyGrp.getPlanningStrgGrpStatus()));
+			existingPlanningStrategyGrp
+					.setPlanningStrgGrpStatus(!existingPlanningStrategyGrp.getPlanningStrgGrpStatus());
+		}
+		existingPlanningStrategyGrp.updateAuditHistory(auditFields);
 		planningStrgyGrpRepo.save(existingPlanningStrategyGrp);
 		return mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
 	}
@@ -198,7 +238,7 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 		Helpers.validateId(id);
 		Optional<PlanningStrategyGrp> planningStrategyGrp = planningStrgyGrpRepo.findById(id);
 		if (planningStrategyGrp.isEmpty()) {
-			throw new ResourceNotFoundException(PLANNING_STRATEGY_GROUP_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Planning Strategy Group with ID " + id + " not found.");
 		}
 		return planningStrategyGrp.get();
 	}

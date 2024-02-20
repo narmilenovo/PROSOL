@@ -10,6 +10,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.MainGroupCodes;
 import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.exception.AlreadyExistsException;
@@ -26,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SubGroupServiceImpl implements SubGroupService {
-	private static final String PROFIT_CENTER_NOT_FOUND_MESSAGE = null;
 
 	private final SubGroupCodesRepo subGroupCodesRepo;
 
@@ -37,6 +37,7 @@ public class SubGroupServiceImpl implements SubGroupService {
 	@Override
 	public SubGroupCodesResponse saveSubMainGroup(SubGroupCodesRequest subGroupCodesRequest)
 			throws AlreadyExistsException {
+		Helpers.inputTitleCase(subGroupCodesRequest);
 		boolean exists = subGroupCodesRepo.existsBySubGroupCodeAndSubGroupName(subGroupCodesRequest.getSubGroupCode(),
 				subGroupCodesRequest.getSubGroupName());
 		if (!exists) {
@@ -79,17 +80,35 @@ public class SubGroupServiceImpl implements SubGroupService {
 	public SubGroupCodesResponse updateSubMainGroup(Long id, SubGroupCodesRequest subGroupCodesRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(subGroupCodesRequest);
 		String name = subGroupCodesRequest.getSubGroupName();
 		String code = subGroupCodesRequest.getSubGroupCode();
 		boolean exists = subGroupCodesRepo.existsBySubGroupCodeAndSubGroupNameAndIdNot(code, name, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			SubGroupCodes existingSubGroupCodes = this.findSubMainGroupById(id);
-			existingSubGroupCodes.setId(id);
-			existingSubGroupCodes.setSubGroupCode(code);
-			existingSubGroupCodes.setSubGroupName(name);
-			existingSubGroupCodes.setSubGroupStatus(subGroupCodesRequest.getSubGroupStatus());
-			MainGroupCodes mainGroupCodes = this.findMainGroupCodesByid(subGroupCodesRequest.getMainGroupCodesId());
-			existingSubGroupCodes.setMainGroupCodesId(mainGroupCodes);
+			if (!existingSubGroupCodes.getSubGroupCode().equals(code)) {
+				auditFields.add(new AuditFields(null, "SubGroup Code", existingSubGroupCodes.getSubGroupCode(), code));
+				existingSubGroupCodes.setSubGroupCode(code);
+			}
+			if (!existingSubGroupCodes.getSubGroupName().equals(name)) {
+				auditFields.add(new AuditFields(null, "SubGroup Name", existingSubGroupCodes.getSubGroupName(), name));
+				existingSubGroupCodes.setSubGroupName(name);
+			}
+			if (!existingSubGroupCodes.getSubGroupStatus().equals(subGroupCodesRequest.getSubGroupStatus())) {
+				auditFields.add(new AuditFields(null, "SubGroup Status", existingSubGroupCodes.getSubGroupStatus(),
+						subGroupCodesRequest.getSubGroupStatus()));
+				existingSubGroupCodes.setSubGroupStatus(subGroupCodesRequest.getSubGroupStatus());
+			}
+			if (!existingSubGroupCodes.getMainGroupCodesId().getId()
+					.equals(subGroupCodesRequest.getMainGroupCodesId())) {
+				auditFields.add(new AuditFields(null, "MainGroup Code", existingSubGroupCodes.getMainGroupCodesId(),
+						subGroupCodesRequest.getMainGroupCodesId()));
+				MainGroupCodes mainGroupCodes = this.findMainGroupCodesByid(subGroupCodesRequest.getMainGroupCodesId());
+				existingSubGroupCodes.setMainGroupCodesId(mainGroupCodes);
+			}
+			existingSubGroupCodes.updateAuditHistory(auditFields);
 			subGroupCodesRepo.save(existingSubGroupCodes);
 			return mapToSubMainGroupResponse(existingSubGroupCodes);
 		} else {
@@ -100,19 +119,33 @@ public class SubGroupServiceImpl implements SubGroupService {
 	@Override
 	public List<SubGroupCodesResponse> updateBulkStatusSubMainGroupId(List<Long> id) throws ResourceNotFoundException {
 		List<SubGroupCodes> existingSubGroupCodes = this.findAllSubMainGrpById(id);
-		for (SubGroupCodes subGroupCodes : existingSubGroupCodes) {
-			subGroupCodes.setSubGroupStatus(!subGroupCodes.getSubGroupStatus());
-		}
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingSubGroupCodes.forEach(existingSubGroupCode -> {
+			if (existingSubGroupCode.getSubGroupStatus() != null) {
+				auditFields.add(new AuditFields(null, "SubGroup Status", existingSubGroupCode.getSubGroupStatus(),
+						!existingSubGroupCode.getSubGroupStatus()));
+				existingSubGroupCode.setSubGroupStatus(!existingSubGroupCode.getSubGroupStatus());
+			}
+			existingSubGroupCode.updateAuditHistory(auditFields);
+		});
 		subGroupCodesRepo.saveAll(existingSubGroupCodes);
 		return existingSubGroupCodes.stream().map(this::mapToSubMainGroupResponse).toList();
 	}
 
 	@Override
 	public SubGroupCodesResponse updateStatusUsingSubMainGroupId(Long id) throws ResourceNotFoundException {
-		SubGroupCodes existingSubGroupCodes = this.findSubMainGroupById(id);
-		existingSubGroupCodes.setSubGroupStatus(!existingSubGroupCodes.getSubGroupStatus());
-		subGroupCodesRepo.save(existingSubGroupCodes);
-		return mapToSubMainGroupResponse(existingSubGroupCodes);
+		SubGroupCodes existingSubGroupCode = this.findSubMainGroupById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSubGroupCode.getSubGroupStatus() != null) {
+			auditFields.add(new AuditFields(null, "SubGroup Status", existingSubGroupCode.getSubGroupStatus(),
+					!existingSubGroupCode.getSubGroupStatus()));
+			existingSubGroupCode.setSubGroupStatus(!existingSubGroupCode.getSubGroupStatus());
+		}
+		existingSubGroupCode.updateAuditHistory(auditFields);
+		subGroupCodesRepo.save(existingSubGroupCode);
+		return mapToSubMainGroupResponse(existingSubGroupCode);
 	}
 
 	@Override
@@ -154,7 +187,7 @@ public class SubGroupServiceImpl implements SubGroupService {
 		Helpers.validateId(id);
 		Optional<SubGroupCodes> subMainGroup = subGroupCodesRepo.findById(id);
 		if (subMainGroup.isEmpty()) {
-			throw new ResourceNotFoundException(PROFIT_CENTER_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Sub Group Codes with ID " + id + " not found");
 		}
 		return subMainGroup.get();
 	}

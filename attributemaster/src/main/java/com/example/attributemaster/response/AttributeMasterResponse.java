@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.example.attributemaster.entity.FieldType;
+import com.example.attributemaster.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -17,12 +18,12 @@ public class AttributeMasterResponse {
     // @Enumerated(EnumType.STRING)
     private FieldType fieldType;
     private List<Long> listUom;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
 
     @JsonAnyGetter
     @JsonIgnore
     private Map<String, Object> dynamicFields;
+
+    private String createdBy;
+    private Date createdAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

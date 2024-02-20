@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.VarianceKeyRequest;
 import com.example.plantservice.dto.response.VarianceKeyResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.VarianceKey;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -36,11 +37,10 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String VARIANCE_KEY_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public VarianceKeyResponse saveVarianceKey(VarianceKeyRequest valuationCategoryRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(valuationCategoryRequest);
 		boolean exists = varianceKeyRepo.existsByVarianceKeyCodeAndVarianceKeyName(
 				valuationCategoryRequest.getVarianceKeyCode(), valuationCategoryRequest.getVarianceKeyName());
 		if (!exists) {
@@ -82,19 +82,38 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 	public VarianceKeyResponse updateVarianceKey(Long id, VarianceKeyRequest varianceKeyRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(varianceKeyRequest);
 		String existName = varianceKeyRequest.getVarianceKeyName();
 		String existCode = varianceKeyRequest.getVarianceKeyCode();
 		boolean exists = varianceKeyRepo.existsByVarianceKeyCodeAndVarianceKeyNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			VarianceKey existingVarianceKey = this.findVarianceKeyById(id);
-			modelMapper.map(varianceKeyRequest, existingVarianceKey);
-			for (Map.Entry<String, Object> entryField : existingVarianceKey.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = VarianceKey.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingVarianceKey.getVarianceKeyCode().equals(existCode)) {
+				auditFields.add(
+						new AuditFields(null, "varianceKey Code", existingVarianceKey.getVarianceKeyCode(), existCode));
+				existingVarianceKey.setVarianceKeyCode(existCode);
+			}
+			if (!existingVarianceKey.getVarianceKeyName().equals(existName)) {
+				auditFields.add(
+						new AuditFields(null, "varianceKey Name", existingVarianceKey.getVarianceKeyName(), existName));
+				existingVarianceKey.setVarianceKeyName(existName);
+			}
+			if (!existingVarianceKey.getVarianceKeyStatus().equals(varianceKeyRequest.getVarianceKeyStatus())) {
+				auditFields.add(new AuditFields(null, "varianceKey Status", existingVarianceKey.getVarianceKeyStatus(),
+						varianceKeyRequest.getVarianceKeyStatus()));
+				existingVarianceKey.setVarianceKeyStatus(varianceKeyRequest.getVarianceKeyStatus());
+			}
+			if (!existingVarianceKey.getDynamicFields().equals(varianceKeyRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : varianceKeyRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingVarianceKey.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingVarianceKey.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
 			varianceKeyRepo.save(existingVarianceKey);
@@ -106,18 +125,32 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 
 	@Override
 	public List<VarianceKeyResponse> updateBulkStatusVarianceKeyId(List<Long> id) throws ResourceNotFoundException {
-		List<VarianceKey> existingVarianceKey = this.findAllKeysById(id);
-		for (VarianceKey valuationCategory : existingVarianceKey) {
-			valuationCategory.setVarianceKeyStatus(!valuationCategory.getVarianceKeyStatus());
-		}
-		varianceKeyRepo.saveAll(existingVarianceKey);
-		return existingVarianceKey.stream().map(this::mapToVarianceKeyResponse).toList();
+		List<VarianceKey> existingVarianceKeys = this.findAllKeysById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingVarianceKeys.forEach(existingVarianceKey -> {
+			if (existingVarianceKey.getVarianceKeyStatus() != null) {
+				auditFields.add(new AuditFields(null, "varianceKey Status", existingVarianceKey.getVarianceKeyStatus(),
+						!existingVarianceKey.getVarianceKeyStatus()));
+				existingVarianceKey.setVarianceKeyStatus(!existingVarianceKey.getVarianceKeyStatus());
+			}
+			existingVarianceKey.updateAuditHistory(auditFields);
+		});
+		varianceKeyRepo.saveAll(existingVarianceKeys);
+		return existingVarianceKeys.stream().map(this::mapToVarianceKeyResponse).toList();
 	}
 
 	@Override
 	public VarianceKeyResponse updateStatusUsingVarianceKeyId(Long id) throws ResourceNotFoundException {
 		VarianceKey existingVarianceKey = this.findVarianceKeyById(id);
-		existingVarianceKey.setVarianceKeyStatus(!existingVarianceKey.getVarianceKeyStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingVarianceKey.getVarianceKeyStatus() != null) {
+			auditFields.add(new AuditFields(null, "varianceKey Status", existingVarianceKey.getVarianceKeyStatus(),
+					!existingVarianceKey.getVarianceKeyStatus()));
+			existingVarianceKey.setVarianceKeyStatus(!existingVarianceKey.getVarianceKeyStatus());
+		}
+		existingVarianceKey.updateAuditHistory(auditFields);
 		varianceKeyRepo.save(existingVarianceKey);
 		return mapToVarianceKeyResponse(existingVarianceKey);
 	}
@@ -191,7 +224,7 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 		Helpers.validateId(id);
 		Optional<VarianceKey> valuationCategory = varianceKeyRepo.findById(id);
 		if (valuationCategory.isEmpty()) {
-			throw new ResourceNotFoundException(VARIANCE_KEY_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("VarianceKey with ID " + id + " not found");
 		}
 		return valuationCategory.get();
 	}
@@ -200,8 +233,7 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 		Helpers.validateIds(ids);
 		List<VarianceKey> keys = varianceKeyRepo.findAllById(ids);
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> keys.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> keys.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {

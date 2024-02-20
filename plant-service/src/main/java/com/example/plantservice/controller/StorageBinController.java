@@ -30,7 +30,7 @@ import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
 import com.example.plantservice.service.interfaces.PlantService;
-import com.example.plantservice.service.interfaces.StorageLocationBinService;
+import com.example.plantservice.service.interfaces.StorageBinService;
 import com.example.plantservice.service.interfaces.StorageLocationService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,39 +39,39 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class StorageLocationBinController {
+public class StorageBinController {
 
-	private final StorageLocationBinService storageLocationBinService;
+	private final StorageBinService storageBinService;
 	private final GeneratePdfReport generatePdfReport;
 	private final PlantService plantService;
 	private final StorageLocationService storageLocationService;
 
-	@PostMapping("/saveStorageLocationBin")
-	public ResponseEntity<Object> saveStorageLocationBin(@Valid @RequestBody StorageBinRequest storageBinRequest)
+	@PostMapping("/saveStorageBin")
+	public ResponseEntity<Object> saveStorageBin(@Valid @RequestBody StorageBinRequest storageBinRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		URI uri = URI.create(
-				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveStorageLocationBin").toUriString());
-		StorageBinResponse savedStorageLocationBin = storageLocationBinService.saveStorageLocation(storageBinRequest);
-		return ResponseEntity.created(uri).body(savedStorageLocationBin);
+				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveStorageBin").toUriString());
+		StorageBinResponse savedStorageBin = storageBinService.saveStorageBin(storageBinRequest);
+		return ResponseEntity.created(uri).body(savedStorageBin);
 	}
 
-	@GetMapping("/getStorageLocationBinById/{id}")
-	public ResponseEntity<Object> getStorageLocationBinById(@PathVariable Long id) throws ResourceNotFoundException {
-		StorageBinResponse foundStorageLocationBin = storageLocationBinService.getStorageLocationBinById(id);
-		return ResponseEntity.status(HttpStatus.OK).body(foundStorageLocationBin);
+	@GetMapping("/getStorageBinById/{id}")
+	public ResponseEntity<Object> getStorageBinById(@PathVariable Long id) throws ResourceNotFoundException {
+		StorageBinResponse foundStorageBin = storageBinService.getStorageBinById(id);
+		return ResponseEntity.status(HttpStatus.OK).body(foundStorageBin);
 	}
 
-	@GetMapping("/getAllStorageLocationBin")
-	public ResponseEntity<Object> getAllStorageLocationBin() {
-		List<StorageBinResponse> storageLocationBin = storageLocationBinService.getAllStorageLocationBin();
-		return ResponseEntity.ok(storageLocationBin);
+	@GetMapping("/getAllStorageBin")
+	public ResponseEntity<Object> getAllStorageBin() {
+		List<StorageBinResponse> storageBin = storageBinService.getAllStorageBin();
+		return ResponseEntity.ok(storageBin);
 	}
 
-//	@GetMapping("/getPlantAll2")
-//	public ResponseEntity<Object> getAllStorageLocation() {
-//		List<PlantResponse> plants = plantService.getAllPlants();
-//		return ResponseEntity.ok(plants);
-//	}
+	// @GetMapping("/getPlantAll2")
+	// public ResponseEntity<Object> getAllStorageLocation() {
+	// List<PlantResponse> plants = plantService.getAllPlants();
+	// return ResponseEntity.ok(plants);
+	// }
 
 	@GetMapping("/getAllStorageLocation1")
 	public ResponseEntity<Object> getAllPlant() {
@@ -79,69 +79,69 @@ public class StorageLocationBinController {
 		return ResponseEntity.ok(storageLocation);
 	}
 
-	@PutMapping("/updateStorageLocationBin/{id}")
+	@PutMapping("/updateStorageBin/{id}")
 	public ResponseEntity<Object> updateStorageLocation(@PathVariable Long id,
 			@RequestBody StorageBinRequest storageBinRequest) throws ResourceNotFoundException, AlreadyExistsException {
-		StorageBinResponse updateStorageLocationBin = storageLocationBinService.updateStorageLocationBin(id,
+		StorageBinResponse updateStorageBin = storageBinService.updateStorageBin(id,
 				storageBinRequest);
-		return ResponseEntity.ok().body(updateStorageLocationBin);
+		return ResponseEntity.ok().body(updateStorageBin);
 	}
 
-	@PatchMapping("/updateStorageLocationStatusById/{id}")
-	public ResponseEntity<Object> updateStorageLocationBinStatusId(@PathVariable Long id)
+	@PatchMapping("/updateStorageBinStatusById/{id}")
+	public ResponseEntity<Object> updateStorageBinStatusId(@PathVariable Long id)
 			throws ResourceNotFoundException {
-		StorageBinResponse response = storageLocationBinService.updateStatusUsingStorageLocationBinId(id);
+		StorageBinResponse response = storageBinService.updateStatusUsingStorageBinId(id);
 		return ResponseEntity.ok(response);
 	}
 
-	@PatchMapping("/updateBulkStorageLocationId")
-	public ResponseEntity<Object> updateBulkStatusStorageLocationBinId(@RequestBody List<Long> id)
+	@PatchMapping("/updateBulkStorageBinId")
+	public ResponseEntity<Object> updateBulkStatusStorageBinId(@RequestBody List<Long> id)
 			throws ResourceNotFoundException {
-		List<StorageBinResponse> responseList = storageLocationBinService.updateBulkStatusStorageLocationBinId(id);
+		List<StorageBinResponse> responseList = storageBinService.updateBulkStatusStorageBinId(id);
 		return ResponseEntity.ok(responseList);
 	}
 
-	@DeleteMapping("/deleteStorageLocationBin/{id}")
-	public ResponseEntity<String> deleteStorageLocationBin(@PathVariable Long id) throws ResourceNotFoundException {
-		storageLocationBinService.deleteStorageLocationBin(id);
+	@DeleteMapping("/deleteStorageBin/{id}")
+	public ResponseEntity<String> deleteStorageBin(@PathVariable Long id) throws ResourceNotFoundException {
+		storageBinService.deleteStorageBin(id);
 		return ResponseEntity.noContent().build();
 	}
 
-	@DeleteMapping("/deleteBatchStorageLocationBin")
-	public ResponseEntity<Object> deleteBatchStorageLocationBin(@RequestBody List<Long> ids)
+	@DeleteMapping("/deleteBatchStorageBin")
+	public ResponseEntity<Object> deleteBatchStorageBin(@RequestBody List<Long> ids)
 			throws ResourceNotFoundException {
-		storageLocationBinService.deleteBatchStorageLocationBin(ids);
+		storageBinService.deleteBatchStorageBin(ids);
 		return ResponseEntity.noContent().build();
 	}
 
-	@GetMapping("/exportTemplateStorageLocationBin")
-	public void exportExcelTemplateStorageLocationBin(HttpServletResponse response) throws IOException {
-		storageLocationBinService.downloadTemplate(response);
+	@GetMapping("/exportTemplateStorageBin")
+	public void exportExcelTemplateStorageBin(HttpServletResponse response) throws IOException {
+		storageBinService.downloadTemplate(response);
 	}
 
 	@PostMapping(value = "/ImportExcelDataStorageBin", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }, produces = {
 			MediaType.APPLICATION_JSON_VALUE })
 	public ResponseEntity<Object> importExcel(@RequestPart("file") MultipartFile file)
 			throws IOException, ExcelFileException, AlreadyExistsException {
-		storageLocationBinService.importExcelSave(file);
+		storageBinService.importExcelSave(file);
 		return ResponseEntity.ok().body("Excel file Save successfully");
 	}
 
-	@GetMapping("/exportDataStorageLocationBin")
-	public ResponseEntity<Object> exportExcelDataStorageLocationBin(HttpServletResponse response)
+	@GetMapping("/exportDataStorageBin")
+	public ResponseEntity<Object> exportExcelDataStorageBin(HttpServletResponse response)
 			throws IOException, ExcelFileException {
-		storageLocationBinService.downloadAllData(response);
+		storageBinService.downloadAllData(response);
 		return ResponseEntity.ok().body("Excel file exported successfully");
 	}
 
 	@GetMapping(value = "/pdfStorageBinReport", produces = MediaType.APPLICATION_PDF_VALUE)
 	public ResponseEntity<byte[]> generateReport() {
-		List<StorageBin> bin = storageLocationBinService.findAll();
-		List<Map<String, Object>> data = storageLocationBinService.convertBinListToMap(bin);
-		byte[] pdfContents = generatePdfReport.generateGenericPdfReport(data, "StorageLocationBinReport.pdf");
+		List<StorageBin> bin = storageBinService.findAll();
+		List<Map<String, Object>> data = storageBinService.convertBinListToMap(bin);
+		byte[] pdfContents = generatePdfReport.generateGenericPdfReport(data, "StorageBinReport.pdf");
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.parseMediaType(MediaType.APPLICATION_PDF_VALUE));
-		headers.setContentDispositionFormData("attachment", "StorageLocationBinReport.pdf");
+		headers.setContentDispositionFormData("attachment", "StorageBinReport.pdf");
 		return ResponseEntity.ok().headers(headers).body(pdfContents);
 	}
 

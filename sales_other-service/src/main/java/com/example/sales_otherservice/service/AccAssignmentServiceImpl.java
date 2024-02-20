@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.AccAssignmentRequest;
 import com.example.sales_otherservice.dto.response.AccAssignmentResponse;
 import com.example.sales_otherservice.entity.AccAssignment;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
 import com.example.sales_otherservice.repository.AccAssignmentRepository;
@@ -30,6 +32,7 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	@Override
 	public AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(accAssignmentRequest);
 		String accCode = accAssignmentRequest.getAccCode();
 		String accName = accAssignmentRequest.getAccName();
 		boolean exists = accAssignmentRepository.existsByAccCodeOrAccName(accCode, accName);
@@ -75,21 +78,39 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	public AccAssignmentResponse updateAcc(Long id, AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateAccAssignmentRequest);
 		AccAssignment existingAssignment = this.findAccById(id);
 		String accCode = updateAccAssignmentRequest.getAccCode();
 		String accName = updateAccAssignmentRequest.getAccName();
 		boolean exists = accAssignmentRepository.existsByAccCodeAndIdNotOrAccNameAndIdNot(accCode, id, accName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateAccAssignmentRequest, existingAssignment);
-			for (Map.Entry<String, Object> entryField : existingAssignment.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = AccAssignment.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingAssignment.getAccCode().equals(accCode)) {
+				auditFields.add(new AuditFields(null, "Acc Code", existingAssignment.getAccCode(), accCode));
+				existingAssignment.setAccCode(accCode);
+			}
+			if (!existingAssignment.getAccName().equals(accName)) {
+				auditFields.add(new AuditFields(null, "Acc Name", existingAssignment.getAccName(), accName));
+				existingAssignment.setAccName(accName);
+			}
+			if (!existingAssignment.getAccStatus().equals(updateAccAssignmentRequest.getAccStatus())) {
+				auditFields.add(new AuditFields(null, "Acc Status", existingAssignment.getAccStatus(),
+						updateAccAssignmentRequest.getAccStatus()));
+				existingAssignment.setAccStatus(updateAccAssignmentRequest.getAccStatus());
+			}
+			if (!existingAssignment.getDynamicFields().equals(updateAccAssignmentRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateAccAssignmentRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingAssignment.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingAssignment.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+
 			AccAssignment updatedAssignment = accAssignmentRepository.save(existingAssignment);
 			return mapToAccAssignmentResponse(updatedAssignment);
 		}
@@ -98,16 +119,32 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 
 	@Override
 	public AccAssignmentResponse updateAccStatus(Long id) throws ResourceNotFoundException {
-		AccAssignment accAssignment = this.findAccById(id);
-		accAssignment.setAccStatus(!accAssignment.getAccStatus());
-		accAssignmentRepository.save(accAssignment);
-		return mapToAccAssignmentResponse(accAssignment);
+		AccAssignment existingAccAssignment = this.findAccById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingAccAssignment.getAccStatus() != null) {
+			auditFields.add(new AuditFields(null, "Acc Status", existingAccAssignment.getAccStatus(),
+					!existingAccAssignment.getAccStatus()));
+			existingAccAssignment.setAccStatus(!existingAccAssignment.getAccStatus());
+		}
+		existingAccAssignment.updateAuditHistory(auditFields);
+		accAssignmentRepository.save(existingAccAssignment);
+		return mapToAccAssignmentResponse(existingAccAssignment);
 	}
 
 	@Override
 	public List<AccAssignmentResponse> updateBatchAccStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<AccAssignment> accAssignments = this.findAllAccById(ids);
-		accAssignments.forEach(accAssignment -> accAssignment.setAccStatus(!accAssignment.getAccStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		accAssignments.forEach(existingAccAssignment -> {
+			if (existingAccAssignment.getAccStatus() != null) {
+				auditFields.add(new AuditFields(null, "Acc Status", existingAccAssignment.getAccStatus(),
+						!existingAccAssignment.getAccStatus()));
+				existingAccAssignment.setAccStatus(!existingAccAssignment.getAccStatus());
+			}
+			existingAccAssignment.updateAuditHistory(auditFields);
+		});
 		accAssignmentRepository.saveAll(accAssignments);
 		return accAssignments.stream().sorted(Comparator.comparing(AccAssignment::getId))
 				.map(this::mapToAccAssignmentResponse).toList();

@@ -24,6 +24,7 @@ import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryAttributeResponse;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
+import com.example.createtemplateservice.jpa.entity.AuditFields;
 import com.example.createtemplateservice.jpa.entity.Dictionary;
 import com.example.createtemplateservice.jpa.entity.DictionaryAttribute;
 import com.example.createtemplateservice.jpa.repository.DictionaryAttributeRepository;
@@ -50,6 +51,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 	@Transactional
 	public DictionaryResponse saveDictionary(DictionaryRequest dictionaryRequest, MultipartFile file)
 			throws ResourceFoundException {
+		Helpers.inputTitleCase(dictionaryRequest);
 		String noun = dictionaryRequest.getNoun();
 		String modifier = dictionaryRequest.getModifier();
 
@@ -128,24 +130,72 @@ public class DictionaryServiceImpl implements DictionaryService {
 	public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateDictionaryRequest);
 		String noun = updateDictionaryRequest.getNoun();
 		String modifier = updateDictionaryRequest.getModifier();
 		boolean exist = dictionaryRepository.existsByNounAndModifierAndIdNot(noun, modifier, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exist) {
 			Dictionary existingDictionary = findDictionaryById(id);
-			modelMapper.map(updateDictionaryRequest, existingDictionary);
-			existingDictionary.setId(id);
+
+			if (!existingDictionary.getNoun().equals(noun)) {
+				auditFields.add(new AuditFields(null, "Noun", existingDictionary.getNoun(), noun));
+				existingDictionary.setNoun(noun);
+			}
+			if (!existingDictionary.getNounSynonyms().equals(updateDictionaryRequest.getNounSynonyms())) {
+				auditFields.add(new AuditFields(null, "Noun Synonyms", existingDictionary.getNounSynonyms(),
+						updateDictionaryRequest.getNounSynonyms()));
+				existingDictionary.setNounSynonyms(updateDictionaryRequest.getNounSynonyms());
+			}
+			if (!existingDictionary.getNmAbbreviation().equals(updateDictionaryRequest.getNmAbbreviation())) {
+				auditFields.add(new AuditFields(null, "Noun Modifier Abbreviation",
+						existingDictionary.getNmAbbreviation(), updateDictionaryRequest.getNmAbbreviation()));
+				existingDictionary.setNmAbbreviation(updateDictionaryRequest.getNmAbbreviation());
+			}
+			if (!existingDictionary.getModifier().equals(modifier)) {
+				auditFields.add(new AuditFields(null, "Modifier", existingDictionary.getModifier(), modifier));
+				existingDictionary.setModifier(modifier);
+			}
+			if (!existingDictionary.getModifierSynonyms().equals(updateDictionaryRequest.getModifierSynonyms())) {
+				auditFields.add(new AuditFields(null, "Modifier Synonyms", existingDictionary.getModifierSynonyms(),
+						updateDictionaryRequest.getModifierSynonyms()));
+				existingDictionary.setModifierSynonyms(updateDictionaryRequest.getModifierSynonyms());
+			}
+			if (!existingDictionary.getNmDefinition().equals(updateDictionaryRequest.getNmDefinition())) {
+				auditFields.add(new AuditFields(null, "Noun Modifier Definition", existingDictionary.getNmDefinition(),
+						updateDictionaryRequest.getNmDefinition()));
+				existingDictionary.setNmDefinition(updateDictionaryRequest.getNmDefinition());
+			}
+			if (!existingDictionary.getType().equals(updateDictionaryRequest.getType())) {
+				auditFields.add(
+						new AuditFields(null, "Type", existingDictionary.getType(), updateDictionaryRequest.getType()));
+				existingDictionary.setType(updateDictionaryRequest.getType());
+			}
+			if (!existingDictionary.getSimilarSearchItems().equals(updateDictionaryRequest.getSimilarSearchItems())) {
+				auditFields.add(new AuditFields(null, "Similar Search Items",
+						existingDictionary.getSimilarSearchItems(), updateDictionaryRequest.getSimilarSearchItems()));
+				existingDictionary.setSimilarSearchItems(updateDictionaryRequest.getSimilarSearchItems());
+			}
+			if (!existingDictionary.getNmUoms().equals(updateDictionaryRequest.getNmUoms())) {
+				auditFields.add(new AuditFields(null, "Noun Modifier Uoms", existingDictionary.getNmUoms(),
+						updateDictionaryRequest.getNmUoms()));
+				existingDictionary.setNmUoms(updateDictionaryRequest.getNmUoms());
+			}
 			String existingFile = existingDictionary.getImage();
-			fileUploadUtil.deleteFile(existingFile, id);
-			String newFile = fileUploadUtil.storeFile(file, id);
-			existingDictionary.setImage(newFile);
+			if (!existingFile.equals(updateDictionaryRequest.getImage())) {
+				auditFields.add(new AuditFields(null, "Image", existingFile, updateDictionaryRequest.getImage()));
+				fileUploadUtil.deleteFile(existingFile, id);
+				String newFile = fileUploadUtil.storeFile(file, id);
+				existingDictionary.setImage(newFile);
+			}
+			existingDictionary.updateAuditHistory(auditFields);
 			Dictionary updatedDictionary = dictionaryRepository.save(existingDictionary);
 			// Set the parent reference in each child entity
 			List<DictionaryAttribute> attributes = existingDictionary.getAttributes();
-			if (attributes != null && !attributes.isEmpty()) {
-				for (DictionaryAttribute attribute : attributes) {
-					attribute.setDictionary(updatedDictionary);
-				}
+			if (!attributes.equals(updateDictionaryRequest.getAttributes())) {
+				auditFields.add(new AuditFields(null, "Attributes", attributes, updatedDictionary.getAttributes()));
+				attributes.forEach(attribute -> attribute.setDictionary(updatedDictionary));
 				// Save the child entities (DictionaryAttribute)
 				List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
 				updatedDictionary.setAttributes(savedAttributes);

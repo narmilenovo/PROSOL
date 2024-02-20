@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.TaxClassificationTypeRequest;
 import com.example.sales_otherservice.dto.response.TaxClassificationTypeResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.TaxClassificationType;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 	@Override
 	public TaxClassificationTypeResponse saveTct(TaxClassificationTypeRequest taxClassificationClassRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(taxClassificationClassRequest);
 		String tctCode = taxClassificationClassRequest.getTctCode();
 		String tctName = taxClassificationClassRequest.getTctName();
 		boolean exists = taxClassificationTypeRepository.existsByTctCodeOrTctName(tctCode, tctName);
@@ -77,22 +80,43 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 			TaxClassificationTypeRequest updateTaxClassificationTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateTaxClassificationTypeRequest);
 		String tctCode = updateTaxClassificationTypeRequest.getTctCode();
 		String tctName = updateTaxClassificationTypeRequest.getTctName();
 		TaxClassificationType existingClassificationType = this.findTctById(id);
 		boolean exists = taxClassificationTypeRepository.existsByTctCodeAndIdNotOrTctNameAndIdNot(tctCode, id, tctName,
 				id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateTaxClassificationTypeRequest, existingClassificationType);
-			for (Map.Entry<String, Object> entryField : existingClassificationType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = TaxClassificationType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingClassificationType.getTctCode().equals(tctCode)) {
+				auditFields.add(new AuditFields(null, "Tct Code", existingClassificationType.getTctCode(), tctCode));
+				existingClassificationType.setTctCode(tctCode);
+			}
+			if (!existingClassificationType.getTctName().equals(tctName)) {
+				auditFields.add(new AuditFields(null, "Tct Name", existingClassificationType.getTctName(), tctName));
+				existingClassificationType.setTctName(tctName);
+			}
+			if (!existingClassificationType.getTctStatus().equals(updateTaxClassificationTypeRequest.getTctStatus())) {
+				auditFields.add(new AuditFields(null, "Tct Status", existingClassificationType.getTctStatus(),
+						updateTaxClassificationTypeRequest.getTctStatus()));
+				existingClassificationType.setTctStatus(updateTaxClassificationTypeRequest.getTctStatus());
+			}
+			if (!existingClassificationType.getDynamicFields()
+					.equals(updateTaxClassificationTypeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateTaxClassificationTypeRequest.getDynamicFields()
+						.entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingClassificationType.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingClassificationType.getDynamicFields().put(fieldName, newValue); // Update the dynamic
+																								// field
+					}
 				}
 			}
+			existingClassificationType.updateAuditHistory(auditFields);
 			TaxClassificationType updateClassificationType = taxClassificationTypeRepository
 					.save(existingClassificationType);
 			return mapToTaxClassificationClassResponse(updateClassificationType);
@@ -102,16 +126,33 @@ public class TaxClassificationTypeServiceImpl implements TaxClassificationTypeSe
 
 	@Override
 	public TaxClassificationTypeResponse updateTctStatus(Long id) throws ResourceNotFoundException {
-		TaxClassificationType classificationType = this.findTctById(id);
-		classificationType.setTctStatus(!classificationType.getTctStatus());
-		taxClassificationTypeRepository.save(classificationType);
-		return mapToTaxClassificationClassResponse(classificationType);
+		TaxClassificationType existingClassificationType = this.findTctById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingClassificationType.getTctStatus() != null) {
+			auditFields.add(new AuditFields(null, "Tct Status", existingClassificationType.getTctStatus(),
+					!existingClassificationType.getTctStatus()));
+			existingClassificationType.setTctStatus(!existingClassificationType.getTctStatus());
+		}
+		existingClassificationType.updateAuditHistory(auditFields);
+		taxClassificationTypeRepository.save(existingClassificationType);
+		return mapToTaxClassificationClassResponse(existingClassificationType);
 	}
 
 	@Override
 	public List<TaxClassificationTypeResponse> updateBatchTctStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<TaxClassificationType> types = this.findAllTctById(ids);
-		types.forEach(type -> type.setTctStatus(!type.getTctStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		types.forEach(existingClassificationType -> {
+			if (existingClassificationType.getTctStatus() != null) {
+				auditFields.add(new AuditFields(null, "Tct Status", existingClassificationType.getTctStatus(),
+						!existingClassificationType.getTctStatus()));
+				existingClassificationType.setTctStatus(!existingClassificationType.getTctStatus());
+			}
+			existingClassificationType.updateAuditHistory(auditFields);
+
+		});
 		taxClassificationTypeRepository.saveAll(types);
 		return types.stream().map(this::mapToTaxClassificationClassResponse).toList();
 	}

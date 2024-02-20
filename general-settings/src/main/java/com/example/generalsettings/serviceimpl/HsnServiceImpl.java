@@ -1,5 +1,6 @@
 package com.example.generalsettings.serviceimpl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -7,6 +8,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.Hsn;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
@@ -28,7 +30,7 @@ public class HsnServiceImpl implements HsnService {
 
 	@Override
 	public HsnResponse saveHsn(HsnRequest hsnRequest) throws AlreadyExistsException {
-
+		Helpers.inputTitleCase(hsnRequest);
 		boolean exists = hsnRepo.existsByHsnCodeAndHsnDesc(hsnRequest.getHsnCode(), hsnRequest.getHsnDesc());
 		if (!exists) {
 			Hsn hsn = modelMapper.map(hsnRequest, Hsn.class);
@@ -55,12 +57,28 @@ public class HsnServiceImpl implements HsnService {
 	public HsnResponse updateHsn(Long id, HsnRequest hsnRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String name = hsnRequest.getHsnDesc();
+		Helpers.inputTitleCase(hsnRequest);
+		String description = hsnRequest.getHsnDesc();
 		String code = hsnRequest.getHsnCode();
-		boolean exists = hsnRepo.existsByHsnCodeAndHsnDescAndIdNot(code, name, id);
+		boolean exists = hsnRepo.existsByHsnCodeAndHsnDescAndIdNot(code, description, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			Hsn existingHsn = this.findHsnById(id);
-			modelMapper.map(hsnRequest, existingHsn);
+			if (!existingHsn.getHsnCode().equals(code)) {
+				auditFields.add(new AuditFields(null, "Hsn Code", existingHsn.getHsnCode(), code));
+				existingHsn.setHsnCode(code);
+			}
+			if (!existingHsn.getHsnDesc().equals(description)) {
+				auditFields.add(new AuditFields(null, "Hsn Description", existingHsn.getHsnDesc(), description));
+				existingHsn.setHsnDesc(description);
+			}
+			if (!existingHsn.getHsnStatus().equals(hsnRequest.getHsnStatus())) {
+				auditFields.add(
+						new AuditFields(null, "Hsn Status", existingHsn.getHsnStatus(), hsnRequest.getHsnStatus()));
+				existingHsn.setHsnStatus(hsnRequest.getHsnStatus());
+			}
+			existingHsn.updateAuditHistory(auditFields);
 			hsnRepo.save(existingHsn);
 			return mapToHsnResponse(existingHsn);
 		} else {
@@ -70,18 +88,33 @@ public class HsnServiceImpl implements HsnService {
 
 	@Override
 	public List<HsnResponse> updateBulkStatusHsnId(List<Long> id) throws ResourceNotFoundException {
-		List<Hsn> existingHsn = this.findAllHsnById(id);
-		for (Hsn hsn : existingHsn) {
-			hsn.setHsnStatus(!hsn.getHsnStatus());
-		}
-		hsnRepo.saveAll(existingHsn);
-		return existingHsn.stream().map(this::mapToHsnResponse).toList();
+		List<Hsn> existingHsnList = this.findAllHsnById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingHsnList.forEach(existingHsn -> {
+			if (existingHsn.getHsnStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "Hsn Status", existingHsn.getHsnStatus(), !existingHsn.getHsnStatus()));
+				existingHsn.setHsnStatus(!existingHsn.getHsnStatus());
+			}
+			existingHsn.updateAuditHistory(auditFields);
+
+		});
+		hsnRepo.saveAll(existingHsnList);
+		return existingHsnList.stream().map(this::mapToHsnResponse).toList();
 	}
 
 	@Override
 	public HsnResponse updateStatusUsingHsnId(Long id) throws ResourceNotFoundException {
 		Hsn existingHsn = this.findHsnById(id);
-		existingHsn.setHsnStatus(!existingHsn.getHsnStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingHsn.getHsnStatus() != null) {
+			auditFields
+					.add(new AuditFields(null, "Hsn Status", existingHsn.getHsnStatus(), !existingHsn.getHsnStatus()));
+			existingHsn.setHsnStatus(!existingHsn.getHsnStatus());
+		}
+		existingHsn.updateAuditHistory(auditFields);
 		hsnRepo.save(existingHsn);
 		return mapToHsnResponse(existingHsn);
 	}
@@ -115,8 +148,7 @@ public class HsnServiceImpl implements HsnService {
 		Helpers.validateIds(ids);
 		List<Hsn> hsns = hsnRepo.findAllById(ids);
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> hsns.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> hsns.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {

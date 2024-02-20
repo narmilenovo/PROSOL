@@ -1,6 +1,7 @@
 package com.example.valueservice.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import com.example.valueservice.client.GeneralSetting.AttributeUom;
 import com.example.valueservice.client.GeneralSetting.SettingClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
+import com.example.valueservice.entity.AuditFields;
 import com.example.valueservice.entity.ValueMaster;
 import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
@@ -56,6 +58,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 	@Override
 	public ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) throws ResourceNotFoundException {
+		Helpers.inputTitleCase(valueMasterRequest);
 		ValueMaster valueMaster = modelMapper.map(valueMasterRequest, ValueMaster.class);
 		for (Map.Entry<String, Object> entryField : valueMaster.getDynamicFields().entrySet()) {
 			String fieldName = entryField.getKey();
@@ -111,18 +114,53 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 			throws ResourceNotFoundException {
 		try {
 			Helpers.validateId(id);
+			Helpers.inputTitleCase(updateValueMasterRequest);
+			// Find properties that have changed
+			List<AuditFields> auditFields = new ArrayList<>();
+
 			ValueMaster existingValueMaster = findValueById(id);
-			modelMapper.map(updateValueMasterRequest, existingValueMaster);
-			for (Map.Entry<String, Object> entryField : existingValueMaster.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ValueMaster.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingValueMaster.getValue().equals(updateValueMasterRequest.getValue())) {
+				auditFields.add(new AuditFields(null, "Value", existingValueMaster.getValue(),
+						updateValueMasterRequest.getValue()));
+				existingValueMaster.setValue(updateValueMasterRequest.getValue());
+			}
+			if (!existingValueMaster.getAbbreviation().equals(updateValueMasterRequest.getAbbreviation())) {
+				auditFields.add(new AuditFields(null, "Abbreviation", existingValueMaster.getAbbreviation(),
+						updateValueMasterRequest.getAbbreviation()));
+				existingValueMaster.setAbbreviation(updateValueMasterRequest.getAbbreviation());
+			}
+			if (!existingValueMaster.getAbbreviationUnit().equals(updateValueMasterRequest.getAbbreviationUnit())) {
+				auditFields.add(new AuditFields(null, "Abbreviation Unit", existingValueMaster.getAbbreviationUnit(),
+						updateValueMasterRequest.getAbbreviationUnit()));
+				existingValueMaster.setAbbreviationUnit(updateValueMasterRequest.getAbbreviationUnit());
+			}
+			if (!existingValueMaster.getEquivalent().equals(updateValueMasterRequest.getEquivalent())) {
+				auditFields.add(new AuditFields(null, "Equivalent", existingValueMaster.getEquivalent(),
+						updateValueMasterRequest.getEquivalent()));
+				existingValueMaster.setEquivalent(updateValueMasterRequest.getEquivalent());
+			}
+			if (!existingValueMaster.getEquivalentUnit().equals(updateValueMasterRequest.getEquivalentUnit())) {
+				auditFields.add(new AuditFields(null, "Equivalent Unit", existingValueMaster.getEquivalent(),
+						updateValueMasterRequest.getEquivalentUnit()));
+				existingValueMaster.setEquivalentUnit(updateValueMasterRequest.getEquivalentUnit());
+			}
+			if (!existingValueMaster.getLikelyWords().equals(updateValueMasterRequest.getLikelyWords())) {
+				auditFields.add(new AuditFields(null, "Likely Words", existingValueMaster.getLikelyWords(),
+						updateValueMasterRequest.getLikelyWords()));
+				existingValueMaster.setLikelyWords(updateValueMasterRequest.getLikelyWords());
+			}
+			if (!existingValueMaster.getDynamicFields().equals(updateValueMasterRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateValueMasterRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingValueMaster.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingValueMaster.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingValueMaster.setId(id);
+			existingValueMaster.updateAuditHistory(auditFields);
 			ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
 			log.info("Update Data from Db {}", updatedValueMaster);
 			return mapToValueMasterResponse(updatedValueMaster);
@@ -164,7 +202,10 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 				ValueMasterRequest.class);
 		List<ValueMaster> valueMasters = modelMapper.map(fromExcel, new TypeToken<List<ValueMaster>>() {
 		}.getType());
-		valueMasters.forEach(valueMaster -> valueMaster.setId(null));
+		valueMasters.forEach(valueMaster -> {
+			Helpers.inputTitleCase(valueMaster);
+			valueMaster.setId(null);
+		});
 		valueMasterRepository.saveAll(valueMasters);
 	}
 
@@ -181,9 +222,8 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	@Override
-	public void exportPdf(HttpServletResponse response)
-			throws IOException, IllegalAccessException, ExcelFileException, DocumentException,
-			ResourceNotFoundException {
+	public void exportPdf(HttpServletResponse response) throws IOException, IllegalAccessException, ExcelFileException,
+			DocumentException, ResourceNotFoundException {
 		String headerName = "list Of values";
 		Class<?> clazz = ValueMasterResponse.class;
 		String contentType = "application/pdf";
@@ -211,8 +251,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 		Helpers.validateIds(ids);
 		List<ValueMaster> valueMasters = valueMasterRepository.findAllById(ids);
 		List<Long> missingIds = ids.stream()
-				.filter(id -> valueMasters.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.toList();
+				.filter(id -> valueMasters.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("AttributeMaster with IDs " + missingIds + " not found.");

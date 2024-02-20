@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.DepartmentRequest;
 import com.example.plantservice.dto.response.DepartmentResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.Department;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -30,17 +31,17 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
-	private static final String DEPARTMENT_NOT_FOUND_MESSAGE = null;
 
 	private final DepartmentRepo departmentRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper = new ModelMapper();
+	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public DepartmentResponse saveDepartment(DepartmentRequest departmentRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = departmentRepo.existsByDepartmentName(departmentRequest.getDepartmentName());
+		String departmentName = Helpers.capitalize(departmentRequest.getDepartmentName());
+		boolean exists = departmentRepo.existsByDepartmentName(departmentName);
 		if (!exists) {
 			Department department = modelMapper.map(departmentRequest, Department.class);
 			for (Map.Entry<String, Object> entryField : department.getDynamicFields().entrySet()) {
@@ -68,29 +69,42 @@ public class DepartmentServiceImpl implements DepartmentService {
 	@Override
 	public List<DepartmentResponse> getAllDepartments() throws ResourceNotFoundException {
 		List<Department> departments = this.findAll();
-		return departments.stream()
-				.map(this::mapToDepartmentResponse)
-				.collect(Collectors.toList());
+		return departments.stream().map(this::mapToDepartmentResponse).collect(Collectors.toList());
 	}
 
 	@Override
 	public DepartmentResponse updateDepartment(Long id, DepartmentRequest departmentRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String departmentName = departmentRequest.getDepartmentName();
+		String departmentName = Helpers.capitalize(departmentRequest.getDepartmentName());
 		boolean exists = departmentRepo.existsByDepartmentNameAndIdNot(departmentName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			Department existingDepartment = this.findDepartmentById(id);
-			modelMapper.map(departmentRequest, existingDepartment);
-			for (Map.Entry<String, Object> entryField : existingDepartment.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Department.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingDepartment.getDepartmentName().equals(departmentName)) {
+				auditFields.add(new AuditFields(null, "Department Name", existingDepartment.getDepartmentName(),
+						departmentName));
+				existingDepartment.setDepartmentName(departmentName);
+			}
+
+			if (!existingDepartment.getDepartmentStatus().equals(departmentRequest.getDepartmentStatus())) {
+				auditFields.add(new AuditFields(null, "Department Status", existingDepartment.getDepartmentStatus(),
+						departmentRequest.getDepartmentStatus()));
+				existingDepartment.setDepartmentStatus(departmentRequest.getDepartmentStatus());
+			}
+			if (!existingDepartment.getDynamicFields().equals(departmentRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : departmentRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingDepartment.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingDepartment.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingDepartment.updateAuditHistory(auditFields);
 			departmentRepo.save(existingDepartment);
 			return mapToDepartmentResponse(existingDepartment);
 		} else {
@@ -100,20 +114,34 @@ public class DepartmentServiceImpl implements DepartmentService {
 
 	@Override
 	public DepartmentResponse updateStatusUsingDepartmentId(Long id) throws ResourceNotFoundException {
-		Department existingPlant = this.findDepartmentById(id);
-		existingPlant.setDepartmentStatus(!existingPlant.getDepartmentStatus());
-		departmentRepo.save(existingPlant);
-		return mapToDepartmentResponse(existingPlant);
+		Department existingDepartment = this.findDepartmentById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingDepartment.getDepartmentStatus() != null) {
+			auditFields.add(new AuditFields(null, "Department Status", existingDepartment.getDepartmentStatus(),
+					!existingDepartment.getDepartmentStatus()));
+			existingDepartment.setDepartmentStatus(!existingDepartment.getDepartmentStatus());
+		}
+		existingDepartment.updateAuditHistory(auditFields);
+		departmentRepo.save(existingDepartment);
+		return mapToDepartmentResponse(existingDepartment);
 	}
 
 	@Override
 	public List<DepartmentResponse> updateBulkStatusDepartmentId(List<Long> ids) throws ResourceNotFoundException {
-		List<Department> existingDepartment = this.findAllById(ids);
-		for (Department department : existingDepartment) {
-			department.setDepartmentStatus(!department.getDepartmentStatus());
-		}
-		departmentRepo.saveAll(existingDepartment);
-		return existingDepartment.stream().map(this::mapToDepartmentResponse).toList();
+		List<Department> existingDepartments = this.findAllById(ids);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingDepartments.forEach(existingDepartment -> {
+			if (existingDepartment.getDepartmentStatus() != null) {
+				auditFields.add(new AuditFields(null, "Department Status", existingDepartment.getDepartmentStatus(),
+						!existingDepartment.getDepartmentStatus()));
+				existingDepartment.setDepartmentStatus(!existingDepartment.getDepartmentStatus());
+			}
+			existingDepartment.updateAuditHistory(auditFields);
+		});
+		departmentRepo.saveAll(existingDepartments);
+		return existingDepartments.stream().map(this::mapToDepartmentResponse).toList();
 	}
 
 	public void deleteDepartment(Long id) throws ResourceNotFoundException {
@@ -135,7 +163,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 		Helpers.validateId(id);
 		Optional<Department> department = departmentRepo.findById(id);
 		if (department.isEmpty()) {
-			throw new ResourceNotFoundException(DEPARTMENT_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Department with ID " + id + " not found");
 		}
 		return department.get();
 	}

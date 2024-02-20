@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.AvailCheck;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -35,11 +36,10 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String AVAIL_CHECK_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public AvailCheckResponse saveAvailCheck(AvailCheckRequest availCheckRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(availCheckRequest);
 		boolean exists = availCheckRepo.existsByAvailCheckCodeAndAvailCheckName(availCheckRequest.getAvailCheckCode(),
 				availCheckRequest.getAvailCheckName());
 		if (!exists) {
@@ -83,21 +83,41 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 	public AvailCheckResponse updateAvailCheck(Long id, AvailCheckRequest availCheckRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = availCheckRequest.getAvailCheckName();
+		Helpers.inputTitleCase(availCheckRequest);
+		String existName = availCheckRequest.getAvailCheckName();
 		String existCode = availCheckRequest.getAvailCheckCode();
-		boolean exists = availCheckRepo.existsByAvailCheckCodeAndAvailCheckNameAndIdNot(existCode, exist, id);
+		boolean exists = availCheckRepo.existsByAvailCheckCodeAndAvailCheckNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			AvailCheck existingAvailCheck = this.findAvailCheckById(id);
-			modelMapper.map(availCheckRequest, existingAvailCheck);
-			for (Map.Entry<String, Object> entryField : existingAvailCheck.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = AvailCheck.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingAvailCheck.getAvailCheckCode().equals(existCode)) {
+				auditFields.add(
+						new AuditFields(null, "AvailCheck Code", existingAvailCheck.getAvailCheckCode(), existCode));
+				existingAvailCheck.setAvailCheckCode(existCode);
+			}
+			if (!existingAvailCheck.getAvailCheckName().equals(existName)) {
+				auditFields.add(
+						new AuditFields(null, "AvailCheck Name", existingAvailCheck.getAvailCheckCode(), existName));
+				existingAvailCheck.setAvailCheckName(existName);
+			}
+			if (!existingAvailCheck.getAvailCheckStatus().equals(availCheckRequest.getAvailCheckStatus())) {
+				auditFields.add(new AuditFields(null, "AvailCheck Status", existingAvailCheck.getAvailCheckStatus(),
+						availCheckRequest.getAvailCheckStatus()));
+				existingAvailCheck.setAvailCheckStatus(availCheckRequest.getAvailCheckStatus());
+			}
+			if (!existingAvailCheck.getDynamicFields().equals(availCheckRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : availCheckRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingAvailCheck.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingAvailCheck.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingAvailCheck.updateAuditHistory(auditFields);
 			availCheckRepo.save(existingAvailCheck);
 			return mapToAvailCheckResponse(existingAvailCheck);
 		} else {
@@ -107,18 +127,32 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 
 	@Override
 	public List<AvailCheckResponse> updateBulkStatusAvailCheckId(List<Long> id) throws ResourceNotFoundException {
-		List<AvailCheck> existingAvailCheck = this.findAllAvailCheckById(id);
-		for (AvailCheck availCheck : existingAvailCheck) {
-			availCheck.setAvailCheckStatus(!availCheck.getAvailCheckStatus());
-		}
-		availCheckRepo.saveAll(existingAvailCheck);
-		return existingAvailCheck.stream().map(this::mapToAvailCheckResponse).toList();
+		List<AvailCheck> existingAvailChecks = this.findAllAvailCheckById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingAvailChecks.forEach(existingAvailCheck -> {
+			if (existingAvailCheck.getAvailCheckStatus() != null) {
+				auditFields.add(new AuditFields(null, "AvailCheck Status", existingAvailCheck.getAvailCheckStatus(),
+						!existingAvailCheck.getAvailCheckStatus()));
+				existingAvailCheck.setAvailCheckStatus(!existingAvailCheck.getAvailCheckStatus());
+			}
+			existingAvailCheck.updateAuditHistory(auditFields);
+		});
+		availCheckRepo.saveAll(existingAvailChecks);
+		return existingAvailChecks.stream().map(this::mapToAvailCheckResponse).toList();
 	}
 
 	@Override
 	public AvailCheckResponse updateStatusUsingAvailCheckId(Long id) throws ResourceNotFoundException {
 		AvailCheck existingAvailCheck = this.findAvailCheckById(id);
-		existingAvailCheck.setAvailCheckStatus(!existingAvailCheck.getAvailCheckStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingAvailCheck.getAvailCheckStatus() != null) {
+			auditFields.add(new AuditFields(null, "AvailCheck Status", existingAvailCheck.getAvailCheckStatus(),
+					!existingAvailCheck.getAvailCheckStatus()));
+			existingAvailCheck.setAvailCheckStatus(!existingAvailCheck.getAvailCheckStatus());
+		}
+		existingAvailCheck.updateAuditHistory(auditFields);
 		availCheckRepo.save(existingAvailCheck);
 		return mapToAvailCheckResponse(existingAvailCheck);
 	}
@@ -192,7 +226,7 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 		Helpers.validateId(id);
 		Optional<AvailCheck> availCheck = availCheckRepo.findById(id);
 		if (availCheck.isEmpty()) {
-			throw new ResourceNotFoundException(AVAIL_CHECK_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Avail Check with ID " + id + " not found");
 		}
 		return availCheck.get();
 	}

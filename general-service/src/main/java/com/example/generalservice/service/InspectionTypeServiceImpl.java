@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.InspectionTypeRequest;
 import com.example.generalservice.dto.response.InspectionTypeResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.InspectionType;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	@Override
 	public InspectionTypeResponse saveInType(InspectionTypeRequest inspectionTypeRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(inspectionTypeRequest);
 		String inTypeCode = inspectionTypeRequest.getInTypeCode();
 		String inTypeName = inspectionTypeRequest.getInTypeName();
 		boolean exists = inspectionTypeRepository.existsByInTypeCodeOrInTypeName(inTypeCode, inTypeName);
@@ -80,22 +83,42 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	public InspectionTypeResponse updateInType(Long id, InspectionTypeRequest updateInspectionTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateInspectionTypeRequest);
 		String inTypeCode = updateInspectionTypeRequest.getInTypeCode();
 		String inTypeName = updateInspectionTypeRequest.getInTypeName();
 		InspectionType existingInspectionType = this.findInTypeById(id);
 		boolean exists = inspectionTypeRepository.existsByInTypeCodeAndIdNotOrInTypeNameAndIdNot(inTypeCode, id,
 				inTypeName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateInspectionTypeRequest, existingInspectionType);
-			for (Map.Entry<String, Object> entryField : existingInspectionType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = InspectionType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingInspectionType.getInTypeCode().equals(inTypeCode)) {
+				auditFields
+						.add(new AuditFields(null, "InType Code", existingInspectionType.getInTypeCode(), inTypeCode));
+				existingInspectionType.setInTypeCode(inTypeCode);
+			}
+			if (!existingInspectionType.getInTypeName().equals(inTypeName)) {
+				auditFields
+						.add(new AuditFields(null, "InType Name", existingInspectionType.getInTypeName(), inTypeName));
+				existingInspectionType.setInTypeName(inTypeName);
+			}
+			if (!existingInspectionType.getInTypeStatus().equals(updateInspectionTypeRequest.getInTypeStatus())) {
+				auditFields.add(new AuditFields(null, "InType Status", existingInspectionType.getInTypeStatus(),
+						updateInspectionTypeRequest.getInTypeStatus()));
+				existingInspectionType.setInTypeStatus(updateInspectionTypeRequest.getInTypeStatus());
+			}
+			if (!existingInspectionType.getDynamicFields().equals(updateInspectionTypeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateInspectionTypeRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingInspectionType.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingInspectionType.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingInspectionType.updateAuditHistory(auditFields);
 			InspectionType updatedInspectionType = inspectionTypeRepository.save(existingInspectionType);
 			return mapToInspectionTypeResponse(updatedInspectionType);
 		}
@@ -104,16 +127,33 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 
 	@Override
 	public InspectionTypeResponse updateInTypeStatus(Long id) throws ResourceNotFoundException {
-		InspectionType inspectionType = this.findInTypeById(id);
-		inspectionType.setInTypeStatus(!inspectionType.getInTypeStatus());
-		inspectionTypeRepository.save(inspectionType);
-		return this.mapToInspectionTypeResponse(inspectionType);
+		InspectionType existingInspectionType = this.findInTypeById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingInspectionType.getInTypeStatus() != null) {
+			auditFields.add(new AuditFields(null, "InType Status", existingInspectionType.getInTypeStatus(),
+					!existingInspectionType.getInTypeStatus()));
+			existingInspectionType.setInTypeStatus(!existingInspectionType.getInTypeStatus());
+		}
+		existingInspectionType.updateAuditHistory(auditFields);
+		inspectionTypeRepository.save(existingInspectionType);
+		return this.mapToInspectionTypeResponse(existingInspectionType);
 	}
 
 	@Override
 	public List<InspectionTypeResponse> updateBatchInTypeStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<InspectionType> inspectionTypes = this.findAllById(ids);
-		inspectionTypes.forEach(inspectionType -> inspectionType.setInTypeStatus(!inspectionType.getInTypeStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		inspectionTypes.forEach(existingInspectionType -> {
+			if (existingInspectionType.getInTypeStatus() != null) {
+				auditFields.add(new AuditFields(null, "InType Status", existingInspectionType.getInTypeStatus(),
+						!existingInspectionType.getInTypeStatus()));
+				existingInspectionType.setInTypeStatus(!existingInspectionType.getInTypeStatus());
+			}
+			existingInspectionType.updateAuditHistory(auditFields);
+
+		});
 		inspectionTypeRepository.saveAll(inspectionTypes);
 		return inspectionTypes.stream().map(this::mapToInspectionTypeResponse).toList();
 	}

@@ -1,8 +1,11 @@
 package com.example.user_management.dto.response;
 
-import lombok.Data;
-
 import java.util.Date;
+import java.util.List;
+
+import com.example.user_management.entity.UpdateAuditHistory;
+
+import lombok.Data;
 
 @Data
 public class PrivilegeResponse {
@@ -10,7 +13,6 @@ public class PrivilegeResponse {
     private String name;
     private Boolean status;
     private String createdBy;
-    private String updatedBy;
     private Date createdAt;
-    private Date updatedAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

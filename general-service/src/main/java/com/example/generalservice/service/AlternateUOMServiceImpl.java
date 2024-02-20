@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.AlternateUOMRequest;
 import com.example.generalservice.dto.response.AlternateUOMResponse;
 import com.example.generalservice.entity.AlternateUOM;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
 import com.example.generalservice.repository.AlternateUOMRepository;
@@ -31,6 +33,7 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 	@Override
 	public AlternateUOMResponse saveUom(AlternateUOMRequest alternateUOMRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(alternateUOMRequest);
 		String uomCode = alternateUOMRequest.getUomCode();
 		String uomName = alternateUOMRequest.getUomName();
 		boolean exists = alternateUOMRepository.existsByUomCodeOrUomName(uomCode, uomName);
@@ -89,21 +92,39 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 	public AlternateUOMResponse updateUom(Long id, AlternateUOMRequest updateAlternateUOMRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateAlternateUOMRequest);
 		String uomCode = updateAlternateUOMRequest.getUomCode();
 		String uomName = updateAlternateUOMRequest.getUomName();
 		AlternateUOM existingUom = this.findUomById(id);
 		boolean exists = alternateUOMRepository.existsByUomCodeAndIdNotOrUomNameAndIdNot(uomCode, id, uomName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateAlternateUOMRequest, existingUom);
-			for (Map.Entry<String, Object> entryField : existingUom.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = AlternateUOM.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingUom.getUomCode().equals(uomCode)) {
+				auditFields.add(new AuditFields(null, "Uom Code", existingUom.getUomCode(), uomCode));
+				existingUom.setUomCode(uomCode);
+			}
+			if (!existingUom.getUomName().equals(uomName)) {
+				auditFields.add(new AuditFields(null, "Uom Name", existingUom.getUomName(), uomName));
+				existingUom.setUomName(uomName);
+			}
+			if (!existingUom.getUomStatus().equals(updateAlternateUOMRequest.getUomStatus())) {
+				auditFields.add(new AuditFields(null, "Uom Status", existingUom.getUomStatus(),
+						updateAlternateUOMRequest.getUomStatus()));
+				existingUom.setUomStatus(updateAlternateUOMRequest.getUomStatus());
+			}
+			if (!existingUom.getDynamicFields().equals(updateAlternateUOMRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateAlternateUOMRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingUom.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingUom.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingUom.updateAuditHistory(auditFields); // Update the audit history
 			AlternateUOM updatedUom = alternateUOMRepository.save(existingUom);
 			return mapToAlternateUOMResponse(updatedUom);
 		}
@@ -112,16 +133,32 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 
 	@Override
 	public AlternateUOMResponse updateUomStatus(Long id) throws ResourceNotFoundException {
-		AlternateUOM uom = this.findUomById(id);
-		uom.setUomStatus(!uom.getUomStatus());
-		alternateUOMRepository.save(uom);
-		return mapToAlternateUOMResponse(uom);
+		AlternateUOM existingUom = this.findUomById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingUom.getUomStatus() != null) {
+			auditFields
+					.add(new AuditFields(null, "Uom Status", existingUom.getUomStatus(), !existingUom.getUomStatus()));
+			existingUom.setUomStatus(!existingUom.getUomStatus());
+		}
+		existingUom.updateAuditHistory(auditFields);
+		alternateUOMRepository.save(existingUom);
+		return mapToAlternateUOMResponse(existingUom);
 	}
 
 	@Override
 	public List<AlternateUOMResponse> updateBatchUomStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<AlternateUOM> uomList = this.findAllById(ids);
-		uomList.forEach(uom -> uom.setUomStatus(!uom.getUomStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		uomList.forEach(existingUom -> {
+			if (existingUom.getUomStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "Uom Status", existingUom.getUomStatus(), !existingUom.getUomStatus()));
+				existingUom.setUomStatus(!existingUom.getUomStatus());
+			}
+			existingUom.updateAuditHistory(auditFields);
+		});
 		alternateUOMRepository.saveAll(uomList);
 		return uomList.stream().sorted(Comparator.comparing(AlternateUOM::getId)).map(this::mapToAlternateUOMResponse)
 				.toList();

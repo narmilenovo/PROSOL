@@ -5,6 +5,7 @@ import static com.example.user_management.utils.Constants.NO_USER_FOUND_WITH_ID_
 import static com.example.user_management.utils.Constants.USER_FOUND_WITH_EMAIL_MESSAGE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
 import com.example.user_management.dto.request.UserRoleRequest;
 import com.example.user_management.dto.response.UserResponse;
+import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Role;
 import com.example.user_management.entity.User;
 import com.example.user_management.exceptions.ResourceFoundException;
@@ -33,6 +35,7 @@ import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
+import com.example.user_management.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,12 +50,14 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException {
+		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
+		Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
 		boolean exists = userRepository.existsByEmail(userRequest.getEmail());
 		if (!exists) {
 			User user = modelMapper.map(userRequest, User.class);
 			user.setId(null);
 			user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-			user.setRoles(setToString(userRequest.getRoles()));
+			user.setRoles(setToRoleId(userRequest.getRoles()));
 			user.setDepartmentId(userRequest.getDepartmentId());
 			User savedUser = userRepository.save(user);
 			return mapToUserResponse(savedUser);
@@ -65,6 +70,8 @@ public class UserServiceImpl implements UserService {
 	public List<UserResponse> saveAllUser(List<UserRequest> userRequests) {
 		List<User> userList = new ArrayList<>();
 		for (UserRequest userRequest : userRequests) {
+			List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
+			Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
 			boolean exists = userRepository.existsByEmail(userRequest.getEmail());
 			if (!exists) {
 				User user = modelMapper.map(userRequest, User.class);
@@ -72,7 +79,7 @@ public class UserServiceImpl implements UserService {
 				user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 				user.setStatus(false);
 				user.setDepartmentId(userRequest.getDepartmentId());
-				user.setRoles(setToString(userRequest.getRoles()));
+				user.setRoles(setToRoleId(userRequest.getRoles()));
 				userList.add(user);
 			}
 		}
@@ -133,17 +140,66 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException {
 		User existingUser = this.findUserById(id);
-		modelMapper.map(updateUserRequest, existingUser);
-		existingUser.setId(id);
-		existingUser.setRoles(setToString(updateUserRequest.getRoles()));
+		List<String> fieldsToSkipCapitalization = Arrays.asList("phone");
+		Helpers.inputTitleCase(updateUserRequest, fieldsToSkipCapitalization);
+
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+
+		if (!existingUser.getFirstName().equals(updateUserRequest.getFirstName())) {
+			auditFields.add(
+					new AuditFields(null, "First name", existingUser.getFirstName(), updateUserRequest.getFirstName()));
+			existingUser.setFirstName(updateUserRequest.getFirstName());
+		}
+		if (!existingUser.getLastName().equals(updateUserRequest.getLastName())) {
+			auditFields.add(
+					new AuditFields(null, "Last name", existingUser.getLastName(), updateUserRequest.getLastName()));
+			existingUser.setLastName(updateUserRequest.getLastName());
+
+		}
+		if (!existingUser.getPhone().equals(updateUserRequest.getPhone())) {
+			auditFields.add(new AuditFields(null, "Phone", existingUser.getPhone(), updateUserRequest.getPhone()));
+			existingUser.setPhone(updateUserRequest.getPhone());
+		}
+		if (!existingUser.getBusiness().equals(updateUserRequest.getBusiness())) {
+			auditFields.add(
+					new AuditFields(null, "Business", existingUser.getBusiness(), updateUserRequest.getBusiness()));
+			existingUser.setBusiness(updateUserRequest.getBusiness());
+		}
+		if (!existingUser.getDepartmentId().equals(updateUserRequest.getDepartmentId())) {
+			auditFields.add(new AuditFields(null, "Department", existingUser.getDepartmentId(),
+					updateUserRequest.getDepartmentId()));
+			existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
+		}
+		if (!existingUser.getPlantId().equals(updateUserRequest.getPlantId())) {
+			auditFields.add(new AuditFields(null, "Plant", existingUser.getPlantId(), updateUserRequest.getPlantId()));
+			existingUser.setPlantId(updateUserRequest.getPlantId());
+		}
+		if (!existingUser.getStatus().equals(updateUserRequest.getStatus())) {
+			auditFields.add(new AuditFields(null, "Status", existingUser.getStatus(), updateUserRequest.getStatus()));
+			existingUser.setStatus(updateUserRequest.getStatus());
+		}
+		if (!existingUser.getRoles().equals(setToRoleId(updateUserRequest.getRoles()))) {
+			auditFields.add(new AuditFields(null, "Roles", existingUser.getRoles(), updateUserRequest.getRoles()));
+			existingUser.setRoles(setToRoleId(updateUserRequest.getRoles()));
+		}
+		existingUser.updateAuditHistory(auditFields);
+
 		User updateUser = userRepository.save(existingUser);
+
 		return mapToUserResponse(updateUser);
 	}
 
 	@Override
 	public UserResponse updateStatusUsingId(Long id) throws ResourceNotFoundException {
 		User existingUser = this.findUserById(id);
-		existingUser.setStatus(!existingUser.getStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingUser.getStatus() != null) {
+			auditFields.add(new AuditFields(null, "Status", existingUser.getStatus(), !existingUser.getStatus()));
+			existingUser.setStatus(!existingUser.getStatus());
+		}
+		existingUser.updateAuditHistory(auditFields);
 		User updateUser = userRepository.save(existingUser);
 		return mapToUserResponse(updateUser);
 	}
@@ -151,9 +207,14 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public List<UserResponse> updateBulkStatusUsingId(List<Long> ids) throws ResourceNotFoundException {
 		List<User> existingUsers = this.findAllUsersById(ids);
-		for (User user : existingUsers) {
-			user.setStatus(!user.getStatus());
-		}
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingUsers.forEach(existingUser -> {
+			if (existingUser.getStatus() != null) {
+				auditFields.add(new AuditFields(null, "Status", existingUser.getStatus(), !existingUser.getStatus()));
+				existingUser.setStatus(!existingUser.getStatus());
+			}
+			existingUser.updateAuditHistory(auditFields);
+		});
 		userRepository.saveAll(existingUsers);
 		return existingUsers.stream().map(this::mapToUserResponse).toList();
 	}
@@ -199,7 +260,7 @@ public class UserServiceImpl implements UserService {
 		userRepository.deleteAllByIdInBatch(ids);
 	}
 
-	public Set<Role> setToString(Long[] roles) {
+	public Set<Role> setToRoleId(Long[] roles) {
 		Set<Role> userRoles = new HashSet<>();
 		for (Long roleId : roles) {
 			Optional<Role> fetchedPrivilege = roleRepository.findById(roleId);

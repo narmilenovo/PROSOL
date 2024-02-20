@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.NmUom;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
@@ -27,8 +28,6 @@ public class NmUomServiceImpl implements NmUomService {
 	private final NmUomRepo nmUomRepo;
 
 	private final ModelMapper modelMapper;
-
-	public static final String NM_UOM_NOT_FOUND_MESSAGE = null;
 
 	@Override
 	public NmUomResponse saveNmUom(NmUomRequest nmUomRequest) throws AlreadyExistsException {
@@ -64,14 +63,25 @@ public class NmUomServiceImpl implements NmUomService {
 	public NmUomResponse updateNmUom(Long id, NmUomRequest nmUomRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(nmUomRequest);
 		String name = nmUomRequest.getNmUomName();
 		boolean exists = nmUomRepo.existsByNmUomNameAndIdNot(name, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			NmUom existingNmUom = this.findNmUomById(id);
-			modelMapper.map(nmUomRequest, existingNmUom);
-			nmUomRepo.save(existingNmUom);
+			if (!existingNmUom.getNmUomName().equals(nmUomRequest.getNmUomName())) {
+				auditFields.add(new AuditFields(null, "NM Uom Name", existingNmUom.getNmUomName(),
+						nmUomRequest.getNmUomName()));
+				existingNmUom.setNmUomName(nmUomRequest.getNmUomName());
+			}
+			if (!existingNmUom.getNmUomStatus().equals(nmUomRequest.getNmUomStatus())) {
+				auditFields.add(new AuditFields(null, "NM Uom Status", existingNmUom.getNmUomStatus(),
+						nmUomRequest.getNmUomStatus()));
+				existingNmUom.setNmUomStatus(nmUomRequest.getNmUomStatus());
+			}
+			existingNmUom.updateAuditHistory(auditFields);
 			return mapToNmUomResponse(existingNmUom);
-
 		} else {
 			throw new AlreadyExistsException("NmUom with this name already exists");
 		}
@@ -79,18 +89,32 @@ public class NmUomServiceImpl implements NmUomService {
 
 	@Override
 	public List<NmUomResponse> updateBulkStatusNmUomId(List<Long> id) throws ResourceNotFoundException {
-		List<NmUom> existingNmUom = this.findAllNmUomById(id);
-		for (NmUom nmUom : existingNmUom) {
-			nmUom.setNmUomStatus(!nmUom.getNmUomStatus());
-		}
-		nmUomRepo.saveAll(existingNmUom);
-		return existingNmUom.stream().map(this::mapToNmUomResponse).toList();
+		List<NmUom> existingNmUomList = this.findAllNmUomById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingNmUomList.forEach(existingNmUom -> {
+			if (existingNmUom.getNmUomStatus() != null) {
+				auditFields.add(new AuditFields(null, "NM Uom Status", existingNmUom.getNmUomStatus(),
+						!existingNmUom.getNmUomStatus()));
+				existingNmUom.setNmUomStatus(!existingNmUom.getNmUomStatus());
+			}
+			existingNmUom.updateAuditHistory(auditFields);
+		});
+		nmUomRepo.saveAll(existingNmUomList);
+		return existingNmUomList.stream().map(this::mapToNmUomResponse).toList();
 	}
 
 	@Override
 	public NmUomResponse updateStatusUsingNmUomId(Long id) throws ResourceNotFoundException {
 		NmUom existingNmUom = this.findNmUomById(id);
-		existingNmUom.setNmUomStatus(!existingNmUom.getNmUomStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingNmUom.getNmUomStatus() != null) {
+			auditFields.add(new AuditFields(null, "NM Uom Status", existingNmUom.getNmUomStatus(),
+					!existingNmUom.getNmUomStatus()));
+			existingNmUom.setNmUomStatus(!existingNmUom.getNmUomStatus());
+		}
+		existingNmUom.updateAuditHistory(auditFields);
 		nmUomRepo.save(existingNmUom);
 		return mapToNmUomResponse(existingNmUom);
 	}
@@ -129,7 +153,7 @@ public class NmUomServiceImpl implements NmUomService {
 		Helpers.validateId(id);
 		Optional<NmUom> nmUom = nmUomRepo.findById(id);
 		if (nmUom.isEmpty()) {
-			throw new ResourceNotFoundException(NM_UOM_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Nm Uom with ID " + id + " not found.");
 		}
 		return nmUom.get();
 	}

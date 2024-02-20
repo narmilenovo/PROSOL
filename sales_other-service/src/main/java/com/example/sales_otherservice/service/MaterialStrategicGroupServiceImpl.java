@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.MaterialStrategicGroupRequest;
 import com.example.sales_otherservice.dto.response.MaterialStrategicGroupResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.MaterialStrategicGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 	@Override
 	public MaterialStrategicGroupResponse saveMsg(MaterialStrategicGroupRequest materialStrategicGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(materialStrategicGroupRequest);
 		String msCode = materialStrategicGroupRequest.getMsCode();
 		String msName = materialStrategicGroupRequest.getMsName();
 		boolean exists = materialStrategicGroupRepository.existsByMsCodeOrMsName(msCode, msName);
@@ -77,22 +80,42 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 			MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateMaterialStrategicGroupRequest);
 		String msgCode = updateMaterialStrategicGroupRequest.getMsCode();
 		String msgName = updateMaterialStrategicGroupRequest.getMsName();
 		MaterialStrategicGroup existingStrategicGroup = this.findMsgById(id);
 		boolean exists = materialStrategicGroupRepository.existsByMsCodeAndIdNotOrMsNameAndIdNot(msgCode, id, msgName,
 				id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateMaterialStrategicGroupRequest, existingStrategicGroup);
-			for (Map.Entry<String, Object> entryField : existingStrategicGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MaterialStrategicGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingStrategicGroup.getMsCode().equals(msgCode)) {
+				auditFields.add(new AuditFields(null, "Msg Code", existingStrategicGroup.getMsCode(), msgCode));
+				existingStrategicGroup.setMsCode(msgCode);
+			}
+			if (!existingStrategicGroup.getMsName().equals(msgName)) {
+				auditFields.add(new AuditFields(null, "Msg Name", existingStrategicGroup.getMsName(), msgName));
+				existingStrategicGroup.setMsName(msgName);
+			}
+			if (!existingStrategicGroup.getMsStatus().equals(updateMaterialStrategicGroupRequest.getMsStatus())) {
+				auditFields.add(new AuditFields(null, "Msg Status", existingStrategicGroup.getMsStatus(),
+						updateMaterialStrategicGroupRequest.getMsStatus()));
+				existingStrategicGroup.setMsStatus(updateMaterialStrategicGroupRequest.getMsStatus());
+			}
+			if (!existingStrategicGroup.getDynamicFields()
+					.equals(updateMaterialStrategicGroupRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateMaterialStrategicGroupRequest.getDynamicFields()
+						.entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingStrategicGroup.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingStrategicGroup.getDynamicFields().put(fieldName, newValue);
+					}
 				}
 			}
+			existingStrategicGroup.updateAuditHistory(auditFields);
 			MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository
 					.save(existingStrategicGroup);
 			return mapToStrategicGroupResponse(updatedStrategicGroup);
@@ -102,16 +125,33 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 
 	@Override
 	public MaterialStrategicGroupResponse updateMsgStatus(Long id) throws ResourceNotFoundException {
-		MaterialStrategicGroup strategicGroup = this.findMsgById(id);
-		strategicGroup.setMsStatus(!strategicGroup.getMsStatus());
-		MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository.save(strategicGroup);
+		MaterialStrategicGroup existingStrategicGroup = this.findMsgById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingStrategicGroup.getMsStatus() != null) {
+			auditFields.add(new AuditFields(null, "Msg Status", existingStrategicGroup.getMsStatus(),
+					!existingStrategicGroup.getMsStatus()));
+			existingStrategicGroup.setMsStatus(!existingStrategicGroup.getMsStatus());
+		}
+		existingStrategicGroup.updateAuditHistory(auditFields);
+		MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository.save(existingStrategicGroup);
 		return mapToStrategicGroupResponse(updatedStrategicGroup);
 	}
 
 	@Override
 	public List<MaterialStrategicGroupResponse> updateBatchMsgStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<MaterialStrategicGroup> strategicGroups = this.findAllMsgById(ids);
-		strategicGroups.forEach(strategicGroup -> strategicGroup.setMsStatus(!strategicGroup.getMsStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		strategicGroups.forEach(existingStrategicGroup -> {
+			if (existingStrategicGroup.getMsStatus() != null) {
+				auditFields.add(new AuditFields(null, "Msg Status", existingStrategicGroup.getMsStatus(),
+						!existingStrategicGroup.getMsStatus()));
+				existingStrategicGroup.setMsStatus(!existingStrategicGroup.getMsStatus());
+			}
+			existingStrategicGroup.updateAuditHistory(auditFields);
+
+		});
 		materialStrategicGroupRepository.saveAll(strategicGroups);
 		return strategicGroups.stream().sorted(Comparator.comparing(MaterialStrategicGroup::getId))
 				.map(this::mapToStrategicGroupResponse).toList();

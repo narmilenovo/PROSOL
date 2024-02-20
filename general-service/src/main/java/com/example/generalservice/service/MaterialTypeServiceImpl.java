@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.MaterialTypeRequest;
 import com.example.generalservice.dto.response.MaterialTypeResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.MaterialType;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	@Override
 	public MaterialTypeResponse saveMaterial(MaterialTypeRequest alternateUOMRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(alternateUOMRequest);
 		String materialCode = alternateUOMRequest.getMaterialCode();
 		String materialName = alternateUOMRequest.getMaterialName();
 		boolean exists = materialTypeRepository.existsByMaterialCodeOrMaterialName(materialCode, materialName);
@@ -78,22 +81,42 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	public MaterialTypeResponse updateMaterial(Long id, MaterialTypeRequest updateMaterialTypeRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateMaterialTypeRequest);
 		String materialCode = updateMaterialTypeRequest.getMaterialCode();
 		String materialName = updateMaterialTypeRequest.getMaterialName();
 		MaterialType existingMaterialType = this.findMaterialById(id);
 		boolean exists = materialTypeRepository.existsByMaterialCodeAndIdNotOrMaterialNameAndIdNot(materialCode, id,
 				materialName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateMaterialTypeRequest, existingMaterialType);
-			for (Map.Entry<String, Object> entryField : existingMaterialType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MaterialType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingMaterialType.getMaterialCode().equals(materialCode)) {
+				auditFields.add(
+						new AuditFields(null, "Material Code", existingMaterialType.getMaterialCode(), materialCode));
+				existingMaterialType.setMaterialCode(materialCode);
+			}
+			if (!existingMaterialType.getMaterialName().equals(materialName)) {
+				auditFields.add(
+						new AuditFields(null, "Material Name", existingMaterialType.getMaterialName(), materialName));
+				existingMaterialType.setMaterialName(materialName);
+			}
+			if (!existingMaterialType.getMaterialStatus().equals(updateMaterialTypeRequest.getMaterialStatus())) {
+				auditFields.add(new AuditFields(null, "Material Status", existingMaterialType.getMaterialStatus(),
+						updateMaterialTypeRequest.getMaterialStatus()));
+				existingMaterialType.setMaterialStatus(updateMaterialTypeRequest.getMaterialStatus());
+			}
+			if (!existingMaterialType.getDynamicFields().equals(updateMaterialTypeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateMaterialTypeRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingMaterialType.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingMaterialType.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingMaterialType.updateAuditHistory(auditFields);
 			MaterialType updatedMaterialType = materialTypeRepository.save(existingMaterialType);
 			return mapToMaterialTypeResponse(updatedMaterialType);
 		}
@@ -103,7 +126,14 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	@Override
 	public MaterialTypeResponse updateMaterialStatus(Long id) throws ResourceNotFoundException {
 		MaterialType existingMaterialType = this.findMaterialById(id);
-		existingMaterialType.setMaterialStatus(!existingMaterialType.getMaterialStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingMaterialType.getMaterialStatus() != null) {
+			auditFields.add(new AuditFields(null, "Material Status", existingMaterialType.getMaterialStatus(),
+					!existingMaterialType.getMaterialStatus()));
+			existingMaterialType.setMaterialStatus(!existingMaterialType.getMaterialStatus());
+		}
+		existingMaterialType.updateAuditHistory(auditFields);
 		materialTypeRepository.save(existingMaterialType);
 		return mapToMaterialTypeResponse(existingMaterialType);
 	}
@@ -111,7 +141,16 @@ public class MaterialTypeServiceImpl implements MaterialTypeService {
 	@Override
 	public List<MaterialTypeResponse> updateBatchMaterialStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<MaterialType> materialTypes = this.findAllById(ids);
-		materialTypes.forEach(materialType -> materialType.setMaterialStatus(!materialType.getMaterialStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		materialTypes.forEach(existingMaterialType -> {
+			if (existingMaterialType.getMaterialStatus() != null) {
+				auditFields.add(new AuditFields(null, "Material Status", existingMaterialType.getMaterialStatus(),
+						!existingMaterialType.getMaterialStatus()));
+				existingMaterialType.setMaterialStatus(!existingMaterialType.getMaterialStatus());
+			}
+			existingMaterialType.updateAuditHistory(auditFields);
+		});
 		materialTypeRepository.saveAll(materialTypes);
 		return materialTypes.stream().map(this::mapToMaterialTypeResponse).toList();
 	}

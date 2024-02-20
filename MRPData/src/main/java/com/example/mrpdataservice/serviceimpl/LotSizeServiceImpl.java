@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.LotSize;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -35,11 +36,10 @@ public class LotSizeServiceImpl implements LotSizeService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String LOT_SIZE_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public LotSizeResponse saveLotSize(LotSizeRequest lotSizeRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(lotSizeRequest);
 		boolean exists = lotSizeRepo.existsByLotSizeCodeAndLotSizeName(lotSizeRequest.getLotSizeCode(),
 				lotSizeRequest.getLotSizeName());
 		if (!exists) {
@@ -81,21 +81,39 @@ public class LotSizeServiceImpl implements LotSizeService {
 	public LotSizeResponse updateLotSize(Long id, LotSizeRequest lotSizeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = lotSizeRequest.getLotSizeName();
+		Helpers.inputTitleCase(lotSizeRequest);
+		String existName = lotSizeRequest.getLotSizeName();
 		String existCode = lotSizeRequest.getLotSizeCode();
-		boolean exists = lotSizeRepo.existsByLotSizeCodeAndLotSizeNameAndIdNot(existCode, exist, id);
+		boolean exists = lotSizeRepo.existsByLotSizeCodeAndLotSizeNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			LotSize existingLotSize = this.findLotSizeById(id);
-			modelMapper.map(lotSizeRequest, existingLotSize);
-			for (Map.Entry<String, Object> entryField : existingLotSize.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = LotSize.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingLotSize.getLotSizeCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "LotSize Code", existingLotSize.getLotSizeCode(), existCode));
+				existingLotSize.setLotSizeCode(existCode);
+			}
+			if (!existingLotSize.getLotSizeName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "LotSize Name", existingLotSize.getLotSizeName(), existName));
+				existingLotSize.setLotSizeName(existName);
+			}
+			if (!existingLotSize.getLotSizeStatus().equals(lotSizeRequest.getLotSizeStatus())) {
+				auditFields.add(new AuditFields(null, "LotSize Status", existingLotSize.getLotSizeStatus(),
+						lotSizeRequest.getLotSizeStatus()));
+				existingLotSize.setLotSizeStatus(lotSizeRequest.getLotSizeStatus());
+			}
+			if (!existingLotSize.getDynamicFields().equals(lotSizeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : lotSizeRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingLotSize.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingLotSize.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingLotSize.updateAuditHistory(auditFields);
 			lotSizeRepo.save(existingLotSize);
 			return mapToLotSizeResponse(existingLotSize);
 
@@ -106,18 +124,32 @@ public class LotSizeServiceImpl implements LotSizeService {
 
 	@Override
 	public List<LotSizeResponse> updateBulkStatusLotSizeId(List<Long> id) throws ResourceNotFoundException {
-		List<LotSize> existingLotSize = this.findAllLotSizeById(id);
-		for (LotSize lotSize : existingLotSize) {
-			lotSize.setLotSizeStatus(!lotSize.getLotSizeStatus());
-		}
-		lotSizeRepo.saveAll(existingLotSize);
-		return existingLotSize.stream().map(this::mapToLotSizeResponse).toList();
+		List<LotSize> existingLotSizes = this.findAllLotSizeById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingLotSizes.forEach(existingLotSize -> {
+			if (existingLotSize.getLotSizeStatus() != null) {
+				auditFields.add(new AuditFields(null, "LotSize Status", existingLotSize.getLotSizeStatus(),
+						!existingLotSize.getLotSizeStatus()));
+				existingLotSize.setLotSizeStatus(!existingLotSize.getLotSizeStatus());
+			}
+			existingLotSize.updateAuditHistory(auditFields);
+		});
+		lotSizeRepo.saveAll(existingLotSizes);
+		return existingLotSizes.stream().map(this::mapToLotSizeResponse).toList();
 	}
 
 	@Override
 	public LotSizeResponse updateStatusUsingLotSizeId(Long id) throws ResourceNotFoundException {
 		LotSize existingLotSize = this.findLotSizeById(id);
-		existingLotSize.setLotSizeStatus(!existingLotSize.getLotSizeStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingLotSize.getLotSizeStatus() != null) {
+			auditFields.add(new AuditFields(null, "LotSize Status", existingLotSize.getLotSizeStatus(),
+					!existingLotSize.getLotSizeStatus()));
+			existingLotSize.setLotSizeStatus(!existingLotSize.getLotSizeStatus());
+		}
+		existingLotSize.updateAuditHistory(auditFields);
 		lotSizeRepo.save(existingLotSize);
 		return mapToLotSizeResponse(existingLotSize);
 	}
@@ -190,7 +222,7 @@ public class LotSizeServiceImpl implements LotSizeService {
 		Helpers.validateId(id);
 		Optional<LotSize> lotSize = lotSizeRepo.findById(id);
 		if (lotSize.isEmpty()) {
-			throw new ResourceNotFoundException(LOT_SIZE_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("LotSize with ID " + id + " not found");
 		}
 		return lotSize.get();
 	}

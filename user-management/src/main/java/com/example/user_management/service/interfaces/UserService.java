@@ -52,7 +52,7 @@ public interface UserService {
 
 	void deleteBatch(List<Long> id) throws ResourceNotFoundException;
 
-	Set<Role> setToString(Long[] roles);
+	Set<Role> setToRoleId(Long[] roles);
 
 	UserResponse addRolesToUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
 

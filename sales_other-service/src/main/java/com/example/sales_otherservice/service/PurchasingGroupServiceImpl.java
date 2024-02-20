@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.PurchasingGroupRequest;
 import com.example.sales_otherservice.dto.response.PurchasingGroupResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.PurchasingGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	@Override
 	public PurchasingGroupResponse savePg(PurchasingGroupRequest purchasingGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(purchasingGroupRequest);
 		String pgCode = purchasingGroupRequest.getPgCode();
 		String pgName = purchasingGroupRequest.getPgName();
 		boolean exists = purchasingGroupRepository.existsByPgCodeOrPgName(pgCode, pgName);
@@ -76,21 +79,39 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	public PurchasingGroupResponse updatePg(Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updatePurchasingGroupRequest);
 		String pgCode = updatePurchasingGroupRequest.getPgCode();
 		String pgName = updatePurchasingGroupRequest.getPgName();
 		PurchasingGroup existingPurchasingGroup = this.findPgById(id);
 		boolean exists = purchasingGroupRepository.existsByPgCodeAndIdNotOrPgNameAndIdNot(pgCode, id, pgName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updatePurchasingGroupRequest, existingPurchasingGroup);
-			for (Map.Entry<String, Object> entryField : existingPurchasingGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PurchasingGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingPurchasingGroup.getPgCode().equals(pgCode)) {
+				auditFields.add(new AuditFields(null, "Pg Code", existingPurchasingGroup.getPgCode(), pgCode));
+				existingPurchasingGroup.setPgCode(pgCode);
+			}
+			if (!existingPurchasingGroup.getPgName().equals(pgName)) {
+				auditFields.add(new AuditFields(null, "Pg Name", existingPurchasingGroup.getPgName(), pgName));
+				existingPurchasingGroup.setPgName(pgName);
+			}
+			if (!existingPurchasingGroup.getPgStatus().equals(updatePurchasingGroupRequest.getPgStatus())) {
+				auditFields.add(new AuditFields(null, "Pg Status", existingPurchasingGroup.getPgStatus(),
+						updatePurchasingGroupRequest.getPgStatus()));
+				existingPurchasingGroup.setPgStatus(updatePurchasingGroupRequest.getPgStatus());
+			}
+			if (!existingPurchasingGroup.getDynamicFields().equals(updatePurchasingGroupRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updatePurchasingGroupRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingPurchasingGroup.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingPurchasingGroup.getDynamicFields().put(fieldName, newValue);
+					}
 				}
 			}
+			existingPurchasingGroup.updateAuditHistory(auditFields);
 			PurchasingGroup updatedPurchasingGroup = purchasingGroupRepository.save(existingPurchasingGroup);
 			return mapToPurchasingGroupResponse(updatedPurchasingGroup);
 		}
@@ -99,16 +120,32 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 
 	@Override
 	public PurchasingGroupResponse updatePgStatus(Long id) throws ResourceNotFoundException {
-		PurchasingGroup purchasingGroup = this.findPgById(id);
-		purchasingGroup.setPgStatus(!purchasingGroup.getPgStatus());
-		purchasingGroupRepository.save(purchasingGroup);
-		return mapToPurchasingGroupResponse(purchasingGroup);
+		PurchasingGroup existingPurchasingGroup = this.findPgById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingPurchasingGroup.getPgStatus() != null) {
+			auditFields.add(new AuditFields(null, "Pg Status", existingPurchasingGroup.getPgStatus(),
+					!existingPurchasingGroup.getPgStatus()));
+			existingPurchasingGroup.setPgStatus(!existingPurchasingGroup.getPgStatus());
+		}
+		existingPurchasingGroup.updateAuditHistory(auditFields);
+		purchasingGroupRepository.save(existingPurchasingGroup);
+		return mapToPurchasingGroupResponse(existingPurchasingGroup);
 	}
 
 	@Override
 	public List<PurchasingGroupResponse> updateBatchPgStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<PurchasingGroup> purchasingGroups = this.findAllPdById(ids);
-		purchasingGroups.forEach(purchasingGroup -> purchasingGroup.setPgStatus(!purchasingGroup.getPgStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		purchasingGroups.forEach(existingPurchasingGroup -> {
+			if (existingPurchasingGroup.getPgStatus() != null) {
+				auditFields.add(new AuditFields(null, "Pg Status", existingPurchasingGroup.getPgStatus(),
+						!existingPurchasingGroup.getPgStatus()));
+				existingPurchasingGroup.setPgStatus(!existingPurchasingGroup.getPgStatus());
+			}
+			existingPurchasingGroup.updateAuditHistory(auditFields);
+		});
 		purchasingGroupRepository.saveAll(purchasingGroups);
 		return purchasingGroups.stream().map(this::mapToPurchasingGroupResponse).toList();
 	}

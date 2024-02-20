@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.ScheduleMargin;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -36,11 +37,10 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String SCHEDULE_MARGIN_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public ScheduleMarginResponse saveScheduleMargin(ScheduleMarginRequest scheduleMarginRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(scheduleMarginRequest);
 		boolean exists = scheduleMarginRepo.existsByScheduleMarginCodeAndScheduleMarginName(
 				scheduleMarginRequest.getScheduleMarginCode(), scheduleMarginRequest.getScheduleMarginName());
 		if (!exists) {
@@ -82,22 +82,45 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	public ScheduleMarginResponse updateScheduleMargin(Long id, ScheduleMarginRequest scheduleMarginRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = scheduleMarginRequest.getScheduleMarginName();
+		Helpers.inputTitleCase(scheduleMarginRequest);
+
+		String existName = scheduleMarginRequest.getScheduleMarginName();
 		String existCode = scheduleMarginRequest.getScheduleMarginCode();
-		boolean exists = scheduleMarginRepo.existsByScheduleMarginCodeAndScheduleMarginNameAndIdNot(existCode, exist,
-				id);
+		boolean exists = scheduleMarginRepo.existsByScheduleMarginCodeAndScheduleMarginNameAndIdNot(existCode,
+				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ScheduleMargin existingScheduleMargin = this.findScheduleMarginById(id);
-			modelMapper.map(scheduleMarginRequest, existingScheduleMargin);
-			for (Map.Entry<String, Object> entryField : existingScheduleMargin.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ScheduleMargin.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingScheduleMargin.getScheduleMarginCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "ScheduleMargin Code",
+						existingScheduleMargin.getScheduleMarginCode(), existCode));
+				existingScheduleMargin.setScheduleMarginCode(existCode);
+			}
+			if (!existingScheduleMargin.getScheduleMarginName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "ScheduleMargin Name",
+						existingScheduleMargin.getScheduleMarginName(), existName));
+				existingScheduleMargin.setScheduleMarginName(existName);
+			}
+			if (!existingScheduleMargin.getScheduleMarginStatus()
+					.equals(scheduleMarginRequest.getScheduleMarginStatus())) {
+				auditFields.add(
+						new AuditFields(null, "ScheduleMargin Status", existingScheduleMargin.getScheduleMarginStatus(),
+								scheduleMarginRequest.getScheduleMarginStatus()));
+				existingScheduleMargin.setScheduleMarginStatus(scheduleMarginRequest.getScheduleMarginStatus());
+			}
+			if (!existingScheduleMargin.getDynamicFields().equals(scheduleMarginRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : scheduleMarginRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingScheduleMargin.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingScheduleMargin.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingScheduleMargin.updateAuditHistory(auditFields);
 			scheduleMarginRepo.save(existingScheduleMargin);
 			return mapToScheduleMarginResponse(existingScheduleMargin);
 		} else {
@@ -108,18 +131,35 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	@Override
 	public List<ScheduleMarginResponse> updateBulkStatusScheduleMarginId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<ScheduleMargin> existingScheduleMargin = this.findAllScheMargById(id);
-		for (ScheduleMargin scheduleMargin : existingScheduleMargin) {
-			scheduleMargin.setScheduleMarginStatus(!scheduleMargin.getScheduleMarginStatus());
-		}
-		scheduleMarginRepo.saveAll(existingScheduleMargin);
-		return existingScheduleMargin.stream().map(this::mapToScheduleMarginResponse).toList();
+		List<ScheduleMargin> existingScheduleMargins = this.findAllScheMargById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingScheduleMargins.forEach(existingScheduleMargin -> {
+			if (existingScheduleMargin.getScheduleMarginStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "ScheduleMargin Status", existingScheduleMargin.getScheduleMarginStatus(),
+								!existingScheduleMargin.getScheduleMarginStatus()));
+				existingScheduleMargin.setScheduleMarginStatus(!existingScheduleMargin.getScheduleMarginStatus());
+			}
+			existingScheduleMargin.updateAuditHistory(auditFields);
+
+		});
+		scheduleMarginRepo.saveAll(existingScheduleMargins);
+		return existingScheduleMargins.stream().map(this::mapToScheduleMarginResponse).toList();
 	}
 
 	@Override
 	public ScheduleMarginResponse updateStatusUsingScheduleMarginId(Long id) throws ResourceNotFoundException {
 		ScheduleMargin existingScheduleMargin = this.findScheduleMarginById(id);
-		existingScheduleMargin.setScheduleMarginStatus(!existingScheduleMargin.getScheduleMarginStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingScheduleMargin.getScheduleMarginStatus() != null) {
+			auditFields.add(
+					new AuditFields(null, "ScheduleMargin Status", existingScheduleMargin.getScheduleMarginStatus(),
+							!existingScheduleMargin.getScheduleMarginStatus()));
+			existingScheduleMargin.setScheduleMarginStatus(!existingScheduleMargin.getScheduleMarginStatus());
+		}
+		existingScheduleMargin.updateAuditHistory(auditFields);
 		scheduleMarginRepo.save(existingScheduleMargin);
 		return mapToScheduleMarginResponse(existingScheduleMargin);
 	}
@@ -193,7 +233,7 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 		Helpers.validateId(id);
 		Optional<ScheduleMargin> scheduleMargin = scheduleMarginRepo.findById(id);
 		if (scheduleMargin.isEmpty()) {
-			throw new ResourceNotFoundException(SCHEDULE_MARGIN_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("ScheduleMargin with ID " + id + " not found");
 		}
 		return scheduleMargin.get();
 	}

@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.SourceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
@@ -27,10 +28,9 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 
 	private final ModelMapper modelMapper;
 
-	public static final String SOURCE_TYPE_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public SourceTypeResponse saveSourceType(SourceTypeRequest sourceTypeRequest) throws AlreadyExistsException {
+		Helpers.inputTitleCase(sourceTypeRequest);
 		boolean exists = sourceTypeRepo.existsBySourceTypeCodeAndSourceTypeName(sourceTypeRequest.getSourceTypeCode(),
 				sourceTypeRequest.getSourceTypeName());
 		if (!exists) {
@@ -63,12 +63,28 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 	public SourceTypeResponse updateSourceType(Long id, SourceTypeRequest sourceTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(sourceTypeRequest);
 		String name = sourceTypeRequest.getSourceTypeName();
 		String code = sourceTypeRequest.getSourceTypeCode();
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		boolean exists = sourceTypeRepo.existsBySourceTypeCodeAndSourceTypeNameAndIdNot(code, name, id);
 		if (!exists) {
 			SourceType existingSourceType = this.findSourceTypeById(id);
-			modelMapper.map(sourceTypeRequest, existingSourceType);
+			if (!existingSourceType.getSourceTypeName().equals(name)) {
+				auditFields.add(new AuditFields(null, "SourceType Name", existingSourceType.getSourceTypeName(), name));
+				existingSourceType.setSourceTypeName(name);
+			}
+			if (!existingSourceType.getSourceTypeCode().equals(code)) {
+				auditFields.add(new AuditFields(null, "SourceType Code", existingSourceType.getSourceTypeCode(), code));
+				existingSourceType.setSourceTypeCode(code);
+			}
+			if (!existingSourceType.getSourceTypeStatus().equals(sourceTypeRequest.getSourceTypeStatus())) {
+				auditFields.add(new AuditFields(null, "SourceType Status", existingSourceType.getSourceTypeStatus(),
+						sourceTypeRequest.getSourceTypeStatus()));
+				existingSourceType.setSourceTypeStatus(sourceTypeRequest.getSourceTypeStatus());
+			}
+			existingSourceType.updateAuditHistory(auditFields);
 			sourceTypeRepo.save(existingSourceType);
 			return mapToSourceTypeResponse(existingSourceType);
 		} else {
@@ -78,18 +94,33 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 
 	@Override
 	public List<SourceTypeResponse> updateBulkStatusSourceTypeId(List<Long> id) throws ResourceNotFoundException {
-		List<SourceType> existingSourceType = this.findAllSrcTypeById(id);
-		for (SourceType sourceType : existingSourceType) {
-			sourceType.setSourceTypeStatus(!sourceType.getSourceTypeStatus());
-		}
-		sourceTypeRepo.saveAll(existingSourceType);
-		return existingSourceType.stream().map(this::mapToSourceTypeResponse).toList();
+		List<SourceType> existingSourceTypeList = this.findAllSrcTypeById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingSourceTypeList.forEach(existingSourceType -> {
+			if (existingSourceType.getSourceTypeStatus() != null) {
+				auditFields.add(new AuditFields(null, "SourceType Status", existingSourceType.getSourceTypeStatus(),
+						!existingSourceType.getSourceTypeStatus()));
+				existingSourceType.setSourceTypeStatus(!existingSourceType.getSourceTypeStatus());
+			}
+			existingSourceType.updateAuditHistory(auditFields);
+			sourceTypeRepo.save(existingSourceType);
+		});
+		sourceTypeRepo.saveAll(existingSourceTypeList);
+		return existingSourceTypeList.stream().map(this::mapToSourceTypeResponse).toList();
 	}
 
 	@Override
 	public SourceTypeResponse updateStatusUsingSourceTypeId(Long id) throws ResourceNotFoundException {
 		SourceType existingSourceType = this.findSourceTypeById(id);
-		existingSourceType.setSourceTypeStatus(!existingSourceType.getSourceTypeStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSourceType.getSourceTypeStatus() != null) {
+			auditFields.add(new AuditFields(null, "SourceType Status", existingSourceType.getSourceTypeStatus(),
+					!existingSourceType.getSourceTypeStatus()));
+			existingSourceType.setSourceTypeStatus(!existingSourceType.getSourceTypeStatus());
+		}
+		existingSourceType.updateAuditHistory(auditFields);
 		sourceTypeRepo.save(existingSourceType);
 		return mapToSourceTypeResponse(existingSourceType);
 	}
@@ -128,7 +159,7 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 		Helpers.validateId(id);
 		Optional<SourceType> sourceType = sourceTypeRepo.findById(id);
 		if (sourceType.isEmpty()) {
-			throw new ResourceNotFoundException(SOURCE_TYPE_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("SourceType with ID " + id + " not found");
 		}
 		return sourceType.get();
 	}
@@ -137,8 +168,7 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 		Helpers.validateIds(ids);
 		List<SourceType> sourceTypes = sourceTypeRepo.findAllById(ids);
 		List<Long> missingIds = ids.stream()
-				.filter(id -> sourceTypes.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.toList();
+				.filter(id -> sourceTypes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Source Type with IDs " + missingIds + " not found.");

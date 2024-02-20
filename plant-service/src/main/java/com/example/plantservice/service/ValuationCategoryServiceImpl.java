@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.ValuationCategoryRequest;
 import com.example.plantservice.dto.response.ValuationCategoryResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.ValuationCategory;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -36,15 +37,13 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String VALUATION_CATAGORY_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public ValuationCategoryResponse saveValuationCategory(ValuationCategoryRequest valuationCategoryRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
-		boolean exists = valuationCategoryRepo
-				.existsByValuationCategoryCodeAndValuationCategoryName(
-						valuationCategoryRequest.getValuationCategoryCode(),
-						valuationCategoryRequest.getValuationCategoryName());
+		Helpers.inputTitleCase(valuationCategoryRequest);
+		boolean exists = valuationCategoryRepo.existsByValuationCategoryCodeAndValuationCategoryName(
+				valuationCategoryRequest.getValuationCategoryCode(),
+				valuationCategoryRequest.getValuationCategoryName());
 		if (!exists) {
 			ValuationCategory valuationCategory = modelMapper.map(valuationCategoryRequest, ValuationCategory.class);
 			for (Map.Entry<String, Object> entryField : valuationCategory.getDynamicFields().entrySet()) {
@@ -84,20 +83,43 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 	public ValuationCategoryResponse updateValuationCategory(Long id, ValuationCategoryRequest valuationCategoryRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(valuationCategoryRequest);
 		String existName = valuationCategoryRequest.getValuationCategoryName();
 		String existCode = valuationCategoryRequest.getValuationCategoryCode();
 		boolean exists = valuationCategoryRepo.existsByValuationCategoryCodeAndValuationCategoryNameAndIdNot(existCode,
 				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ValuationCategory existingValuationCategory = this.findValuationCategoryById(id);
-			modelMapper.map(valuationCategoryRequest, existingValuationCategory);
-			for (Map.Entry<String, Object> entryField : existingValuationCategory.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ValuationCategory.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingValuationCategory.getValuationCategoryCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "ValuationCategory Code",
+						existingValuationCategory.getValuationCategoryCode(), existCode));
+				existingValuationCategory.setValuationCategoryCode(existCode);
+			}
+			if (!existingValuationCategory.getValuationCategoryName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "ValuationCategory Name",
+						existingValuationCategory.getValuationCategoryName(), existName));
+				existingValuationCategory.setValuationCategoryName(existName);
+			}
+			if (!existingValuationCategory.getValuationCategoryStatus()
+					.equals(valuationCategoryRequest.getValuationCategoryStatus())) {
+				auditFields.add(new AuditFields(null, "ValuationCategory Status",
+						existingValuationCategory.getValuationCategoryStatus(),
+						valuationCategoryRequest.getValuationCategoryStatus()));
+				existingValuationCategory
+						.setValuationCategoryStatus(valuationCategoryRequest.getValuationCategoryStatus());
+			}
+			if (!existingValuationCategory.getDynamicFields().equals(valuationCategoryRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : valuationCategoryRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingValuationCategory.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingValuationCategory.getDynamicFields().put(fieldName, newValue); // Update the
+																								// dynamicField // field
+					}
 				}
 			}
 			valuationCategoryRepo.save(existingValuationCategory);
@@ -110,18 +132,36 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 	@Override
 	public List<ValuationCategoryResponse> updateBulkStatusValuationCategoryId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<ValuationCategory> existingValuationCategory = this.findAllValCatById(id);
-		for (ValuationCategory valuationCategory : existingValuationCategory) {
-			valuationCategory.setValuationCategoryStatus(!valuationCategory.getValuationCategoryStatus());
-		}
-		valuationCategoryRepo.saveAll(existingValuationCategory);
-		return existingValuationCategory.stream().map(this::mapToValuationCategoryResponse).toList();
+		List<ValuationCategory> existingValuationCategories = this.findAllValCatById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingValuationCategories.forEach(existingValuationCategory -> {
+			if (existingValuationCategory.getValuationCategoryStatus() != null) {
+				auditFields.add(new AuditFields(null, "ValuationCategory Status",
+						existingValuationCategory.getValuationCategoryStatus(),
+						!existingValuationCategory.getValuationCategoryStatus()));
+				existingValuationCategory
+						.setValuationCategoryStatus(!existingValuationCategory.getValuationCategoryStatus());
+			}
+			existingValuationCategory.updateAuditHistory(auditFields);
+		});
+		valuationCategoryRepo.saveAll(existingValuationCategories);
+		return existingValuationCategories.stream().map(this::mapToValuationCategoryResponse).toList();
 	}
 
 	@Override
 	public ValuationCategoryResponse updateStatusUsingValuationCategoryId(Long id) throws ResourceNotFoundException {
 		ValuationCategory existingValuationCategory = this.findValuationCategoryById(id);
-		existingValuationCategory.setValuationCategoryStatus(!existingValuationCategory.getValuationCategoryStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingValuationCategory.getValuationCategoryStatus() != null) {
+			auditFields.add(new AuditFields(null, "ValuationCategory Status",
+					existingValuationCategory.getValuationCategoryStatus(),
+					!existingValuationCategory.getValuationCategoryStatus()));
+			existingValuationCategory
+					.setValuationCategoryStatus(!existingValuationCategory.getValuationCategoryStatus());
+		}
+		existingValuationCategory.updateAuditHistory(auditFields);
 		valuationCategoryRepo.save(existingValuationCategory);
 		return mapToValuationCategoryResponse(existingValuationCategory);
 	}
@@ -196,7 +236,7 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 		Helpers.validateId(id);
 		Optional<ValuationCategory> valuationCategory = valuationCategoryRepo.findById(id);
 		if (valuationCategory.isEmpty()) {
-			throw new ResourceNotFoundException(VALUATION_CATAGORY_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("ValuationCategory with ID " + id + " not found");
 		}
 		return valuationCategory.get();
 	}

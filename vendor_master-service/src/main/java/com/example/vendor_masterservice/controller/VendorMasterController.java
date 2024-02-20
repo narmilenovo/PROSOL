@@ -45,7 +45,7 @@ public class VendorMasterController {
 			@ApiResponse(responseCode = "422", description = "Invalid data", content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PostMapping("/saveVm")
-	public ResponseEntity<Object> saveVm(@Valid @RequestBody VendorMasterRequest vendorMasterRequest)
+	public ResponseEntity<Object> saveVm(@RequestBody VendorMasterRequest vendorMasterRequest)
 			throws ResourceNotFoundException {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveVm").toUriString());
 		VendorMasterResponse savedVm = vendorMasterService.saveVm(vendorMasterRequest);
@@ -114,7 +114,7 @@ public class VendorMasterController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PutMapping("/updateVm/{id}")
 	public ResponseEntity<Object> updateVm(@PathVariable Long id,
-			@Valid @RequestBody VendorMasterRequest updateVendorMasterRequest) throws ResourceNotFoundException {
+			@RequestBody VendorMasterRequest updateVendorMasterRequest) throws ResourceNotFoundException {
 		VendorMasterResponse masterResponse = vendorMasterService.updateVm(id, updateVendorMasterRequest);
 		return ResponseEntity.ok(masterResponse);
 	}

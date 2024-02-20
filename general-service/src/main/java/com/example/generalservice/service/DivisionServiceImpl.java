@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.DivisionRequest;
 import com.example.generalservice.dto.response.DivisionResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.Division;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class DivisionServiceImpl implements DivisionService {
 	@Override
 	public DivisionResponse saveDivision(DivisionRequest divisionRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(divisionRequest);
 		String divCode = divisionRequest.getDivCode();
 		String divName = divisionRequest.getDivName();
 		boolean exists = divisionRepository.existsByDivCodeOrDivName(divCode, divName);
@@ -79,21 +82,39 @@ public class DivisionServiceImpl implements DivisionService {
 	public DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateDivisionRequest);
 		String divCode = updateDivisionRequest.getDivCode();
 		String divName = updateDivisionRequest.getDivName();
 		Division existingDivision = this.findDivisionById(id);
 		boolean exists = divisionRepository.existsByDivCodeAndIdNotOrDivNameAndIdNot(divCode, id, divName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateDivisionRequest, existingDivision);
-			for (Map.Entry<String, Object> entryField : existingDivision.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Division.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingDivision.getDivCode().equals(divCode)) {
+				auditFields.add(new AuditFields(null, "Div Code", existingDivision.getDivCode(), divCode));
+				existingDivision.setDivCode(divCode);
+			}
+			if (!existingDivision.getDivName().equals(divName)) {
+				auditFields.add(new AuditFields(null, "Div Name", existingDivision.getDivName(), divName));
+				existingDivision.setDivName(divName);
+			}
+			if (!existingDivision.getDivStatus().equals(updateDivisionRequest.getDivStatus())) {
+				auditFields.add(new AuditFields(null, "Div Status", existingDivision.getDivStatus(),
+						updateDivisionRequest.getDivStatus()));
+				existingDivision.setDivStatus(updateDivisionRequest.getDivStatus());
+			}
+			if (!existingDivision.getDynamicFields().equals(updateDivisionRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateDivisionRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingDivision.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingDivision.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingDivision.updateAuditHistory(auditFields);
 			Division updatedDivision = divisionRepository.save(existingDivision);
 			return mapToDivisionResponse(updatedDivision);
 		}
@@ -103,7 +124,14 @@ public class DivisionServiceImpl implements DivisionService {
 	@Override
 	public DivisionResponse updateDivisionStatus(Long id) throws ResourceNotFoundException {
 		Division existingDivision = this.findDivisionById(id);
-		existingDivision.setDivStatus(!existingDivision.getDivStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingDivision.getDivStatus() != null) {
+			auditFields.add(new AuditFields(null, "Div Status", existingDivision.getDivStatus(),
+					!existingDivision.getDivStatus()));
+			existingDivision.setDivStatus(!existingDivision.getDivStatus());
+		}
+		existingDivision.updateAuditHistory(auditFields);
 		divisionRepository.save(existingDivision);
 		return this.mapToDivisionResponse(existingDivision);
 	}
@@ -111,7 +139,16 @@ public class DivisionServiceImpl implements DivisionService {
 	@Override
 	public List<DivisionResponse> updateBatchDivisionStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<Division> divisions = this.findAllById(ids);
-		divisions.forEach(division -> division.setDivStatus(!division.getDivStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		divisions.forEach(existingDivision -> {
+			if (existingDivision.getDivStatus() != null) {
+				auditFields.add(new AuditFields(null, "Div Status", existingDivision.getDivStatus(),
+						!existingDivision.getDivStatus()));
+				existingDivision.setDivStatus(!existingDivision.getDivStatus());
+			}
+			existingDivision.updateAuditHistory(auditFields);
+		});
 		divisionRepository.saveAll(divisions);
 		return divisions.stream().map(this::mapToDivisionResponse).toList();
 	}

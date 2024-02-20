@@ -13,15 +13,37 @@ public class Helpers {
 
     }
 
-    public static void capitalizeFields(Object obj) throws IllegalAccessException {
-        Field[] fields = obj.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            Object value = field.get(obj);
-            if (value instanceof String) {
-                String capitalizedValue = capitalize((String) value);
-                field.set(obj, capitalizedValue);
+    public static void inputTitleCase(Object object, List<String> fieldsToSkipCapitalization) {
+        try {
+            Field[] fields = object.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                field.setAccessible(true);
+                Object value = field.get(object);
+                if (value instanceof String string && !fieldsToSkipCapitalization.contains(field.getName())) {
+                    String firstCaps = capitalize(string);
+                    field.set(object, firstCaps);
+                }
             }
+
+        } catch (IllegalAccessException e) {
+            e.printStackTrace(); // Handle or log the exception as needed
+        }
+    }
+
+    public static void inputTitleCase(Object object) {
+        try {
+            Field[] fields = object.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                field.setAccessible(true);
+                Object value = field.get(object);
+                if (value instanceof String string) {
+                    String firstCaps = capitalize(string);
+                    field.set(object, firstCaps);
+                }
+            }
+
+        } catch (IllegalAccessException e) {
+            e.printStackTrace(); // Handle or log the exception as needed
         }
     }
 

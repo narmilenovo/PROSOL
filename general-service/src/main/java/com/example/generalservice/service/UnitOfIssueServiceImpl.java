@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.UnitOfIssueRequest;
 import com.example.generalservice.dto.response.UnitOfIssueResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.UnitOfIssue;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	@Override
 	public UnitOfIssueResponse saveUOI(UnitOfIssueRequest unitOfIssueRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(unitOfIssueRequest);
 		String uoiCode = unitOfIssueRequest.getUoiCode();
 		String uoiName = unitOfIssueRequest.getUoiName();
 		boolean exists = unitOfIssueRepository.existsByUoiCodeOrUoiName(uoiCode, uoiName);
@@ -79,21 +82,39 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	public UnitOfIssueResponse updateUOI(Long id, UnitOfIssueRequest updateUnitOfIssueRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateUnitOfIssueRequest);
 		String uoiCode = updateUnitOfIssueRequest.getUoiCode();
 		String uoiName = updateUnitOfIssueRequest.getUoiName();
 		UnitOfIssue existingUnitOfIssue = this.findUOIById(id);
 		boolean exists = unitOfIssueRepository.existsByUoiCodeAndIdNotOrUoiNameAndIdNot(uoiCode, id, uoiName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateUnitOfIssueRequest, existingUnitOfIssue);
-			for (Map.Entry<String, Object> entryField : existingUnitOfIssue.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = UnitOfIssue.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingUnitOfIssue.getUoiCode().equals(uoiCode)) {
+				auditFields.add(new AuditFields(null, "Uoi Code", existingUnitOfIssue.getUoiCode(), uoiCode));
+				existingUnitOfIssue.setUoiCode(uoiCode);
+			}
+			if (!existingUnitOfIssue.getUoiName().equals(uoiName)) {
+				auditFields.add(new AuditFields(null, "Uoi Name", existingUnitOfIssue.getUoiName(), uoiName));
+				existingUnitOfIssue.setUoiName(uoiName);
+			}
+			if (!existingUnitOfIssue.getUoiStatus().equals(updateUnitOfIssueRequest.getUoiStatus())) {
+				auditFields.add(new AuditFields(null, "Uoi Status", existingUnitOfIssue.getUoiStatus(),
+						updateUnitOfIssueRequest.getUoiStatus()));
+				existingUnitOfIssue.setUoiStatus(updateUnitOfIssueRequest.getUoiStatus());
+			}
+			if (!existingUnitOfIssue.getDynamicFields().equals(updateUnitOfIssueRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateUnitOfIssueRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingUnitOfIssue.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingUnitOfIssue.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingUnitOfIssue.updateAuditHistory(auditFields); // Update the audit history
 			UnitOfIssue updatedUnitOfIssue = unitOfIssueRepository.save(existingUnitOfIssue);
 			return mapToUnitOfIssueResponse(updatedUnitOfIssue);
 		}
@@ -102,16 +123,33 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 
 	@Override
 	public UnitOfIssueResponse updateUOIStatus(Long id) throws ResourceNotFoundException {
-		UnitOfIssue unitOfIssue = this.findUOIById(id);
-		unitOfIssue.setUoiStatus(!unitOfIssue.getUoiStatus());
-		unitOfIssueRepository.save(unitOfIssue);
-		return this.mapToUnitOfIssueResponse(unitOfIssue);
+		UnitOfIssue existingUnitOfIssue = this.findUOIById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingUnitOfIssue.getUoiStatus() != null) {
+			auditFields.add(new AuditFields(null, "Uoi Status", existingUnitOfIssue.getUoiStatus(),
+					!existingUnitOfIssue.getUoiStatus()));
+			existingUnitOfIssue.setUoiStatus(!existingUnitOfIssue.getUoiStatus());
+		}
+		existingUnitOfIssue.updateAuditHistory(auditFields); // Update the audit history
+		unitOfIssueRepository.save(existingUnitOfIssue);
+		return this.mapToUnitOfIssueResponse(existingUnitOfIssue);
 	}
 
 	@Override
 	public List<UnitOfIssueResponse> updateBatchUOIStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<UnitOfIssue> unitOfIssues = this.findAllById(ids);
-		unitOfIssues.forEach(unitOfIssue -> unitOfIssue.setUoiStatus(!unitOfIssue.getUoiStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		unitOfIssues.forEach(existingUnitOfIssue -> {
+			if (existingUnitOfIssue.getUoiStatus() != null) {
+				auditFields.add(new AuditFields(null, "Uoi Status", existingUnitOfIssue.getUoiStatus(),
+						!existingUnitOfIssue.getUoiStatus()));
+				existingUnitOfIssue.setUoiStatus(!existingUnitOfIssue.getUoiStatus());
+			}
+			existingUnitOfIssue.updateAuditHistory(auditFields); // Update the audit history
+
+		});
 		unitOfIssueRepository.saveAll(unitOfIssues);
 		return unitOfIssues.stream().map(this::mapToUnitOfIssueResponse).toList();
 	}

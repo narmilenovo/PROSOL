@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.ProfitCenterRequest;
 import com.example.plantservice.dto.response.ProfitCenterResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.Plant;
 import com.example.plantservice.entity.ProfitCenter;
 import com.example.plantservice.exception.AlreadyExistsException;
@@ -33,10 +34,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProfitCenterServiceImpl implements ProfitCenterService {
-	private static final String PROFIT_CENTER_NOT_FOUND_MESSAGE = null;
 
 	private final ProfitCenterRepo profitCenterRepo;
-
 	private final PlantRepo plantRepo;
 	private final ExcelFileHelper excelFileHelper;
 	private final DynamicClient dynamicClient;
@@ -45,6 +44,7 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 	@Override
 	public ProfitCenterResponse saveProfitCenter(ProfitCenterRequest profitCenterRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(profitCenterRequest);
 		boolean exists = profitCenterRepo.existsByProfitCenterCodeAndProfitCenterName(
 				profitCenterRequest.getProfitCenterCode(), profitCenterRequest.getProfitCenterName());
 		if (!exists) {
@@ -90,29 +90,47 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 	public ProfitCenterResponse updateProfitCenter(Long id, ProfitCenterRequest profitCenterRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(profitCenterRequest);
 		String existName = profitCenterRequest.getProfitCenterName();
 		String existCode = profitCenterRequest.getProfitCenterCode();
 		boolean exists = profitCenterRepo.existsByProfitCenterCodeAndProfitCenterNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ProfitCenter existingProfitCenter = this.findProfitCenterById(id);
-			existingProfitCenter.setProfitCenterCode(profitCenterRequest.getProfitCenterCode());
-			existingProfitCenter.setProfitCenterName(profitCenterRequest.getProfitCenterName());
-			existingProfitCenter.setProfitCenterStatus(profitCenterRequest.getProfitCenterStatus());
+			if (!existingProfitCenter.getProfitCenterCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "ProfitCenter Code", existingProfitCenter.getProfitCenterCode(),
+						existCode));
+				existingProfitCenter.setProfitCenterCode(existCode);
+			}
+			if (!existingProfitCenter.getProfitCenterName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "ProfitCenter Name", existingProfitCenter.getProfitCenterName(),
+						existName));
+				existingProfitCenter.setProfitCenterName(existName);
+			}
+			if (!existingProfitCenter.getProfitCenterStatus().equals(profitCenterRequest.getProfitCenterStatus())) {
+				auditFields.add(new AuditFields(null, "ProfitCenter Status",
+						existingProfitCenter.getProfitCenterStatus(), profitCenterRequest.getProfitCenterStatus()));
+				existingProfitCenter.setProfitCenterStatus(profitCenterRequest.getProfitCenterStatus());
+			}
 			Plant existingPlant = existingProfitCenter.getPlant();
-			if (profitCenterRequest.getPlantId() != null) {
+			if (!existingPlant.equals(getPlantById(profitCenterRequest.getPlantId()))) {
 				existingPlant = this.getPlantById(profitCenterRequest.getPlantId());
+				auditFields.add(new AuditFields(null, "Plants", existingPlant, profitCenterRequest.getPlantId()));
 				existingProfitCenter.setPlant(existingPlant);
 			}
-			for (Map.Entry<String, Object> entryField : existingProfitCenter.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ProfitCenter.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingProfitCenter.getDynamicFields().equals(profitCenterRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : profitCenterRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingProfitCenter.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingProfitCenter.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingProfitCenter.setDynamicFields(profitCenterRequest.getDynamicFields());
+			existingProfitCenter.updateAuditHistory(auditFields);
 			ProfitCenter savedProfitCenter = profitCenterRepo.save(existingProfitCenter);
 			return this.mapToProfitCenterResponse(savedProfitCenter);
 		} else {
@@ -124,18 +142,32 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 
 	@Override
 	public List<ProfitCenterResponse> updateBulkStatusProfitCenterId(List<Long> id) throws ResourceNotFoundException {
-		List<ProfitCenter> existingProfitCenter = this.findAllProfitCenterById(id);
-		for (ProfitCenter profitCenter : existingProfitCenter) {
-			profitCenter.setProfitCenterStatus(!profitCenter.getProfitCenterStatus());
-		}
-		profitCenterRepo.saveAll(existingProfitCenter);
-		return existingProfitCenter.stream().map(this::mapToProfitCenterResponse).toList();
+		List<ProfitCenter> existingProfitCenters = this.findAllProfitCenterById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingProfitCenters.forEach(existingProfitCenter -> {
+			if (existingProfitCenter.getProfitCenterStatus() != null) {
+				auditFields.add(new AuditFields(null, "ProfitCenter Status",
+						existingProfitCenter.getProfitCenterStatus(), !existingProfitCenter.getProfitCenterStatus()));
+				existingProfitCenter.setProfitCenterStatus(!existingProfitCenter.getProfitCenterStatus());
+			}
+			existingProfitCenter.updateAuditHistory(auditFields);
+		});
+		profitCenterRepo.saveAll(existingProfitCenters);
+		return existingProfitCenters.stream().map(this::mapToProfitCenterResponse).toList();
 	}
 
 	@Override
 	public ProfitCenterResponse updateStatusUsingProfitCenterId(Long id) throws ResourceNotFoundException {
 		ProfitCenter existingProfitCenter = this.findProfitCenterById(id);
-		existingProfitCenter.setProfitCenterStatus(!existingProfitCenter.getProfitCenterStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingProfitCenter.getProfitCenterStatus() != null) {
+			auditFields.add(new AuditFields(null, "ProfitCenter Status", existingProfitCenter.getProfitCenterStatus(),
+					!existingProfitCenter.getProfitCenterStatus()));
+			existingProfitCenter.setProfitCenterStatus(!existingProfitCenter.getProfitCenterStatus());
+		}
+		existingProfitCenter.updateAuditHistory(auditFields);
 		profitCenterRepo.save(existingProfitCenter);
 		return mapToProfitCenterResponse(existingProfitCenter);
 	}
@@ -203,8 +235,7 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 	}
 
 	private ProfitCenterResponse mapToProfitCenterResponse(ProfitCenter profitCenter) {
-		ProfitCenterResponse profitCenterResponse = modelMapper.map(profitCenter, ProfitCenterResponse.class);
-		return profitCenterResponse;
+		return modelMapper.map(profitCenter, ProfitCenterResponse.class);
 	}
 
 	private Plant getPlantById(Long id) throws ResourceNotFoundException {
@@ -216,7 +247,7 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 		Helpers.validateId(id);
 		Optional<ProfitCenter> profitCenter = profitCenterRepo.findById(id);
 		if (profitCenter.isEmpty()) {
-			throw new ResourceNotFoundException(PROFIT_CENTER_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Profit Center with ID " + id + " not found");
 		}
 		return profitCenter.get();
 	}

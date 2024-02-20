@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.SalesOrganizationRequest;
 import com.example.sales_otherservice.dto.response.SalesOrganizationResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.SalesOrganization;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 	@Override
 	public SalesOrganizationResponse saveSo(SalesOrganizationRequest salesOrganizationRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(salesOrganizationRequest);
 		String soCode = salesOrganizationRequest.getSoCode();
 		String soName = salesOrganizationRequest.getSoName();
 		boolean exists = salesOrganizationRepository.existsBySoCodeOrSoName(soCode, soName);
@@ -75,21 +78,40 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 	public SalesOrganizationResponse updateSo(Long id, SalesOrganizationRequest updateSalesOrganizationRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateSalesOrganizationRequest);
 		String soCode = updateSalesOrganizationRequest.getSoCode();
 		String soName = updateSalesOrganizationRequest.getSoName();
 		SalesOrganization existingSalesOrganization = this.findSoById(id);
 		boolean exists = salesOrganizationRepository.existsBySoCodeAndIdNotOrSoNameAndIdNot(soCode, id, soName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateSalesOrganizationRequest, existingSalesOrganization);
-			for (Map.Entry<String, Object> entryField : existingSalesOrganization.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = SalesOrganization.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingSalesOrganization.getSoCode().equals(soCode)) {
+				auditFields.add(new AuditFields(null, "So Code", existingSalesOrganization.getSoCode(), soCode));
+				existingSalesOrganization.setSoCode(soCode);
+			}
+			if (!existingSalesOrganization.getSoName().equals(soName)) {
+				auditFields.add(new AuditFields(null, "So Name", existingSalesOrganization.getSoName(), soName));
+				existingSalesOrganization.setSoName(soName);
+			}
+			if (!existingSalesOrganization.getSoStatus().equals(updateSalesOrganizationRequest.getSoStatus())) {
+				auditFields.add(new AuditFields(null, "So Status", existingSalesOrganization.getSoStatus(),
+						updateSalesOrganizationRequest.getSoStatus()));
+				existingSalesOrganization.setSoStatus(updateSalesOrganizationRequest.getSoStatus());
+			}
+			if (!existingSalesOrganization.getDynamicFields()
+					.equals(updateSalesOrganizationRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateSalesOrganizationRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingSalesOrganization.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingSalesOrganization.getDynamicFields().put(fieldName, newValue);
+					}
 				}
 			}
+			existingSalesOrganization.updateAuditHistory(auditFields);
 			SalesOrganization updatedSalesOrganization = salesOrganizationRepository.save(existingSalesOrganization);
 			return mapToSalesOrganizationResponse(updatedSalesOrganization);
 		}
@@ -98,16 +120,33 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 
 	@Override
 	public SalesOrganizationResponse updateSoStatus(Long id) throws ResourceNotFoundException {
-		SalesOrganization salesOrganization = this.findSoById(id);
-		salesOrganization.setSoStatus(!salesOrganization.getSoStatus());
-		salesOrganizationRepository.save(salesOrganization);
-		return mapToSalesOrganizationResponse(salesOrganization);
+		SalesOrganization existingSalesOrganization = this.findSoById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSalesOrganization.getSoStatus() != null) {
+			auditFields.add(new AuditFields(null, "So Status", existingSalesOrganization.getSoStatus(),
+					!existingSalesOrganization.getSoStatus()));
+			existingSalesOrganization.setSoStatus(!existingSalesOrganization.getSoStatus());
+		}
+		existingSalesOrganization.updateAuditHistory(auditFields);
+		salesOrganizationRepository.save(existingSalesOrganization);
+		return mapToSalesOrganizationResponse(existingSalesOrganization);
 	}
 
 	@Override
 	public List<SalesOrganizationResponse> updateBatchSoStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<SalesOrganization> organizations = this.findAllSoById(ids);
-		organizations.forEach(organization -> organization.setSoStatus(!organization.getSoStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		organizations.forEach(existingSalesOrganization -> {
+			if (existingSalesOrganization.getSoStatus() != null) {
+				auditFields.add(new AuditFields(null, "So Status", existingSalesOrganization.getSoStatus(),
+						!existingSalesOrganization.getSoStatus()));
+				existingSalesOrganization.setSoStatus(!existingSalesOrganization.getSoStatus());
+			}
+			existingSalesOrganization.updateAuditHistory(auditFields);
+
+		});
 		salesOrganizationRepository.saveAll(organizations);
 		return organizations.stream().map(this::mapToSalesOrganizationResponse).toList();
 	}

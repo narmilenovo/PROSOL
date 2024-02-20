@@ -1,15 +1,23 @@
 package com.example.user_management.entity;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.Date;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import lombok.Getter;
+import lombok.Setter;
 
 @MappedSuperclass
 @Getter
@@ -20,15 +28,20 @@ public abstract class BaseEntity {
     @Column(updatable = false)
     protected String createdBy;
 
-    @LastModifiedBy
-    protected String updatedBy;
-
     @CreatedDate
     @Column(updatable = false)
     @Temporal(TemporalType.TIMESTAMP) // insert both time and date.
     protected Date createdAt;
 
-    @LastModifiedDate
-    @Temporal(TemporalType.TIMESTAMP) // insert both time and date.
-    protected Date updatedAt;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    protected List<UpdateAuditHistory> updateAuditHistories = new ArrayList<>();
+
+    public void updateAuditHistory(List<AuditFields> auditFields) {
+        UpdateAuditHistory auditHistory = new UpdateAuditHistory();
+        auditHistory.setUpdatedBy(auditHistory.getUpdatedBy());
+        auditHistory.setUpdatedAt(auditHistory.getUpdatedAt());
+
+        auditHistory.setAuditFields(auditFields);
+        this.updateAuditHistories.add(auditHistory);
+    }
 }

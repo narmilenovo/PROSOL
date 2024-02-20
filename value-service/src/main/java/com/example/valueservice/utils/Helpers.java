@@ -1,5 +1,6 @@
 package com.example.valueservice.utils;
 
+import java.lang.reflect.Field;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -13,6 +14,40 @@ public class Helpers {
 
 	private Helpers() {
 
+	}
+
+	public static void inputTitleCase(Object object, List<String> fieldsToSkipCapitalization) {
+		try {
+			Field[] fields = object.getClass().getDeclaredFields();
+			for (Field field : fields) {
+				field.setAccessible(true);
+				Object value = field.get(object);
+				if (value instanceof String string && !fieldsToSkipCapitalization.contains(field.getName())) {
+					String firstCaps = capitalize(string);
+					field.set(object, firstCaps);
+				}
+			}
+
+		} catch (IllegalAccessException e) {
+			e.printStackTrace(); // Handle or log the exception as needed
+		}
+	}
+
+	public static void inputTitleCase(Object object) {
+		try {
+			Field[] fields = object.getClass().getDeclaredFields();
+			for (Field field : fields) {
+				field.setAccessible(true);
+				Object value = field.get(object);
+				if (value instanceof String string) {
+					String firstCaps = capitalize(string);
+					field.set(object, firstCaps);
+				}
+			}
+
+		} catch (IllegalAccessException e) {
+			e.printStackTrace(); // Handle or log the exception as needed
+		}
 	}
 
 	public static String capitalize(String str) {

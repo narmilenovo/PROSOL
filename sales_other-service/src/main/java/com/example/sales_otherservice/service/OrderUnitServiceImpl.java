@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.OrderUnitRequest;
 import com.example.sales_otherservice.dto.response.OrderUnitResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.OrderUnit;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -30,6 +32,7 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	@Override
 	public OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(orderUnitRequest);
 		String ouCode = orderUnitRequest.getOuCode();
 		String ouName = orderUnitRequest.getOuName();
 		boolean exists = orderUnitRepository.existsByOuCodeOrOuName(ouCode, ouName);
@@ -76,21 +79,39 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	public OrderUnitResponse updateOu(Long id, OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateOrderUnitRequest);
 		String ouCode = updateOrderUnitRequest.getOuCode();
 		String ouName = updateOrderUnitRequest.getOuName();
 		OrderUnit existingOrderUnit = this.findOuById(id);
 		boolean exists = orderUnitRepository.existsByOuCodeAndIdNotOrOuNameAndIdNot(ouCode, id, ouName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateOrderUnitRequest, existingOrderUnit);
-			for (Map.Entry<String, Object> entryField : existingOrderUnit.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = OrderUnit.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingOrderUnit.getOuCode().equals(ouCode)) {
+				auditFields.add(new AuditFields(null, "Ou Code", existingOrderUnit.getOuCode(), ouCode));
+				existingOrderUnit.setOuCode(ouCode);
+			}
+			if (!existingOrderUnit.getOuName().equals(ouName)) {
+				auditFields.add(new AuditFields(null, "Ou Name", existingOrderUnit.getOuName(), ouName));
+				existingOrderUnit.setOuName(ouName);
+			}
+			if (!existingOrderUnit.getOuStatus().equals(updateOrderUnitRequest.getOuStatus())) {
+				auditFields.add(new AuditFields(null, "Ou Status", existingOrderUnit.getOuStatus(),
+						updateOrderUnitRequest.getOuStatus()));
+				existingOrderUnit.setOuStatus(updateOrderUnitRequest.getOuStatus());
+			}
+			if (!existingOrderUnit.getDynamicFields().equals(updateOrderUnitRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateOrderUnitRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingOrderUnit.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingOrderUnit.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingOrderUnit.updateAuditHistory(auditFields);
 			OrderUnit updatedOrderUnit = orderUnitRepository.save(existingOrderUnit);
 			return mapToOrderUnitResponse(updatedOrderUnit);
 		}
@@ -99,18 +120,33 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 
 	@Override
 	public OrderUnitResponse updateOuStatus(Long id) throws ResourceNotFoundException {
-		OrderUnit orderUnit = this.findOuById(id);
-		orderUnit.setOuStatus(!orderUnit.getOuStatus());
-		OrderUnit updatedOrderUnit = orderUnitRepository.save(orderUnit);
+		OrderUnit existingOrderUnit = this.findOuById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingOrderUnit.getOuStatus() != null) {
+			auditFields.add(new AuditFields(null, "Ou Status", existingOrderUnit.getOuStatus(),
+					!existingOrderUnit.getOuStatus()));
+			existingOrderUnit.setOuStatus(!existingOrderUnit.getOuStatus());
+		}
+		existingOrderUnit.updateAuditHistory(auditFields);
+		OrderUnit updatedOrderUnit = orderUnitRepository.save(existingOrderUnit);
 		return mapToOrderUnitResponse(updatedOrderUnit);
 	}
 
 	@Override
 	public List<OrderUnitResponse> updateBatchOuStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<OrderUnit> orderUnits = this.findAllOuById(ids);
-		for (OrderUnit orderUnit : orderUnits) {
-			orderUnit.setOuStatus(!orderUnit.getOuStatus());
-		}
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		orderUnits.forEach(existingOrderUnit -> {
+			if (existingOrderUnit.getOuStatus() != null) {
+				auditFields.add(new AuditFields(null, "Ou Status", existingOrderUnit.getOuStatus(),
+						!existingOrderUnit.getOuStatus()));
+				existingOrderUnit.setOuStatus(!existingOrderUnit.getOuStatus());
+			}
+			existingOrderUnit.updateAuditHistory(auditFields);
+
+		});
 		orderUnitRepository.saveAll(orderUnits);
 		return orderUnits.stream().map(this::mapToOrderUnitResponse).toList();
 

@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.IndustrySectorRequest;
 import com.example.generalservice.dto.response.IndustrySectorResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.IndustrySector;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	@Override
 	public IndustrySectorResponse saveSector(IndustrySectorRequest industrySectorRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(industrySectorRequest);
 		String sectorCode = industrySectorRequest.getSectorCode();
 		String sectorName = industrySectorRequest.getSectorName();
 		boolean exists = sectorRepository.existsBySectorCodeOrSectorName(sectorCode, sectorName);
@@ -76,25 +79,45 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	}
 
 	@Override
-	public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateindustrysectorrequest)
+	public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateIndustrySectorRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
-		String sectorCode = updateindustrysectorrequest.getSectorCode();
-		String sectorName = updateindustrysectorrequest.getSectorName();
+		Helpers.inputTitleCase(updateIndustrySectorRequest);
+		String sectorCode = updateIndustrySectorRequest.getSectorCode();
+		String sectorName = updateIndustrySectorRequest.getSectorName();
 		IndustrySector existingIndustrySector = this.findSectorById(id);
 		boolean exists = sectorRepository.existsBySectorCodeAndIdNotOrSectorNameAndIdNot(sectorCode, id, sectorName,
 				id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateindustrysectorrequest, existingIndustrySector);
-			for (Map.Entry<String, Object> entryField : existingIndustrySector.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = IndustrySector.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingIndustrySector.getSectorCode().equals(sectorCode)) {
+				auditFields
+						.add(new AuditFields(null, "Sector Code", existingIndustrySector.getSectorCode(), sectorCode));
+				existingIndustrySector.setSectorCode(sectorCode);
+			}
+			if (!existingIndustrySector.getSectorName().equals(sectorName)) {
+				auditFields
+						.add(new AuditFields(null, "Sector Name", existingIndustrySector.getSectorName(), sectorName));
+				existingIndustrySector.setSectorName(sectorName);
+			}
+			if (!existingIndustrySector.getSectorStatus().equals(updateIndustrySectorRequest.getSectorStatus())) {
+				auditFields.add(new AuditFields(null, "Sector Status", existingIndustrySector.getSectorStatus(),
+						updateIndustrySectorRequest.getSectorStatus()));
+				existingIndustrySector.setSectorStatus(updateIndustrySectorRequest.getSectorStatus());
+			}
+			if (!existingIndustrySector.getDynamicFields().equals(updateIndustrySectorRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateIndustrySectorRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingIndustrySector.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingIndustrySector.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingIndustrySector.updateAuditHistory(auditFields);
 			IndustrySector updatedIndustrySector = sectorRepository.save(existingIndustrySector);
 			return mapToIndustrySectorResponse(updatedIndustrySector);
 		}
@@ -104,7 +127,14 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	@Override
 	public IndustrySectorResponse updateSectorStatus(Long id) throws ResourceNotFoundException {
 		IndustrySector existingSector = this.findSectorById(id);
-		existingSector.setSectorStatus(!existingSector.getSectorStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSector.getSectorStatus() != null) {
+			auditFields.add(new AuditFields(null, "Sector Status", existingSector.getSectorStatus(),
+					!existingSector.getSectorStatus()));
+			existingSector.setSectorStatus(!existingSector.getSectorStatus());
+		}
+		existingSector.updateAuditHistory(auditFields);
 		sectorRepository.save(existingSector);
 		return this.mapToIndustrySectorResponse(existingSector);
 	}
@@ -112,10 +142,18 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 	@Override
 	public List<IndustrySectorResponse> updateBatchSectorResponseStatus(List<Long> ids) {
 		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
-		industrySectors.forEach(industrySector -> {
-			industrySector.setSectorStatus(!industrySector.getSectorStatus());
-			sectorRepository.save(industrySector);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		industrySectors.forEach(existingSector -> {
+			if (existingSector.getSectorStatus() != null) {
+				auditFields.add(new AuditFields(null, "Sector Status", existingSector.getSectorStatus(),
+						!existingSector.getSectorStatus()));
+				existingSector.setSectorStatus(!existingSector.getSectorStatus());
+			}
+			existingSector.updateAuditHistory(auditFields);
+
 		});
+		sectorRepository.saveAll(industrySectors);
 		return industrySectors.stream().sorted(Comparator.comparing(IndustrySector::getId))
 				.map(this::mapToIndustrySectorResponse).toList();
 	}

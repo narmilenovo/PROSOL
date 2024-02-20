@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.EquipmentUnit;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
@@ -32,6 +33,7 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 	@Override
 	public EquipmentUnitResponse saveEquipmentUnit(EquipmentUnitRequest equipmentUnitRequest)
 			throws AlreadyExistsException {
+		Helpers.inputTitleCase(equipmentUnitRequest);
 		boolean exists = equipmentUnitRepo.existsByEquipmentUnitCodeAndEquipmentUnitName(
 				equipmentUnitRequest.getEquipmentUnitCode(), equipmentUnitRequest.getEquipmentUnitName());
 		if (!exists) {
@@ -64,12 +66,31 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 	public EquipmentUnitResponse updateEquipmentUnit(Long id, EquipmentUnitRequest equipmentUnitRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(equipmentUnitRequest);
 		String name = equipmentUnitRequest.getEquipmentUnitName();
 		String code = equipmentUnitRequest.getEquipmentUnitCode();
 		boolean exists = equipmentUnitRepo.existsByEquipmentUnitCodeAndEquipmentUnitNameAndIdNot(code, name, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			EquipmentUnit existingEquipmentUnit = this.findEquipmentUnitById(id);
-			modelMapper.map(equipmentUnitRequest, existingEquipmentUnit);
+			if (!existingEquipmentUnit.getEquipmentUnitCode().equals(code)) {
+				auditFields.add(new AuditFields(null, "Equipment Unit Code",
+						existingEquipmentUnit.getEquipmentUnitCode(), code));
+				existingEquipmentUnit.setEquipmentUnitCode(code);
+			}
+			if (!existingEquipmentUnit.getEquipmentUnitName().equals(name)) {
+				auditFields.add(new AuditFields(null, "Equipment Unit Name",
+						existingEquipmentUnit.getEquipmentUnitName(), name));
+				existingEquipmentUnit.setEquipmentUnitName(name);
+			}
+			if (!existingEquipmentUnit.getEquipmentUnitStatus().equals(equipmentUnitRequest.getEquipmentUnitStatus())) {
+				auditFields.add(new AuditFields(null, "Equipment Unit Status",
+						existingEquipmentUnit.getEquipmentUnitStatus(), equipmentUnitRequest.getEquipmentUnitStatus()));
+				existingEquipmentUnit.setEquipmentUnitStatus(equipmentUnitRequest.getEquipmentUnitStatus());
+
+			}
+			existingEquipmentUnit.updateAuditHistory(auditFields);
 			equipmentUnitRepo.save(existingEquipmentUnit);
 			return mapToEquipmentUnitResponse(existingEquipmentUnit);
 		} else {
@@ -79,18 +100,34 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 
 	@Override
 	public List<EquipmentUnitResponse> updateBulkStatusEquipmentUnitId(List<Long> id) throws ResourceNotFoundException {
-		List<EquipmentUnit> existingEquipmentUnit = this.findAllUnitsById(id);
-		for (EquipmentUnit equipmentUnit : existingEquipmentUnit) {
-			equipmentUnit.setEquipmentUnitStatus(!equipmentUnit.getEquipmentUnitStatus());
-		}
-		equipmentUnitRepo.saveAll(existingEquipmentUnit);
-		return existingEquipmentUnit.stream().map(this::mapToEquipmentUnitResponse).toList();
+		List<EquipmentUnit> existingEquipmentUnits = this.findAllUnitsById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingEquipmentUnits.forEach(existingEquipmentUnit -> {
+			if (existingEquipmentUnit.getEquipmentUnitStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "Equipment Unit Status", existingEquipmentUnit.getEquipmentUnitStatus(),
+								!existingEquipmentUnit.getEquipmentUnitStatus()));
+				existingEquipmentUnit.setEquipmentUnitStatus(!existingEquipmentUnit.getEquipmentUnitStatus());
+			}
+			existingEquipmentUnit.updateAuditHistory(auditFields);
+
+		});
+		equipmentUnitRepo.saveAll(existingEquipmentUnits);
+		return existingEquipmentUnits.stream().map(this::mapToEquipmentUnitResponse).toList();
 	}
 
 	@Override
 	public EquipmentUnitResponse updateStatusUsingEquipmentUnitId(Long id) throws ResourceNotFoundException {
 		EquipmentUnit existingEquipmentUnit = this.findEquipmentUnitById(id);
-		existingEquipmentUnit.setEquipmentUnitStatus(!existingEquipmentUnit.getEquipmentUnitStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingEquipmentUnit.getEquipmentUnitStatus() != null) {
+			auditFields.add(new AuditFields(null, "Equipment Unit Status",
+					existingEquipmentUnit.getEquipmentUnitStatus(), !existingEquipmentUnit.getEquipmentUnitStatus()));
+			existingEquipmentUnit.setEquipmentUnitStatus(!existingEquipmentUnit.getEquipmentUnitStatus());
+		}
+		existingEquipmentUnit.updateAuditHistory(auditFields);
 		equipmentUnitRepo.save(existingEquipmentUnit);
 		return mapToEquipmentUnitResponse(existingEquipmentUnit);
 	}
@@ -138,8 +175,7 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 		Helpers.validateIds(ids);
 		List<EquipmentUnit> units = equipmentUnitRepo.findAllById(ids);
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> units.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> units.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {

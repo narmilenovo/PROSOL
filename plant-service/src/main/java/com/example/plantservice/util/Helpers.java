@@ -9,156 +9,176 @@ import java.util.Map;
 import java.util.Random;
 
 public class Helpers {
-    private Helpers() {
+	private Helpers() {
 
-    }
+	}
 
-    public static void capitalizeFields(Object obj) throws IllegalAccessException {
-        Field[] fields = obj.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            Object value = field.get(obj);
-            if (value instanceof String) {
-                String capitalizedValue = capitalize((String) value);
-                field.set(obj, capitalizedValue);
-            }
-        }
-    }
+	public static void inputTitleCase(Object object, List<String> fieldsToSkipCapitalization) {
+		try {
+			Field[] fields = object.getClass().getDeclaredFields();
+			for (Field field : fields) {
+				field.setAccessible(true);
+				Object value = field.get(object);
+				if (value instanceof String string && !fieldsToSkipCapitalization.contains(field.getName())) {
+					String firstCaps = capitalize(string);
+					field.set(object, firstCaps);
+				}
+			}
 
-    public static String capitalize(String str) {
-        char[] chars = str.toCharArray();
-        chars[0] = Character.toUpperCase(chars[0]);
+		} catch (IllegalAccessException e) {
+			e.printStackTrace(); // Handle or log the exception as needed
+		}
+	}
 
-        return String.valueOf(chars);
-    }
+	public static void inputTitleCase(Object object) {
+		try {
+			Field[] fields = object.getClass().getDeclaredFields();
+			for (Field field : fields) {
+				field.setAccessible(true);
+				Object value = field.get(object);
+				if (value instanceof String string) {
+					String firstCaps = capitalize(string);
+					field.set(object, firstCaps);
+				}
+			}
 
-    public static String camelCaseWordsWithSpace(String str) {
-        String[] words = str.split("\\s+");
-        StringBuilder camelCase = new StringBuilder(words[0].toLowerCase());
+		} catch (IllegalAccessException e) {
+			e.printStackTrace(); // Handle or log the exception as needed
+		}
+	}
 
-        for (int i = 1; i < words.length; i++) {
-            String word = words[i];
-            if (!word.isEmpty()) {
-                camelCase.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1).toLowerCase());
-            }
-        }
-        return camelCase.toString();
-    }
+	public static String capitalize(String str) {
+		char[] chars = str.toCharArray();
+		chars[0] = Character.toUpperCase(chars[0]);
 
-    public static String capitalizeWordsWithSpace(String str) {
-        str = splitCamelCase(str);
-        char[] chars = str.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            if (i == 0 || chars[i - 1] == ' ') {
-                chars[i] = Character.toUpperCase(chars[i]);
-            }
-        }
-        return String.valueOf(chars);
-    }
+		return String.valueOf(chars);
+	}
 
-    public static String splitCamelCase(String str) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < str.length(); i++) {
-            char currentChar = str.charAt(i);
-            if (i > 0) {
-                char previousChar = str.charAt(i - 1);
-                boolean isUpperCase = Character.isUpperCase(currentChar);
-                boolean isDigit = Character.isDigit(currentChar);
+	public static String camelCaseWordsWithSpace(String str) {
+		String[] words = str.split("\\s+");
+		StringBuilder camelCase = new StringBuilder(words[0].toLowerCase());
 
-                if ((isUpperCase && !Character.isUpperCase(previousChar))
-                        || (isDigit && !Character.isDigit(previousChar))) {
-                    result.append(' ');
-                }
-            }
-            result.append(currentChar);
-        }
-        return result.toString();
-    }
+		for (int i = 1; i < words.length; i++) {
+			String word = words[i];
+			if (!word.isEmpty()) {
+				camelCase.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1).toLowerCase());
+			}
+		}
+		return camelCase.toString();
+	}
 
-    public static String toTitleCase(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
+	public static String capitalizeWordsWithSpace(String str) {
+		str = splitCamelCase(str);
+		char[] chars = str.toCharArray();
+		for (int i = 0; i < chars.length; i++) {
+			if (i == 0 || chars[i - 1] == ' ') {
+				chars[i] = Character.toUpperCase(chars[i]);
+			}
+		}
+		return String.valueOf(chars);
+	}
 
-        String[] words = input.split("\\s|-|_");
-        StringBuilder titleCase = new StringBuilder();
+	public static String splitCamelCase(String str) {
+		StringBuilder result = new StringBuilder();
+		for (int i = 0; i < str.length(); i++) {
+			char currentChar = str.charAt(i);
+			if (i > 0) {
+				char previousChar = str.charAt(i - 1);
+				boolean isUpperCase = Character.isUpperCase(currentChar);
+				boolean isDigit = Character.isDigit(currentChar);
 
-        for (String word : words) {
-            if (!word.isEmpty()) {
-                titleCase.append(Character.toUpperCase(word.charAt(0)))
-                        .append(word.substring(1).toLowerCase())
-                        .append(" ");
-            }
-        }
+				if ((isUpperCase && !Character.isUpperCase(previousChar))
+						|| (isDigit && !Character.isDigit(previousChar))) {
+					result.append(' ');
+				}
+			}
+			result.append(currentChar);
+		}
+		return result.toString();
+	}
 
-        return titleCase.toString().trim();
-    }
+	public static String toTitleCase(String input) {
+		if (input == null || input.isEmpty()) {
+			return input;
+		}
 
-    public static String generateRandomString(int length) {
-        String possibleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder result = new StringBuilder(length);
-        Random random = new SecureRandom();
+		String[] words = input.split("\\s|-|_");
+		StringBuilder titleCase = new StringBuilder();
 
-        for (int i = 0; i < length; i++) {
-            int position = random.nextInt(possibleChars.length());
-            result.append(possibleChars.charAt(position));
-        }
+		for (String word : words) {
+			if (!word.isEmpty()) {
+				titleCase.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1).toLowerCase())
+						.append(" ");
+			}
+		}
 
-        return result.toString();
-    }
+		return titleCase.toString().trim();
+	}
 
-    public static void updateErrorHashMap(
-            Map<String, List<String>> errors, String field, String message) {
-        List<String> strings;
-        if (errors.containsKey(field)) {
-            strings = errors.get(field);
+	public static String generateRandomString(int length) {
+		String possibleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+		StringBuilder result = new StringBuilder(length);
+		Random random = new SecureRandom();
 
-        } else {
-            strings = new ArrayList<>();
+		for (int i = 0; i < length; i++) {
+			int position = random.nextInt(possibleChars.length());
+			result.append(possibleChars.charAt(position));
+		}
 
-        }
-        strings.add(message);
-        errors.put(field, strings);
+		return result.toString();
+	}
 
-    }
+	public static void updateErrorHashMap(Map<String, List<String>> errors, String field, String message) {
+		List<String> strings;
+		if (errors.containsKey(field)) {
+			strings = errors.get(field);
 
-    public static Boolean checkNotNull(Object strNull) {
-        return strNull != null && !strNull.equals("");
-    }
+		} else {
+			strings = new ArrayList<>();
 
-    public static String getCurrentDateTime() throws Exception {
-        Calendar cal = Calendar.getInstance();
-        String strSysDate = "";
-        try {
-            String strSysDay = String.valueOf(cal.get(Calendar.DATE));
-            if (Integer.parseInt(strSysDay) < 10) {
-                strSysDay = "0" + strSysDay;
-            }
+		}
+		strings.add(message);
+		errors.put(field, strings);
 
-            String strSysMonth = String.valueOf(cal.get(Calendar.MONTH) + 1);
-            if (Integer.parseInt(strSysMonth) < 10) {
-                strSysMonth = "0" + strSysMonth;
-            }
+	}
 
-            String strSysYear = String.valueOf(cal.get(Calendar.YEAR));
+	public static Boolean checkNotNull(Object strNull) {
+		return strNull != null && !strNull.equals("");
+	}
 
-            strSysDate = strSysDay + "/" + strSysMonth + "/" + strSysYear;
+	public static String getCurrentDateTime() throws Exception {
+		Calendar cal = Calendar.getInstance();
+		String strSysDate = "";
+		try {
+			String strSysDay = String.valueOf(cal.get(Calendar.DATE));
+			if (Integer.parseInt(strSysDay) < 10) {
+				strSysDay = "0" + strSysDay;
+			}
 
-        } catch (Exception e) {
-            throw new Exception("*Exception in getCurrentDateTime **" + e);
-        }
-        return strSysDate;
-    }
+			String strSysMonth = String.valueOf(cal.get(Calendar.MONTH) + 1);
+			if (Integer.parseInt(strSysMonth) < 10) {
+				strSysMonth = "0" + strSysMonth;
+			}
 
-    public static void validateId(Long id) {
-        if (id == null || id <= 0) {
-            throw new NullPointerException("Input Id is null or less then zero");
-        }
-    }
+			String strSysYear = String.valueOf(cal.get(Calendar.YEAR));
 
-    public static void validateIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty() || ids.stream().anyMatch(id -> id == null || id <= 0)) {
-            throw new NullPointerException("one of the Input Id's is null or less then zero");
-        }
-    }
+			strSysDate = strSysDay + "/" + strSysMonth + "/" + strSysYear;
+
+		} catch (Exception e) {
+			throw new Exception("*Exception in getCurrentDateTime **" + e);
+		}
+		return strSysDate;
+	}
+
+	public static void validateId(Long id) {
+		if (id == null || id <= 0) {
+			throw new NullPointerException("Input Id is null or less then zero");
+		}
+	}
+
+	public static void validateIds(List<Long> ids) {
+		if (ids == null || ids.isEmpty() || ids.stream().anyMatch(id -> id == null || id <= 0)) {
+			throw new NullPointerException("one of the Input Id's is null or less then zero");
+		}
+	}
 }

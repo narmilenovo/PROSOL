@@ -18,6 +18,7 @@ import com.example.plantservice.client.General.MaterialTypeClient;
 import com.example.plantservice.dto.request.ValuationClassRequest;
 import com.example.plantservice.dto.response.DepartmentResponse;
 import com.example.plantservice.dto.response.ValuationClassResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.ValuationClass;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -34,7 +35,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ValuationClassServiceImpl implements ValuationClassService {
 
-	public static final String VALUATION_CLASS_NOT_FOUND_MESSAGE = null;
 	private final ValuationClassRepo valuationClassRepo;
 	private final ExcelFileHelper excelFileHelper;
 	private final ModelMapper modelMapper;
@@ -44,6 +44,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	@Override
 	public ValuationClassResponse saveValuationClass(ValuationClassRequest valuationClassRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(valuationClassRequest);
 		boolean exists = valuationClassRepo.existsByValuationClassCodeAndValuationClassName(
 				valuationClassRequest.getValuationClassCode(), valuationClassRequest.getValuationClassName());
 		if (!exists) {
@@ -98,23 +99,50 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	public ValuationClassResponse updateValuationClass(Long id, ValuationClassRequest valuationClassRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(valuationClassRequest);
 		String existName = valuationClassRequest.getValuationClassName();
 		String existCode = valuationClassRequest.getValuationClassCode();
 		boolean exists = valuationClassRepo.existsByValuationClassCodeAndValuationClassNameAndIdNot(existCode,
 				existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ValuationClass existingValuationClass = this.findValuationClassById(id);
-			modelMapper.map(valuationClassRequest, existingValuationClass);
-			for (Map.Entry<String, Object> entryField : existingValuationClass.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ValuationClass.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingValuationClass.getValuationClassCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "ValuationClass Code",
+						existingValuationClass.getValuationClassCode(), existCode));
+				existingValuationClass.setValuationClassCode(existCode);
+
+			}
+			if (!existingValuationClass.getValuationClassName().equals(existName)) {
+				existingValuationClass.setValuationClassName(existName);
+				auditFields.add(new AuditFields(null, "ValuationClass Name",
+						existingValuationClass.getValuationClassName(), existName));
+			}
+			if (!existingValuationClass.getMaterialTypeId().equals(valuationClassRequest.getMaterialTypeId())) {
+				auditFields.add(new AuditFields(null, "Material Type", existingValuationClass.getMaterialTypeId(),
+						valuationClassRequest.getMaterialTypeId()));
+				existingValuationClass.setMaterialTypeId(valuationClassRequest.getMaterialTypeId());
+			}
+			if (!existingValuationClass.getValuationClassStatus()
+					.equals(valuationClassRequest.getValuationClassStatus())) {
+				auditFields.add(
+						new AuditFields(null, "ValuationClass Status", existingValuationClass.getValuationClassStatus(),
+								valuationClassRequest.getValuationClassStatus()));
+				existingValuationClass.setValuationClassStatus(valuationClassRequest.getValuationClassStatus());
+			}
+			if (!existingValuationClass.getDynamicFields().equals(valuationClassRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : valuationClassRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingValuationClass.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingValuationClass.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingValuationClass.setId(id);
+			existingValuationClass.updateAuditHistory(auditFields);
 			valuationClassRepo.save(existingValuationClass);
 			return mapToValuationClassResponse(existingValuationClass);
 
@@ -126,18 +154,34 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	@Override
 	public List<ValuationClassResponse> updateBulkStatusValuationClassId(List<Long> id)
 			throws ResourceNotFoundException {
-		List<ValuationClass> existingValuationClass = this.findAllValuationClassById(id);
-		for (ValuationClass valuationClass : existingValuationClass) {
-			valuationClass.setValuationClassStatus(!valuationClass.getValuationClassStatus());
-		}
-		valuationClassRepo.saveAll(existingValuationClass);
-		return existingValuationClass.stream().map(this::mapToValuationClassResponse).toList();
+		List<ValuationClass> existingValuationClasses = this.findAllValuationClassById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingValuationClasses.forEach(existingValuationClass -> {
+			if (existingValuationClass.getValuationClassStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "ValuationClass Status", existingValuationClass.getValuationClassStatus(),
+								!existingValuationClass.getValuationClassStatus()));
+				existingValuationClass.setValuationClassStatus(!existingValuationClass.getValuationClassStatus());
+			}
+			existingValuationClass.updateAuditHistory(auditFields);
+		});
+		valuationClassRepo.saveAll(existingValuationClasses);
+		return existingValuationClasses.stream().map(this::mapToValuationClassResponse).toList();
 	}
 
 	@Override
 	public ValuationClassResponse updateStatusUsingValuationClassId(Long id) throws ResourceNotFoundException {
 		ValuationClass existingValuationClass = this.findValuationClassById(id);
-		existingValuationClass.setValuationClassStatus(!existingValuationClass.getValuationClassStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingValuationClass.getValuationClassStatus() != null) {
+			auditFields.add(
+					new AuditFields(null, "ValuationClass Status", existingValuationClass.getValuationClassStatus(),
+							!existingValuationClass.getValuationClassStatus()));
+			existingValuationClass.setValuationClassStatus(!existingValuationClass.getValuationClassStatus());
+		}
+		existingValuationClass.updateAuditHistory(auditFields);
 		valuationClassRepo.save(existingValuationClass);
 		return mapToValuationClassResponse(existingValuationClass);
 	}
@@ -213,7 +257,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 		Helpers.validateId(id);
 		Optional<ValuationClass> valuationClass = valuationClassRepo.findById(id);
 		if (valuationClass.isEmpty()) {
-			throw new ResourceNotFoundException(VALUATION_CLASS_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Valuation Class with ID " + id + " not found.");
 		}
 		return valuationClass.get();
 	}
@@ -236,7 +280,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	public List<ValuationClass> findAllValuationClass() throws ResourceNotFoundException {
 		List<ValuationClass> valuationClasses = valuationClassRepo.findAllByOrderByIdAsc();
 		if (valuationClasses.isEmpty()) {
-			throw new ResourceNotFoundException(VALUATION_CLASS_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Valuation Class data is Empty in Db");
 		}
 		return valuationClasses;
 	}

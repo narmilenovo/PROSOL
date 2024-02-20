@@ -1,8 +1,10 @@
 package com.example.plantservice.dto.response;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import com.example.plantservice.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -16,12 +18,12 @@ public class StorageBinResponse {
     private Boolean storageBinStatus;
     private PlantResponse plant;
     private StorageLocationResponse storageLocation;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
 
     @JsonAnyGetter
     @JsonIgnore
     private Map<String, Object> dynamicFields;
+
+    private String createdBy;
+    private Date createdAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

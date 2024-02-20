@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.PriceControlRequest;
 import com.example.plantservice.dto.response.PriceControlResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.PriceControl;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -36,11 +37,10 @@ public class PriceControlServiceImpl implements PriceControlService {
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 
-	public static final String PRICE_CONTROL_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public PriceControlResponse savePriceControl(PriceControlRequest priceControlRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(priceControlRequest);
 		boolean exists = priceControlRepo.existsByPriceControlCodeAndPriceControlName(
 				priceControlRequest.getPriceControlCode(), priceControlRequest.getPriceControlName());
 		if (!exists) {
@@ -82,21 +82,41 @@ public class PriceControlServiceImpl implements PriceControlService {
 	public PriceControlResponse updatePriceControl(Long id, PriceControlRequest priceControlRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(priceControlRequest);
 		String existName = priceControlRequest.getPriceControlName();
 		String existCode = priceControlRequest.getPriceControlCode();
 		boolean exists = priceControlRepo.existsByPriceControlCodeAndPriceControlNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			PriceControl existingPriceControl = this.findPriceControlById(id);
-			modelMapper.map(priceControlRequest, existingPriceControl);
-			for (Map.Entry<String, Object> entryField : existingPriceControl.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PriceControl.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingPriceControl.getPriceControlCode().equals(existCode)) {
+				auditFields.add(new AuditFields(null, "PriceControl Code", existingPriceControl.getPriceControlCode(),
+						existCode));
+				existingPriceControl.setPriceControlCode(existCode);
+			}
+			if (!existingPriceControl.getPriceControlName().equals(existName)) {
+				auditFields.add(new AuditFields(null, "PriceControl Name", existingPriceControl.getPriceControlName(),
+						existName));
+				existingPriceControl.setPriceControlName(existName);
+			}
+			if (!existingPriceControl.getPriceControlStatus().equals(priceControlRequest.getPriceControlStatus())) {
+				auditFields.add(new AuditFields(null, "PriceControl Status",
+						existingPriceControl.getPriceControlStatus(), existingPriceControl.getPriceControlStatus()));
+				existingPriceControl.setPriceControlStatus(priceControlRequest.getPriceControlStatus());
+			}
+			if (!existingPriceControl.getDynamicFields().equals(priceControlRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : priceControlRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingPriceControl.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingPriceControl.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingPriceControl.updateAuditHistory(auditFields);
 			priceControlRepo.save(existingPriceControl);
 			return mapToPriceControlResponse(existingPriceControl);
 		} else {
@@ -106,18 +126,32 @@ public class PriceControlServiceImpl implements PriceControlService {
 
 	@Override
 	public List<PriceControlResponse> updateBulkStatusPriceControlId(List<Long> id) throws ResourceNotFoundException {
-		List<PriceControl> existingPriceControl = this.findAllPcById(id);
-		for (PriceControl priceControl : existingPriceControl) {
-			priceControl.setPriceControlStatus(!priceControl.getPriceControlStatus());
-		}
-		priceControlRepo.saveAll(existingPriceControl);
-		return existingPriceControl.stream().map(this::mapToPriceControlResponse).toList();
+		List<PriceControl> existingPriceControls = this.findAllPcById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingPriceControls.forEach(existingPriceControl -> {
+			if (existingPriceControl.getPriceControlStatus() != null) {
+				auditFields.add(new AuditFields(null, "Price Control Status",
+						existingPriceControl.getPriceControlStatus(), !existingPriceControl.getPriceControlStatus()));
+				existingPriceControl.setPriceControlStatus(!existingPriceControl.getPriceControlStatus());
+			}
+			existingPriceControl.updateAuditHistory(auditFields);
+		});
+		priceControlRepo.saveAll(existingPriceControls);
+		return existingPriceControls.stream().map(this::mapToPriceControlResponse).toList();
 	}
 
 	@Override
 	public PriceControlResponse updateStatusUsingPriceControlId(Long id) throws ResourceNotFoundException {
 		PriceControl existingPriceControl = this.findPriceControlById(id);
-		existingPriceControl.setPriceControlStatus(!existingPriceControl.getPriceControlStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingPriceControl.getPriceControlStatus() != null) {
+			auditFields.add(new AuditFields(null, "Price Control Status", existingPriceControl.getPriceControlStatus(),
+					!existingPriceControl.getPriceControlStatus()));
+			existingPriceControl.setPriceControlStatus(!existingPriceControl.getPriceControlStatus());
+		}
+		existingPriceControl.updateAuditHistory(auditFields);
 		priceControlRepo.save(existingPriceControl);
 		return mapToPriceControlResponse(existingPriceControl);
 	}
@@ -192,7 +226,7 @@ public class PriceControlServiceImpl implements PriceControlService {
 		Helpers.validateId(id);
 		Optional<PriceControl> priceControl = priceControlRepo.findById(id);
 		if (priceControl.isEmpty()) {
-			throw new ResourceNotFoundException(PRICE_CONTROL_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Price Control with ID " + id + " not found");
 		}
 		return priceControl.get();
 	}

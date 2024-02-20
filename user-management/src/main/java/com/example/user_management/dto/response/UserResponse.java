@@ -1,10 +1,12 @@
 package com.example.user_management.dto.response;
 
-import lombok.Data;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
+import com.example.user_management.entity.UpdateAuditHistory;
+
+import lombok.Data;
 
 @Data
 public class UserResponse {
@@ -19,8 +21,6 @@ public class UserResponse {
     private Boolean status;
     private Set<RoleResponse> roles;
     private String createdBy;
-    private String updatedBy;
     private Date createdAt;
-    //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy hh:mm:ss a")
-    private Date updatedAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

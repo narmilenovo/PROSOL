@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.mrpdataservice.client.MrpPlantResponse;
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
 import com.example.mrpdataservice.client.Plant.MrpPlantClient;
+import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.MrpControl;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
@@ -33,7 +34,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MrpControlServiceImpl implements MrpControlService {
 
-	public static final String MRP_CONTROL_NOT_FOUND_MESSAGE = null;
 	private final MrpControlRepo mrpControlRepo;
 	private final ExcelFileHelper excelFileHelper;
 	private final ModelMapper modelMapper;
@@ -43,6 +43,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 	@Override
 	public MrpControlResponse saveMrpControl(MrpControlRequest mrpControlRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
+		Helpers.inputTitleCase(mrpControlRequest);
 		boolean exists = mrpControlRepo.existsByMrpControlCodeAndMrpControlName(mrpControlRequest.getMrpControlCode(),
 				mrpControlRequest.getMrpControlName());
 		if (!exists) {
@@ -102,23 +103,46 @@ public class MrpControlServiceImpl implements MrpControlService {
 	public MrpControlResponse updateMrpControl(Long id, MrpControlRequest mrpControlRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
-		String exist = mrpControlRequest.getMrpControlName();
+		Helpers.inputTitleCase(mrpControlRequest);
+		String existName = mrpControlRequest.getMrpControlName();
 		String existCode = mrpControlRequest.getMrpControlCode();
-		boolean exists = mrpControlRepo.existsByMrpControlCodeAndMrpControlNameAndIdNot(existCode, exist, id);
+		boolean exists = mrpControlRepo.existsByMrpControlCodeAndMrpControlNameAndIdNot(existCode, existName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			MrpControl existingMrpControl = this.findMrpControlById(id);
-			modelMapper.map(mrpControlRequest, existingMrpControl);
-			for (Map.Entry<String, Object> entryField : existingMrpControl.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MrpControl.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingMrpControl.getMrpControlCode().equals(existCode)) {
+				auditFields.add(
+						new AuditFields(null, "MrpControl Code", existingMrpControl.getMrpControlCode(), existCode));
+				existingMrpControl.setMrpControlCode(existCode);
+			}
+			if (!existingMrpControl.getMrpControlName().equals(existName)) {
+				auditFields.add(
+						new AuditFields(null, "MrpControl Name", existingMrpControl.getMrpControlName(), existName));
+				existingMrpControl.setMrpControlName(existName);
+			}
+			if (!existingMrpControl.getMrpControlStatus().equals(mrpControlRequest.getMrpControlStatus())) {
+				auditFields.add(new AuditFields(null, "MrpControl Status", existingMrpControl.getMrpControlStatus(),
+						mrpControlRequest.getMrpControlStatus()));
+				existingMrpControl.setMrpControlStatus(mrpControlRequest.getMrpControlStatus());
+			}
+			if (!existingMrpControl.getPlantId().equals(mrpControlRequest.getPlantId())) {
+				auditFields.add(new AuditFields(null, "Plant", existingMrpControl.getPlantId(),
+						mrpControlRequest.getPlantId()));
+				existingMrpControl.setPlantId(mrpControlRequest.getPlantId());
+			}
+			if (!existingMrpControl.getDynamicFields().equals(mrpControlRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : mrpControlRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingMrpControl.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingMrpControl.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingMrpControl.setId(id);
-			// existingMrpControl.setPlantId(mrpControlRequest.getPlantId());
+			existingMrpControl.updateAuditHistory(auditFields);
 			MrpControl mrp = mrpControlRepo.save(existingMrpControl);
 			return mapToMrpControlResponse(mrp);
 		} else {
@@ -128,18 +152,32 @@ public class MrpControlServiceImpl implements MrpControlService {
 
 	@Override
 	public List<MrpControlResponse> updateBulkStatusMrpControlId(List<Long> id) throws ResourceNotFoundException {
-		List<MrpControl> existingMrpControl = this.findAllMrpControlById(id);
-		for (MrpControl mrpControl : existingMrpControl) {
-			mrpControl.setMrpControlStatus(!mrpControl.getMrpControlStatus());
-		}
-		mrpControlRepo.saveAll(existingMrpControl);
-		return existingMrpControl.stream().map(this::mapToMrpControlResponse).toList();
+		List<MrpControl> existingMrpControls = this.findAllMrpControlById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingMrpControls.forEach(existingMrpControl -> {
+			if (existingMrpControl.getMrpControlStatus() != null) {
+				auditFields.add(new AuditFields(null, "MrpControl Status", existingMrpControl.getMrpControlStatus(),
+						!existingMrpControl.getMrpControlStatus()));
+				existingMrpControl.setMrpControlStatus(!existingMrpControl.getMrpControlStatus());
+			}
+			existingMrpControl.updateAuditHistory(auditFields);
+		});
+		mrpControlRepo.saveAll(existingMrpControls);
+		return existingMrpControls.stream().map(this::mapToMrpControlResponse).toList();
 	}
 
 	@Override
 	public MrpControlResponse updateStatusUsingMrpControlId(Long id) throws ResourceNotFoundException {
 		MrpControl existingMrpControl = this.findMrpControlById(id);
-		existingMrpControl.setMrpControlStatus(!existingMrpControl.getMrpControlStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingMrpControl.getMrpControlStatus() != null) {
+			auditFields.add(new AuditFields(null, "MrpControl Status", existingMrpControl.getMrpControlStatus(),
+					!existingMrpControl.getMrpControlStatus()));
+			existingMrpControl.setMrpControlStatus(!existingMrpControl.getMrpControlStatus());
+		}
+		existingMrpControl.updateAuditHistory(auditFields);
 		mrpControlRepo.save(existingMrpControl);
 		return mapToMrpControlResponse(existingMrpControl);
 	}
@@ -217,7 +255,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 		Helpers.validateId(id);
 		Optional<MrpControl> mrpControl = mrpControlRepo.findById(id);
 		if (mrpControl.isEmpty()) {
-			throw new ResourceNotFoundException(MRP_CONTROL_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Mrp Control with ID " + id + " not found.");
 		}
 		return mrpControl.get();
 	}
@@ -225,7 +263,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 	private MrpControl findMrpControlByName(String name) throws ResourceNotFoundException {
 		Optional<MrpControl> mrpControl = mrpControlRepo.findByMrpControlName(name);
 		if (mrpControl.isEmpty()) {
-			throw new ResourceNotFoundException(MRP_CONTROL_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Mrp Control with Name " + name + " not found.");
 		}
 		return mrpControl.get();
 	}

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.example.plantservice.entity.StorageBin;
 
 @Repository
-public interface StorageLocationBinRepo extends JpaRepository<StorageBin, Long> {
+public interface StorageBinRepo extends JpaRepository<StorageBin, Long> {
 
     Optional<StorageBin> findByStorageBinName(String title);
 

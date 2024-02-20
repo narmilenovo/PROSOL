@@ -1,6 +1,9 @@
 package com.example.generalsettings.response;
 
 import java.util.Date;
+import java.util.List;
+
+import com.example.generalsettings.entity.UpdateAuditHistory;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,8 +19,8 @@ public class SubSubGroupResponse {
 	private Boolean subSubGroupStatus;
 	private MainGroupCodesResponse mainGroupCodesId;
 	private SubGroupCodesResponse subGroupCodesId;
+
 	private String createdBy;
-	private String updatedBy;
 	private Date createdAt;
-	private Date updatedAt;
+	private List<UpdateAuditHistory> updateAuditHistories;
 }

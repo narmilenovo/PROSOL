@@ -29,6 +29,7 @@
         <module>MRPData</module>
         <module>attributemaster</module>
         <module>request-item-service</module>
+        <module>user-settings</module>
         <module>dynamic</module>
     </modules>
 

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.plantservice.client.Dynamic.DynamicClient;
 import com.example.plantservice.dto.request.PlantRequest;
 import com.example.plantservice.dto.response.PlantResponse;
+import com.example.plantservice.entity.AuditFields;
 import com.example.plantservice.entity.Plant;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
@@ -30,7 +31,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PlantServiceImpl implements PlantService {
-	private static final String PLANT_NOT_FOUND_MESSAGE = null;
 	private final PlantRepo plantRepo;
 	private final ModelMapper modelMapper;
 	private final ExcelFileHelper excelFileHelper;
@@ -39,6 +39,7 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public PlantResponse savePlant(PlantRequest plantRequest)
 			throws AlreadyExistsException, ResourceNotFoundException, IllegalAccessException {
+		Helpers.inputTitleCase(plantRequest);
 		boolean exists = plantRepo.existsByPlantCodeAndPlantName(plantRequest.getPlantCode(),
 				plantRequest.getPlantName());
 		if (!exists) {
@@ -52,7 +53,6 @@ public class PlantServiceImpl implements PlantService {
 							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
 				}
 			}
-			Helpers.capitalizeFields(plant);
 			plantRepo.save(plant);
 			return mapToPlantResponse(plant);
 		} else {
@@ -87,21 +87,39 @@ public class PlantServiceImpl implements PlantService {
 	public PlantResponse updatePlant(Long id, PlantRequest plantRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(plantRequest);
 		String plantName = plantRequest.getPlantName();
-		String code = plantRequest.getPlantCode();
-		boolean exists = plantRepo.existsByPlantCodeAndPlantNameAndIdNot(code, plantName, id);
+		String plantCode = plantRequest.getPlantCode();
+		boolean exists = plantRepo.existsByPlantCodeAndPlantNameAndIdNot(plantCode, plantName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			Plant existingPlant = this.findPlantById(id);
-			modelMapper.map(plantRequest, existingPlant);
-			for (Map.Entry<String, Object> entryField : existingPlant.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Plant.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of: '" + fieldName
-							+ "' not exist in Dynamic Field creation of form: '" + formName + "' !!!");
+			if (!existingPlant.getPlantCode().equals(plantCode)) {
+				auditFields.add(new AuditFields(null, "Plant Code", existingPlant.getPlantCode(), plantCode));
+				existingPlant.setPlantCode(plantCode);
+			}
+			if (!existingPlant.getPlantName().equals(plantName)) {
+				auditFields.add(new AuditFields(null, "Plant Name", existingPlant.getPlantName(), plantName));
+				existingPlant.setPlantName(plantName);
+			}
+			if (!existingPlant.getPlantStatus().equals(plantRequest.getPlantStatus())) {
+				auditFields.add(new AuditFields(null, "Plant Status", existingPlant.getPlantStatus(),
+						plantRequest.getPlantStatus()));
+				existingPlant.setPlantStatus(plantRequest.getPlantStatus());
+			}
+			if (!existingPlant.getDynamicFields().equals(plantRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : plantRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingPlant.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingPlant.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingPlant.updateAuditHistory(auditFields);
 			plantRepo.save(existingPlant);
 			return mapToPlantResponse(existingPlant);
 		} else {
@@ -111,18 +129,32 @@ public class PlantServiceImpl implements PlantService {
 
 	@Override
 	public List<PlantResponse> updateBulkStatusPlantId(List<Long> id) throws ResourceNotFoundException {
-		List<Plant> existingPlant = this.findAllPlantById(id);
-		for (Plant plant : existingPlant) {
-			plant.setPlantStatus(!plant.getPlantStatus());
-		}
-		plantRepo.saveAll(existingPlant);
-		return existingPlant.stream().map(this::mapToPlantResponse).toList();
+		List<Plant> existingPlants = this.findAllPlantById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingPlants.forEach(existingPlant -> {
+			if (existingPlant.getPlantStatus() != null) {
+				auditFields.add(new AuditFields(null, "Plant Status", existingPlant.getPlantStatus(),
+						!existingPlant.getPlantStatus()));
+				existingPlant.setPlantStatus(!existingPlant.getPlantStatus());
+			}
+			existingPlant.updateAuditHistory(auditFields);
+		});
+		plantRepo.saveAll(existingPlants);
+		return existingPlants.stream().map(this::mapToPlantResponse).toList();
 	}
 
 	@Override
 	public PlantResponse updateStatusUsingPlantId(Long id) throws ResourceNotFoundException {
 		Plant existingPlant = this.findPlantById(id);
-		existingPlant.setPlantStatus(!existingPlant.getPlantStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingPlant.getPlantStatus() != null) {
+			auditFields.add(new AuditFields(null, "Plant Status", existingPlant.getPlantStatus(),
+					!existingPlant.getPlantStatus()));
+			existingPlant.setPlantStatus(!existingPlant.getPlantStatus());
+		}
+		existingPlant.updateAuditHistory(auditFields);
 		plantRepo.save(existingPlant);
 		return mapToPlantResponse(existingPlant);
 	}
@@ -196,7 +228,7 @@ public class PlantServiceImpl implements PlantService {
 		Helpers.validateId(plantId);
 		Optional<Plant> plant = plantRepo.findById(plantId);
 		if (plant.isEmpty()) {
-			throw new ResourceNotFoundException(PLANT_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Plant with ID " + plantId + " not found");
 		}
 		return plant.get();
 	}
@@ -204,7 +236,7 @@ public class PlantServiceImpl implements PlantService {
 	private Plant findPlantByName(String name) throws ResourceNotFoundException {
 		Optional<Plant> plant = plantRepo.findByPlantName(name);
 		if (plant.isEmpty()) {
-			throw new ResourceNotFoundException(PLANT_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Plant with Name " + name + " not found");
 		}
 		return plant.get();
 	}

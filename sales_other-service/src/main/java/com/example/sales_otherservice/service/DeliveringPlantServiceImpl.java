@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import com.example.sales_otherservice.clients.Plant.PlantClient;
 import com.example.sales_otherservice.clients.Plant.PlantResponse;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.DeliveringPlant;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
@@ -34,6 +36,7 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	@Override
 	public DeliveringPlantResponse saveDp(DeliveringPlantRequest deliveringPlantRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(deliveringPlantRequest);
 		String dpCode = deliveringPlantRequest.getDpCode();
 		String dpName = deliveringPlantRequest.getDpName();
 		boolean exists = deliveringPlantRepository.existsByDpCodeOrDpName(dpCode, dpName);
@@ -91,22 +94,45 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	public DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateDeliveringPlantRequest);
 		String dpCode = updateDeliveringPlantRequest.getDpCode();
 		String dpName = updateDeliveringPlantRequest.getDpName();
 		DeliveringPlant existingDeliveringPlant = this.findDpById(id);
 		boolean exist = deliveringPlantRepository.existsByDpCodeAndIdNotOrDpNameAndIdNot(dpCode, id, dpName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exist) {
-			modelMapper.map(updateDeliveringPlantRequest, existingDeliveringPlant);
-			for (Map.Entry<String, Object> entryField : existingDeliveringPlant.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = DeliveringPlant.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingDeliveringPlant.getDpCode().equals(dpCode)) {
+				auditFields.add(new AuditFields(null, "Dp Code", existingDeliveringPlant.getDpCode(), dpCode));
+				existingDeliveringPlant.setDpCode(dpCode);
+			}
+			if (!existingDeliveringPlant.getDpName().equals(dpName)) {
+				auditFields.add(new AuditFields(null, "Dp Name", existingDeliveringPlant.getDpName(), dpName));
+				existingDeliveringPlant.setDpName(dpName);
+			}
+			if (!existingDeliveringPlant.getDpStatus().equals(updateDeliveringPlantRequest.getDpStatus())) {
+				auditFields.add(new AuditFields(null, "Dp Status", existingDeliveringPlant.getDpStatus(),
+						updateDeliveringPlantRequest.getDpStatus()));
+				existingDeliveringPlant.setDpStatus(updateDeliveringPlantRequest.getDpStatus());
+			}
+			if (!existingDeliveringPlant.getPlantId().equals(updateDeliveringPlantRequest.getPlantId())) {
+				auditFields.add(new AuditFields(null, "Plant", existingDeliveringPlant.getPlantId(),
+						updateDeliveringPlantRequest.getPlantId()));
+				existingDeliveringPlant.setPlantId(updateDeliveringPlantRequest.getPlantId());
+			}
+
+			if (!existingDeliveringPlant.getDynamicFields().equals(updateDeliveringPlantRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateDeliveringPlantRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingDeliveringPlant.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingDeliveringPlant.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingDeliveringPlant.setId(id);
+			existingDeliveringPlant.updateAuditHistory(auditFields);
 			DeliveringPlant updatedDeliveringPlant = deliveringPlantRepository.save(existingDeliveringPlant);
 			return mapToDeliveringPlantResponse(updatedDeliveringPlant);
 		}
@@ -115,16 +141,33 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 
 	@Override
 	public DeliveringPlantResponse updateDpStatus(Long id) throws ResourceNotFoundException {
-		DeliveringPlant deliveringPlant = this.findDpById(id);
-		deliveringPlant.setDpStatus(!deliveringPlant.getDpStatus());
-		deliveringPlantRepository.save(deliveringPlant);
-		return mapToDeliveringPlantResponse(deliveringPlant);
+		DeliveringPlant existingDeliveringPlant = this.findDpById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingDeliveringPlant.getDpStatus() != null) {
+			auditFields.add(new AuditFields(null, "Dp Status", existingDeliveringPlant.getDpStatus(),
+					!existingDeliveringPlant.getDpStatus()));
+			existingDeliveringPlant.setDpStatus(!existingDeliveringPlant.getDpStatus());
+		}
+		existingDeliveringPlant.updateAuditHistory(auditFields);
+		deliveringPlantRepository.save(existingDeliveringPlant);
+		return mapToDeliveringPlantResponse(existingDeliveringPlant);
 	}
 
 	@Override
 	public List<DeliveringPlantResponse> updateBatchDpStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<DeliveringPlant> deliveringPlants = this.findAllDpById(ids);
-		deliveringPlants.forEach(deliveringPlant -> deliveringPlant.setDpStatus(!deliveringPlant.getDpStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		deliveringPlants.forEach(existingDeliveringPlant -> {
+			if (existingDeliveringPlant.getDpStatus() != null) {
+				auditFields.add(new AuditFields(null, "Dp Status", existingDeliveringPlant.getDpStatus(),
+						!existingDeliveringPlant.getDpStatus()));
+				existingDeliveringPlant.setDpStatus(!existingDeliveringPlant.getDpStatus());
+			}
+			existingDeliveringPlant.updateAuditHistory(auditFields);
+
+		});
 		deliveringPlantRepository.saveAll(deliveringPlants);
 		return deliveringPlants.stream().sorted(Comparator.comparing(DeliveringPlant::getId))
 				.map(this::mapToDeliveringPlantResponse).toList();

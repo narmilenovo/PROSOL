@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.SalesUnitRequest;
 import com.example.generalservice.dto.response.SalesUnitResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.SalesUnit;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	@Override
 	public SalesUnitResponse saveSalesUnit(SalesUnitRequest salesUnitRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(salesUnitRequest);
 		String salesCode = salesUnitRequest.getSalesCode();
 		String salesName = salesUnitRequest.getSalesName();
 		boolean exists = salesUnitRepository.existsBySalesCodeOrSalesName(salesCode, salesName);
@@ -78,21 +81,39 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	public SalesUnitResponse updateSalesUnit(Long id, SalesUnitRequest updateSalesUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateSalesUnitRequest);
 		String salesCode = updateSalesUnitRequest.getSalesCode();
 		String salesName = updateSalesUnitRequest.getSalesName();
 		SalesUnit existingSalesUnit = this.findSalesUnitById(id);
 		boolean exists = salesUnitRepository.existsBySalesCodeAndIdNotOrSalesNameAndIdNot(salesCode, id, salesName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateSalesUnitRequest, existingSalesUnit);
-			for (Map.Entry<String, Object> entryField : existingSalesUnit.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = SalesUnit.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingSalesUnit.getSalesCode().equals(salesCode)) {
+				auditFields.add(new AuditFields(null, "Sales Code", existingSalesUnit.getSalesCode(), salesCode));
+				existingSalesUnit.setSalesCode(salesCode);
+			}
+			if (!existingSalesUnit.getSalesName().equals(salesName)) {
+				auditFields.add(new AuditFields(null, "Sales Name", existingSalesUnit.getSalesName(), salesName));
+				existingSalesUnit.setSalesName(salesName);
+			}
+			if (!existingSalesUnit.getSalesStatus().equals(updateSalesUnitRequest.getSalesStatus())) {
+				auditFields.add(new AuditFields(null, "Sales Status", existingSalesUnit.getSalesStatus(),
+						updateSalesUnitRequest.getSalesStatus()));
+				existingSalesUnit.setSalesStatus(updateSalesUnitRequest.getSalesStatus());
+			}
+			if (!existingSalesUnit.getDynamicFields().equals(updateSalesUnitRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateSalesUnitRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingSalesUnit.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingSalesUnit.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingSalesUnit.updateAuditHistory(auditFields); // Update the audit history
 			SalesUnit updatedSalesUnit = salesUnitRepository.save(existingSalesUnit);
 			return mapToSalesUnitResponse(updatedSalesUnit);
 		}
@@ -102,7 +123,14 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	@Override
 	public SalesUnitResponse updateSalesUnitStatus(Long id) throws ResourceNotFoundException {
 		SalesUnit existingSalesUnit = this.findSalesUnitById(id);
-		existingSalesUnit.setSalesStatus(!existingSalesUnit.getSalesStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSalesUnit.getSalesStatus() != null) {
+			auditFields.add(new AuditFields(null, "Sales Status", existingSalesUnit.getSalesStatus(),
+					!existingSalesUnit.getSalesStatus()));
+			existingSalesUnit.setSalesStatus(!existingSalesUnit.getSalesStatus());
+		}
+		existingSalesUnit.updateAuditHistory(auditFields);
 		salesUnitRepository.save(existingSalesUnit);
 		return mapToSalesUnitResponse(existingSalesUnit);
 	}
@@ -110,9 +138,15 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	@Override
 	public List<SalesUnitResponse> updateBatchSalesUnitStatus(List<Long> ids) {
 		List<SalesUnit> salesUnits = salesUnitRepository.findAllById(ids);
-		for (SalesUnit salesUnit : salesUnits) {
-			salesUnit.setSalesStatus(!salesUnit.getSalesStatus());
-		}
+		List<AuditFields> auditFields = new ArrayList<>();
+		salesUnits.forEach(existingSalesUnit -> {
+			if (existingSalesUnit.getSalesStatus() != null) {
+				auditFields.add(new AuditFields(null, "Sales Status", existingSalesUnit.getSalesStatus(),
+						!existingSalesUnit.getSalesStatus()));
+				existingSalesUnit.setSalesStatus(!existingSalesUnit.getSalesStatus());
+			}
+			existingSalesUnit.updateAuditHistory(auditFields);
+		});
 		salesUnitRepository.saveAll(salesUnits);
 		return salesUnits.stream().sorted(Comparator.comparing(SalesUnit::getId)).map(this::mapToSalesUnitResponse)
 				.toList();

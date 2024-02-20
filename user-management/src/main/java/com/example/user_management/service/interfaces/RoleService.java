@@ -37,7 +37,7 @@ public interface RoleService {
 
 	void deleteBatchRole(List<Long> id) throws ResourceNotFoundException;
 
-	Set<Privilege> setToString(Long[] privileges);
+	Set<Privilege> setToPrivilegeId(Long[] privileges);
 
 	RoleResponse removePrivilegesFromRole(Long id, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException;

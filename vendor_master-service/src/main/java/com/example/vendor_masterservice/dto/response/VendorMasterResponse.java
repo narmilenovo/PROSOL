@@ -1,8 +1,10 @@
 package com.example.vendor_masterservice.dto.response;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import com.example.vendor_masterservice.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -35,12 +37,12 @@ public class VendorMasterResponse {
     private String website;
     private String acquiredBy;
     private Boolean status;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
 
     @JsonAnyGetter
     @JsonIgnore
     private Map<String, Object> dynamicFields;
+
+    private String createdBy;
+    private Date createdAt;
+    private List<UpdateAuditHistory> updateAuditHistories;
 }

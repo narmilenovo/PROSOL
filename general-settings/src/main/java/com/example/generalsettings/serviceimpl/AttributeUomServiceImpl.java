@@ -1,5 +1,6 @@
 package com.example.generalsettings.serviceimpl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -8,6 +9,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AttributeUom;
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
 import com.example.generalsettings.repo.AttributeUomRepo;
@@ -21,13 +23,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AttributeUomServiceImpl implements AttributeUomService {
-	public static final String ATTRIBUTE_TYPE_NOT_FOUND_MESSAGE = null;
 	private final ModelMapper modelMapper;
 	private final AttributeUomRepo attributeUomRepo;
 
 	@Override
 	public AttributeUomResponse saveAttributeUom(AttributeUomRequest attributeUomRequest)
 			throws AlreadyExistsException {
+		Helpers.inputTitleCase(attributeUomRequest);
 		boolean exists = attributeUomRepo.existsByAttributeUomName(attributeUomRequest.getAttributeUomName());
 		if (!exists) {
 			AttributeUom attributeUom = modelMapper.map(attributeUomRequest, AttributeUom.class);
@@ -54,11 +56,29 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 	public AttributeUomResponse updateAttributeUom(Long id, AttributeUomRequest attributeUomRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(attributeUomRequest);
 		String name = attributeUomRequest.getAttributeUomName();
 		boolean exists = attributeUomRepo.existsByAttributeUomNameAndIdNot(name, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			AttributeUom existingAttributeUom = this.findAttributeUomById(id);
-			modelMapper.map(attributeUomRequest, existingAttributeUom);
+			if (!existingAttributeUom.getAttributeUomName().equals(name)) {
+				auditFields.add(
+						new AuditFields(null, "AttributeUom Name", existingAttributeUom.getAttributeUomName(), name));
+				existingAttributeUom.setAttributeUomName(name);
+			}
+			if (!existingAttributeUom.getAttributeUomUnit().equals(attributeUomRequest.getAttributeUomUnit())) {
+				auditFields.add(new AuditFields(null, "AttributeUom Unit", existingAttributeUom.getAttributeUomUnit(),
+						attributeUomRequest.getAttributeUomUnit()));
+				existingAttributeUom.setAttributeUomUnit(attributeUomRequest.getAttributeUomUnit());
+			}
+			if (!existingAttributeUom.getAttributeUomStatus().equals(attributeUomRequest.getAttributeUomStatus())) {
+				auditFields.add(new AuditFields(null, "AttributeUom Status",
+						existingAttributeUom.getAttributeUomStatus(), attributeUomRequest.getAttributeUomStatus()));
+				existingAttributeUom.setAttributeUomStatus(attributeUomRequest.getAttributeUomStatus());
+			}
+			existingAttributeUom.updateAuditHistory(auditFields);
 			attributeUomRepo.save(existingAttributeUom);
 			return mapToAttributeUomResponse(existingAttributeUom);
 		} else {
@@ -68,18 +88,33 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 
 	@Override
 	public List<AttributeUomResponse> updateBulkStatusAttributeUomId(List<Long> id) throws ResourceNotFoundException {
-		List<AttributeUom> existingAttributeUom = this.findAllUomsById(id);
-		for (AttributeUom attributeUom : existingAttributeUom) {
-			attributeUom.setAttributeUomStatus(!attributeUom.getAttributeUomStatus());
-		}
-		attributeUomRepo.saveAll(existingAttributeUom);
-		return existingAttributeUom.stream().map(this::mapToAttributeUomResponse).toList();
+		List<AttributeUom> existingAttributeUomList = this.findAllUomsById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingAttributeUomList.forEach(existingAttributeUom -> {
+			if (existingAttributeUom.getAttributeUomStatus() != null) {
+				auditFields.add(new AuditFields(null, "AttributeUom Status",
+						existingAttributeUom.getAttributeUomStatus(), !existingAttributeUom.getAttributeUomStatus()));
+				existingAttributeUom.setAttributeUomStatus(!existingAttributeUom.getAttributeUomStatus());
+			}
+			existingAttributeUom.updateAuditHistory(auditFields);
+
+		});
+		attributeUomRepo.saveAll(existingAttributeUomList);
+		return existingAttributeUomList.stream().map(this::mapToAttributeUomResponse).toList();
 	}
 
 	@Override
 	public AttributeUomResponse updateStatusUsingAttributeUomId(Long id) throws ResourceNotFoundException {
 		AttributeUom existingAttributeUom = this.findAttributeUomById(id);
-		existingAttributeUom.setAttributeUomStatus(!existingAttributeUom.getAttributeUomStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingAttributeUom.getAttributeUomStatus() != null) {
+			auditFields.add(new AuditFields(null, "AttributeUom Status", existingAttributeUom.getAttributeUomStatus(),
+					!existingAttributeUom.getAttributeUomStatus()));
+			existingAttributeUom.setAttributeUomStatus(!existingAttributeUom.getAttributeUomStatus());
+		}
+		existingAttributeUom.updateAuditHistory(auditFields);
 		attributeUomRepo.save(existingAttributeUom);
 		return mapToAttributeUomResponse(existingAttributeUom);
 	}
@@ -104,7 +139,7 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 		Helpers.validateId(id);
 		Optional<AttributeUom> attributeUom = attributeUomRepo.findById(id);
 		if (attributeUom.isEmpty()) {
-			throw new ResourceNotFoundException(ATTRIBUTE_TYPE_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("AttributeUom with ID " + id + " not found");
 		}
 		return attributeUom.get();
 	}
@@ -114,8 +149,7 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 		List<AttributeUom> uoms = attributeUomRepo.findAllById(ids);
 
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> uoms.stream().noneMatch(entity -> entity.getId().equals(id)))
+		List<Long> missingIds = ids.stream().filter(id -> uoms.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.collect(Collectors.toList());
 
 		if (!missingIds.isEmpty()) {

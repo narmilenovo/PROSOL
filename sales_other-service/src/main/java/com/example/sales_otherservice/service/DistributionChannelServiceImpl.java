@@ -1,5 +1,6 @@
 package com.example.sales_otherservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
 import com.example.sales_otherservice.dto.request.DistributionChannelRequest;
 import com.example.sales_otherservice.dto.response.DistributionChannelResponse;
+import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.DistributionChannel;
 import com.example.sales_otherservice.entity.SalesOrganization;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
@@ -33,6 +35,7 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 	@Override
 	public DistributionChannelResponse saveDc(DistributionChannelRequest deliveringPlantRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(deliveringPlantRequest);
 		String dcCode = deliveringPlantRequest.getDcCode();
 		String dcName = deliveringPlantRequest.getDcName();
 		boolean exists = distributionChannelRepository.existsByDcCodeOrDcName(dcCode, dcName);
@@ -88,27 +91,50 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 	public DistributionChannelResponse updateDc(Long id, DistributionChannelRequest updateDistributionChannelRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateDistributionChannelRequest);
 		String dcCode = updateDistributionChannelRequest.getDcCode();
 		String dcName = updateDistributionChannelRequest.getDcName();
 		DistributionChannel existingChannel = this.findDCById(id);
 		boolean exists = distributionChannelRepository.existsByDcCodeAndIdNotOrDcNameAndIdNot(dcCode, id, dcName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			for (Map.Entry<String, Object> entryField : existingChannel.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = DistributionChannel.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingChannel.getDcCode().equals(dcCode)) {
+				auditFields.add(new AuditFields(null, "Dc Code", existingChannel.getDcCode(), dcCode));
+				existingChannel.setDcCode(dcCode);
+			}
+			if (!existingChannel.getDcName().equals(dcName)) {
+				auditFields.add(new AuditFields(null, "Dc Name", existingChannel.getDcName(), dcName));
+				existingChannel.setDcName(dcName);
+			}
+			if (updateDistributionChannelRequest.getDcStatus() != null
+					&& !updateDistributionChannelRequest.getDcStatus().equals(existingChannel.getDcStatus())) {
+				auditFields.add(new AuditFields(null, "Dc Status", existingChannel.getDcStatus(),
+						updateDistributionChannelRequest.getDcStatus()));
+				existingChannel.setDcStatus(updateDistributionChannelRequest.getDcStatus());
+
+			}
+			if (!existingChannel.getSalesOrganization()
+					.equals(findSalesOrgById(updateDistributionChannelRequest.getSalesOrganizationId()))) {
+				auditFields.add(new AuditFields(null, "Sales Organization", existingChannel.getSalesOrganization(),
+						updateDistributionChannelRequest.getSalesOrganizationId()));
+				SalesOrganization salesOrganization = findSalesOrgById(
+						updateDistributionChannelRequest.getSalesOrganizationId());
+				existingChannel.setSalesOrganization(salesOrganization);
+
+			}
+			if (!existingChannel.getDynamicFields().equals(updateDistributionChannelRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateDistributionChannelRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingChannel.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingChannel.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
-			existingChannel.setId(id);
-			existingChannel.setDcCode(dcCode);
-			existingChannel.setDcName(dcName);
-			existingChannel.setDcStatus(updateDistributionChannelRequest.getDcStatus());
-			SalesOrganization salesOrganization = findSalesOrgById(
-					updateDistributionChannelRequest.getSalesOrganizationId());
-			existingChannel.setSalesOrganization(salesOrganization);
+			existingChannel.updateAuditHistory(auditFields);
 			DistributionChannel updatedChannel = distributionChannelRepository.save(existingChannel);
 			return mapToDistributionChannelResponse(updatedChannel);
 		}
@@ -117,18 +143,33 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 
 	@Override
 	public DistributionChannelResponse updateDcStatus(Long id) throws ResourceNotFoundException {
-		DistributionChannel channel = this.findDCById(id);
-		channel.setDcStatus(!channel.getDcStatus());
-		distributionChannelRepository.save(channel);
-		return mapToDistributionChannelResponse(channel);
+		DistributionChannel existingChannel = this.findDCById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingChannel.getDcStatus() != null) {
+			auditFields.add(
+					new AuditFields(null, "Dc Status", existingChannel.getDcStatus(), !existingChannel.getDcStatus()));
+			existingChannel.setDcStatus(!existingChannel.getDcStatus());
+		}
+		existingChannel.updateAuditHistory(auditFields);
+		distributionChannelRepository.save(existingChannel);
+		return mapToDistributionChannelResponse(existingChannel);
 	}
 
 	@Override
 	public List<DistributionChannelResponse> updateBatchDcStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<DistributionChannel> channels = this.findAllDcById(ids);
-		for (DistributionChannel channel : channels) {
-			channel.setDcStatus(!channel.getDcStatus());
-		}
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		channels.forEach(existingChannel -> {
+			if (existingChannel.getDcStatus() != null) {
+				auditFields.add(new AuditFields(null, "Dc Status", existingChannel.getDcStatus(),
+						!existingChannel.getDcStatus()));
+				existingChannel.setDcStatus(!existingChannel.getDcStatus());
+			}
+			existingChannel.updateAuditHistory(auditFields);
+
+		});
 		distributionChannelRepository.saveAll(channels);
 		return channels.stream().sorted(Comparator.comparing(DistributionChannel::getId))
 				.map(this::mapToDistributionChannelResponse).toList();

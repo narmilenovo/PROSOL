@@ -3,6 +3,7 @@ package com.example.user_management.service;
 import static com.example.user_management.utils.Constants.NO_ROLE_FOUND_WITH_ID_MESSAGE;
 import static com.example.user_management.utils.Constants.ROLE_FOUND_WITH_NAME_MESSAGE;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import com.example.user_management.client.RolePlantResponse;
 import com.example.user_management.dto.request.RolePrivilegeRequest;
 import com.example.user_management.dto.request.RoleRequest;
 import com.example.user_management.dto.response.RoleResponse;
+import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Privilege;
 import com.example.user_management.entity.Role;
 import com.example.user_management.exceptions.ResourceFoundException;
@@ -40,13 +42,13 @@ public class RoleServiceImpl implements RoleService {
 
 	@Override
 	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException {
-		String roleName = Helpers.capitalize(roleRequest.getName());
-		boolean exists = roleRepository.existsByName(roleName);
+		Helpers.inputTitleCase(roleRequest);
+		boolean exists = roleRepository.existsByName(roleRequest.getName());
 		if (!exists) {
 			Role role = modelMapper.map(roleRequest, Role.class);
 			role.setId(null);
-			role.setName(roleName);
-			role.setPrivileges(setToString(roleRequest.getPrivileges()));
+			role.setName(roleRequest.getName());
+			role.setPrivileges(setToPrivilegeId(roleRequest.getPrivileges()));
 			Role savedRole = roleRepository.save(role);
 			return mapToRoleResponse(savedRole);
 		}
@@ -95,14 +97,37 @@ public class RoleServiceImpl implements RoleService {
 	@Override
 	public RoleResponse updateRole(Long id, RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		String roleName = Helpers.capitalize(updateRoleRequest.getName());
+		Helpers.inputTitleCase(updateRoleRequest);
 		Role existingRole = this.findRoleById(id);
-		boolean exists = roleRepository.existsByNameAndIdNot(roleName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		boolean exists = roleRepository.existsByNameAndIdNot(updateRoleRequest.getName(), id);
 		if (!exists) {
-			modelMapper.map(updateRoleRequest, existingRole);
-			existingRole.setId(id);
-			existingRole.setName(roleName);
-			existingRole.setPrivileges(setToString(updateRoleRequest.getPrivileges()));
+			if (!existingRole.getName().equals(updateRoleRequest.getName())) {
+				auditFields.add(new AuditFields(null, "Name", existingRole.getName(), updateRoleRequest.getName()));
+				existingRole.setName(updateRoleRequest.getName());
+			}
+			if (!existingRole.getDescription().equals(updateRoleRequest.getDescription())) {
+				auditFields.add(new AuditFields(null, "Description", existingRole.getDescription(),
+						updateRoleRequest.getDescription()));
+				existingRole.setDescription(updateRoleRequest.getDescription());
+			}
+			if (!existingRole.getPlantId().equals(updateRoleRequest.getPlantId())) {
+				auditFields
+						.add(new AuditFields(null, "Plant", existingRole.getPlantId(), updateRoleRequest.getPlantId()));
+				existingRole.setPlantId(updateRoleRequest.getPlantId());
+			}
+			if (!existingRole.getStatus().equals(updateRoleRequest.getStatus())) {
+				auditFields
+						.add(new AuditFields(null, "Status", existingRole.getStatus(), updateRoleRequest.getStatus()));
+				existingRole.setStatus(updateRoleRequest.getStatus());
+			}
+			if (!existingRole.getPrivileges().equals(setToPrivilegeId(updateRoleRequest.getPrivileges()))) {
+				auditFields.add(new AuditFields(null, "Privileges", existingRole.getPrivileges(),
+						updateRoleRequest.getPrivileges()));
+				existingRole.setPrivileges(setToPrivilegeId(updateRoleRequest.getPrivileges()));
+			}
+			existingRole.updateAuditHistory(auditFields);
 			Role updatedRole = roleRepository.save(existingRole);
 			return mapToRoleResponse(updatedRole);
 		}
@@ -112,9 +137,15 @@ public class RoleServiceImpl implements RoleService {
 	@Override
 	public List<RoleResponse> updateBulkStatusRoleId(List<Long> ids) throws ResourceNotFoundException {
 		List<Role> existingRoles = this.findAllRolesById(ids);
-		for (Role role : existingRoles) {
-			role.setStatus(!role.getStatus());
-		}
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingRoles.forEach(existingRole -> {
+			if (existingRole.getStatus() != null) {
+				auditFields.add(new AuditFields(null, "Status", existingRole.getStatus(), !existingRole.getStatus()));
+				existingRole.setStatus(!existingRole.getStatus());
+			}
+			existingRole.updateAuditHistory(auditFields);
+		});
 		roleRepository.saveAll(existingRoles);
 		return existingRoles.stream().map(this::mapToRoleResponse).toList();
 	}
@@ -122,7 +153,13 @@ public class RoleServiceImpl implements RoleService {
 	@Override
 	public RoleResponse updateStatusUsingRoleId(Long id) throws ResourceNotFoundException {
 		Role existingRole = this.findRoleById(id);
-		existingRole.setStatus(!existingRole.getStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingRole.getStatus() != null) {
+			auditFields.add(new AuditFields(null, "Status", existingRole.getStatus(), !existingRole.getStatus()));
+			existingRole.setStatus(!existingRole.getStatus());
+		}
+		existingRole.updateAuditHistory(auditFields);
 		Role updateRole = roleRepository.save(existingRole);
 		return mapToRoleResponse(updateRole);
 	}
@@ -140,7 +177,7 @@ public class RoleServiceImpl implements RoleService {
 
 	}
 
-	public Set<Privilege> setToString(Long[] privileges) {
+	public Set<Privilege> setToPrivilegeId(Long[] privileges) {
 		Set<Privilege> rolesPrivileges = new HashSet<>();
 		for (Long privilegeId : privileges) {
 			Optional<Privilege> fetchedPrivilege = privilegeRepository.findById(privilegeId);

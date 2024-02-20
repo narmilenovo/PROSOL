@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.InspectionCodeRequest;
 import com.example.generalservice.dto.response.InspectionCodeResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.InspectionCode;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	@Override
 	public InspectionCodeResponse saveInCode(InspectionCodeRequest inspectionCodeRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(inspectionCodeRequest);
 		String inCode = inspectionCodeRequest.getInCodeCode();
 		String inName = inspectionCodeRequest.getInCodeName();
 		boolean exists = inspectionCodeRepository.existsByInCodeCodeOrInCodeName(inCode, inName);
@@ -79,22 +82,42 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	public InspectionCodeResponse updateInCode(Long id, InspectionCodeRequest updateInspectionCodeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateInspectionCodeRequest);
 		String inCodeCode = updateInspectionCodeRequest.getInCodeCode();
 		String inCodeName = updateInspectionCodeRequest.getInCodeName();
 		InspectionCode existingInspectionCode = this.findInCodeById(id);
 		boolean exists = inspectionCodeRepository.existsByInCodeCodeAndIdNotOrInCodeNameAndIdNot(inCodeCode, id,
 				inCodeName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateInspectionCodeRequest, existingInspectionCode);
-			for (Map.Entry<String, Object> entryField : existingInspectionCode.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = InspectionCode.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (!existingInspectionCode.getInCodeCode().equals(inCodeCode)) {
+				auditFields
+						.add(new AuditFields(null, "InCode Code", existingInspectionCode.getInCodeCode(), inCodeCode));
+				existingInspectionCode.setInCodeCode(inCodeCode);
+			}
+			if (!existingInspectionCode.getInCodeName().equals(inCodeName)) {
+				auditFields
+						.add(new AuditFields(null, "InCode Name", existingInspectionCode.getInCodeName(), inCodeName));
+				existingInspectionCode.setInCodeName(inCodeName);
+			}
+			if (!existingInspectionCode.getInCodeStatus().equals(updateInspectionCodeRequest.getInCodeStatus())) {
+				auditFields.add(new AuditFields(null, "InCode Status", existingInspectionCode.getInCodeStatus(),
+						updateInspectionCodeRequest.getInCodeStatus()));
+				existingInspectionCode.setInCodeStatus(updateInspectionCodeRequest.getInCodeStatus());
+			}
+			if (!existingInspectionCode.getDynamicFields().equals(updateInspectionCodeRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateInspectionCodeRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingInspectionCode.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingInspectionCode.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
 				}
 			}
+			existingInspectionCode.updateAuditHistory(auditFields);
 			InspectionCode updatedInspectionCode = inspectionCodeRepository.save(existingInspectionCode);
 			return mapToCodeResponse(updatedInspectionCode);
 		}
@@ -104,7 +127,14 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	@Override
 	public InspectionCodeResponse updateInCodeStatus(Long id) throws ResourceNotFoundException {
 		InspectionCode existingInspectionCode = this.findInCodeById(id);
-		existingInspectionCode.setInCodeStatus(!existingInspectionCode.getInCodeStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingInspectionCode.getInCodeStatus() != null) {
+			auditFields.add(new AuditFields(null, "InCode Status", existingInspectionCode.getInCodeStatus(),
+					!existingInspectionCode.getInCodeStatus()));
+			existingInspectionCode.setInCodeStatus(!existingInspectionCode.getInCodeStatus());
+		}
+		existingInspectionCode.updateAuditHistory(auditFields);
 		inspectionCodeRepository.save(existingInspectionCode);
 		return mapToCodeResponse(existingInspectionCode);
 	}
@@ -112,7 +142,17 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	@Override
 	public List<InspectionCodeResponse> updateBatchInCodeStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<InspectionCode> inspectionCodes = this.findAllById(ids);
-		inspectionCodes.forEach(inspectionCode -> inspectionCode.setInCodeStatus(!inspectionCode.getInCodeStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		inspectionCodes.forEach(existingInspectionCode -> {
+			if (existingInspectionCode.getInCodeStatus() != null) {
+				auditFields.add(new AuditFields(null, "InCode Status", existingInspectionCode.getInCodeStatus(),
+						!existingInspectionCode.getInCodeStatus()));
+				existingInspectionCode.setInCodeStatus(!existingInspectionCode.getInCodeStatus());
+			}
+			existingInspectionCode.updateAuditHistory(auditFields);
+
+		});
 		inspectionCodeRepository.saveAll(inspectionCodes);
 		return inspectionCodes.stream().map(this::mapToCodeResponse).toList();
 	}

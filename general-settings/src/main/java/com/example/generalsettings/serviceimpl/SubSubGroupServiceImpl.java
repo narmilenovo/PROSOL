@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.MainGroupCodes;
 import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.entity.SubSubGroup;
@@ -28,7 +29,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SubSubGroupServiceImpl implements SubSubGroupService {
-	private static final String SUB_CHILD_GROUP_NOT_FOUND_MESSAGE = null;
 
 	private final SubSubGroupRepo subSubGroupRepo;
 	private final MainGroupCodesRepo mainGroupCodesRepo;
@@ -38,6 +38,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 
 	@Override
 	public SubSubGroupResponse saveSubChildGroup(SubSubGroupRequest subSubGroupRequest) throws AlreadyExistsException {
+		Helpers.inputTitleCase(subSubGroupRequest);
 		boolean exists = subSubGroupRepo.existsBySubSubGroupCodeAndSubSubGroupName(
 				subSubGroupRequest.getSubSubGroupCode(), subSubGroupRequest.getSubSubGroupName());
 		if (!exists) {
@@ -75,21 +76,44 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 	public SubSubGroupResponse updateSubChildGroup(Long subId, SubSubGroupRequest subSubGroupRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(subId);
+		Helpers.inputTitleCase(subSubGroupRequest);
 		String name = subSubGroupRequest.getSubSubGroupName();
 		String code = subSubGroupRequest.getSubSubGroupCode();
 		boolean exists = subSubGroupRepo.existsBySubSubGroupCodeAndSubSubGroupNameAndIdNot(code, name, subId);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			SubSubGroup existSubChildGroup1 = this.findSubChildGroupById(subId);
-			existSubChildGroup1.setId(subId);
-			existSubChildGroup1.setSubSubGroupCode(code);
-			existSubChildGroup1.setSubSubGroupName(name);
-			existSubChildGroup1.setSubSubGroupStatus(subSubGroupRequest.getSubSubGroupStatus());
-			MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
-			SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
-			existSubChildGroup1.setMainGroupCodesId(mainGroupCodes);
-			existSubChildGroup1.setSubGroupCodesId(subGroupCodes);
-			subSubGroupRepo.save(existSubChildGroup1);
-			return mapToSubChildGroupResponse(existSubChildGroup1);
+			SubSubGroup existSubChildGroup = this.findSubChildGroupById(subId);
+			if (!existSubChildGroup.getSubSubGroupCode().equals(code)) {
+				auditFields
+						.add(new AuditFields(null, "SubSubGroup Code", existSubChildGroup.getSubSubGroupCode(), code));
+				existSubChildGroup.setSubSubGroupCode(code);
+			}
+			if (!existSubChildGroup.getSubSubGroupName().equals(name)) {
+				auditFields
+						.add(new AuditFields(null, "SubSubGroup Name", existSubChildGroup.getSubSubGroupName(), name));
+				existSubChildGroup.setSubSubGroupName(name);
+			}
+			if (!existSubChildGroup.getSubSubGroupStatus().equals(subSubGroupRequest.getSubSubGroupStatus())) {
+				auditFields.add(new AuditFields(null, "SubSubGroup Status", existSubChildGroup.getSubSubGroupStatus(),
+						subSubGroupRequest.getSubSubGroupStatus()));
+				existSubChildGroup.setSubSubGroupStatus(subSubGroupRequest.getSubSubGroupStatus());
+			}
+			if (!existSubChildGroup.getMainGroupCodesId().getId().equals(subSubGroupRequest.getMainGroupCodesId())) {
+				auditFields.add(new AuditFields(null, "MainGroup Code", existSubChildGroup.getMainGroupCodesId(),
+						subSubGroupRequest.getMainGroupCodesId()));
+				MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
+				existSubChildGroup.setMainGroupCodesId(mainGroupCodes);
+			}
+			if (!existSubChildGroup.getSubGroupCodesId().getId().equals(subSubGroupRequest.getSubGroupId())) {
+				auditFields.add(new AuditFields(null, "Sub Group Code", existSubChildGroup.getSubGroupCodesId(),
+						subSubGroupRequest.getSubGroupId()));
+				SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
+				existSubChildGroup.setSubGroupCodesId(subGroupCodes);
+			}
+			existSubChildGroup.updateAuditHistory(auditFields);
+			subSubGroupRepo.save(existSubChildGroup);
+			return mapToSubChildGroupResponse(existSubChildGroup);
 		} else {
 			throw new AlreadyExistsException("SubChildGroup with this name already exists");
 		}
@@ -97,18 +121,32 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 
 	@Override
 	public List<SubSubGroupResponse> updateBulkStatusSubChildGroupId(List<Long> id) throws ResourceNotFoundException {
-		List<SubSubGroup> existingSubChildGroup = this.findAllSubChildGrpById(id);
-		for (SubSubGroup subChildGroup : existingSubChildGroup) {
-			subChildGroup.setSubSubGroupStatus(!subChildGroup.getSubSubGroupStatus());
-		}
-		subSubGroupRepo.saveAll(existingSubChildGroup);
-		return existingSubChildGroup.stream().map(this::mapToSubChildGroupResponse).toList();
+		List<SubSubGroup> existingSubChildGroupList = this.findAllSubChildGrpById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingSubChildGroupList.forEach(existingSubChildGroup -> {
+			if (existingSubChildGroup.getSubSubGroupStatus() != null) {
+				auditFields.add(new AuditFields(null, "SubSubGroup Status",
+						existingSubChildGroup.getSubSubGroupStatus(), !existingSubChildGroup.getSubSubGroupStatus()));
+				existingSubChildGroup.setSubSubGroupStatus(!existingSubChildGroup.getSubSubGroupStatus());
+			}
+			existingSubChildGroup.updateAuditHistory(auditFields);
+		});
+		subSubGroupRepo.saveAll(existingSubChildGroupList);
+		return existingSubChildGroupList.stream().map(this::mapToSubChildGroupResponse).toList();
 	}
 
 	@Override
 	public SubSubGroupResponse updateStatusUsingSubChildGroupId(Long id) throws ResourceNotFoundException {
 		SubSubGroup existingSubChildGroup = this.findSubChildGroupById(id);
-		existingSubChildGroup.setSubSubGroupStatus(!existingSubChildGroup.getSubSubGroupStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingSubChildGroup.getSubSubGroupStatus() != null) {
+			auditFields.add(new AuditFields(null, "SubSubGroup Status", existingSubChildGroup.getSubSubGroupStatus(),
+					!existingSubChildGroup.getSubSubGroupStatus()));
+			existingSubChildGroup.setSubSubGroupStatus(!existingSubChildGroup.getSubSubGroupStatus());
+		}
+		existingSubChildGroup.updateAuditHistory(auditFields);
 		subSubGroupRepo.save(existingSubChildGroup);
 		return mapToSubChildGroupResponse(existingSubChildGroup);
 	}
@@ -159,7 +197,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		Helpers.validateId(id);
 		Optional<SubSubGroup> subChildGroup = subSubGroupRepo.findById(id);
 		if (subChildGroup.isEmpty()) {
-			throw new ResourceNotFoundException(SUB_CHILD_GROUP_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("Sub Sub Child Group with id " + id + " not found");
 		}
 		return subChildGroup.get();
 	}

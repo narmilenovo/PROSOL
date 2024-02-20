@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.ReferenceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
@@ -28,11 +29,10 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 
 	private final ModelMapper modelMapper;
 
-	public static final String REFERENCE_TYPE_NOT_FOUND_MESSAGE = null;
-
 	@Override
 	public ReferenceTypeResponse saveReferenceType(ReferenceTypeRequest referenceTypeRequest)
 			throws AlreadyExistsException {
+		Helpers.inputTitleCase(referenceTypeRequest);
 		boolean exists = referenceTypeRepo.existsByReferenceTypeCodeAndReferenceTypeName(
 				referenceTypeRequest.getReferenceTypeCode(), referenceTypeRequest.getReferenceTypeName());
 		if (!exists) {
@@ -65,12 +65,35 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 	public ReferenceTypeResponse updateReferenceType(Long id, ReferenceTypeRequest referenceTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(referenceTypeRequest);
 		String name = referenceTypeRequest.getReferenceTypeName();
 		String code = referenceTypeRequest.getReferenceTypeCode();
 		boolean exists = referenceTypeRepo.existsByReferenceTypeCodeAndReferenceTypeNameAndIdNot(code, name, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			ReferenceType existingReferenceType = this.findReferenceTypeById(id);
-			modelMapper.map(referenceTypeRequest, existingReferenceType);
+			if (!existingReferenceType.getReferenceTypeCode().equals(code)) {
+				auditFields.add(new AuditFields(null, "ReferenceType Code",
+						existingReferenceType.getReferenceTypeCode(), code));
+				existingReferenceType.setReferenceTypeCode(code);
+			}
+			if (!existingReferenceType.getReferenceTypeName().equals(name)) {
+				auditFields.add(new AuditFields(null, "ReferenceType Name",
+						existingReferenceType.getReferenceTypeName(), name));
+				existingReferenceType.setReferenceTypeName(name);
+			}
+			if (!existingReferenceType.getReferenceTypeStatus().equals(referenceTypeRequest.getReferenceTypeStatus())) {
+				auditFields.add(new AuditFields(null, "ReferenceType Status",
+						existingReferenceType.getReferenceTypeStatus(), referenceTypeRequest.getReferenceTypeStatus()));
+				existingReferenceType.setReferenceTypeStatus(referenceTypeRequest.getReferenceTypeStatus());
+			}
+			if (!existingReferenceType.getDuplicateCheck().equals(referenceTypeRequest.getDuplicateCheck())) {
+				auditFields.add(new AuditFields(null, "Duplicate Check", existingReferenceType.getDuplicateCheck(),
+						referenceTypeRequest.getDuplicateCheck()));
+				existingReferenceType.setDuplicateCheck(referenceTypeRequest.getDuplicateCheck());
+			}
+			existingReferenceType.updateAuditHistory(auditFields);
 			referenceTypeRepo.save(existingReferenceType);
 			return mapToReferenceTypeResponse(existingReferenceType);
 		} else {
@@ -80,18 +103,33 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 
 	@Override
 	public List<ReferenceTypeResponse> updateBulkStatusReferenceTypeId(List<Long> id) throws ResourceNotFoundException {
-		List<ReferenceType> existingReferenceType = this.findAllRefTypeById(id);
-		for (ReferenceType referenceType : existingReferenceType) {
-			referenceType.setReferenceTypeStatus(!referenceType.getReferenceTypeStatus());
-		}
-		referenceTypeRepo.saveAll(existingReferenceType);
-		return existingReferenceType.stream().map(this::mapToReferenceTypeResponse).toList();
+		List<ReferenceType> existingReferenceTypeList = this.findAllRefTypeById(id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		existingReferenceTypeList.forEach(existingReferenceType -> {
+			if (existingReferenceType.getReferenceTypeStatus() != null) {
+				auditFields.add(
+						new AuditFields(null, "ReferenceType Status", existingReferenceType.getReferenceTypeStatus(),
+								!existingReferenceType.getReferenceTypeStatus()));
+				existingReferenceType.setReferenceTypeStatus(!existingReferenceType.getReferenceTypeStatus());
+			}
+			existingReferenceType.updateAuditHistory(auditFields);
+		});
+		referenceTypeRepo.saveAll(existingReferenceTypeList);
+		return existingReferenceTypeList.stream().map(this::mapToReferenceTypeResponse).toList();
 	}
 
 	@Override
 	public ReferenceTypeResponse updateStatusUsingReferenceTypeId(Long id) throws ResourceNotFoundException {
 		ReferenceType existingReferenceType = this.findReferenceTypeById(id);
-		existingReferenceType.setReferenceTypeStatus(!existingReferenceType.getReferenceTypeStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingReferenceType.getReferenceTypeStatus() != null) {
+			auditFields.add(new AuditFields(null, "ReferenceType Status",
+					existingReferenceType.getReferenceTypeStatus(), !existingReferenceType.getReferenceTypeStatus()));
+			existingReferenceType.setReferenceTypeStatus(!existingReferenceType.getReferenceTypeStatus());
+		}
+		existingReferenceType.updateAuditHistory(auditFields);
 		referenceTypeRepo.save(existingReferenceType);
 		return mapToReferenceTypeResponse(existingReferenceType);
 	}
@@ -149,7 +187,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		Helpers.validateId(id);
 		Optional<ReferenceType> referenceType = referenceTypeRepo.findById(id);
 		if (referenceType.isEmpty()) {
-			throw new ResourceNotFoundException(REFERENCE_TYPE_NOT_FOUND_MESSAGE);
+			throw new ResourceNotFoundException("ReferenceType with ID " + id + " not found");
 		}
 		return referenceType.get();
 	}

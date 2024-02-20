@@ -44,9 +44,10 @@ public class DictionaryRequest {
 	@Schema(description = "Select Noun Modifier UOMs", allowableValues = "range[1,infinity]")
 	private List<Long> nmUoms;
 
+	@Schema(description = "Image")
+	private String image;
+
 	@Schema(description = "Dictionary Attributes")
 	private List<DictionaryAttributeRequest> attributes;
 
-	@Schema(description = "Image")
-	private String image;
 }

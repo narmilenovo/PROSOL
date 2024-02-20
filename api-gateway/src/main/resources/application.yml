@@ -125,6 +125,14 @@ spring:
             - Path=/dynamic/**
           filters:
             - RewritePath=/dynamic/(?<path>.*), /$\{path}
+        
+        # User Settings
+        - id: user-settings
+          uri: lb://USER-SETTINGS
+          predicates:
+            - Path=/userSettings/**
+          filters:
+            - RewritePath=/userSettings/(?<path>.*), /$\{path}
 
         # Common OpenApi
         - id: openapi
@@ -241,6 +249,10 @@ springdoc:
       - name: dynamic-service
         url: /v3/api-docs/dynamic
         display-name: Dynamic
+
+      - name: user-settings
+        url: /v3/api-docs/userSettings
+        display-name: User Settings
 
   cache:
     disabled: false

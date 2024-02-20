@@ -1,5 +1,6 @@
 package com.example.generalservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.generalservice.client.DynamicClient;
 import com.example.generalservice.dto.request.BaseUOPRequest;
 import com.example.generalservice.dto.response.BaseUOPResponse;
+import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.BaseUOP;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
@@ -31,6 +33,7 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 	@Override
 	public BaseUOPResponse saveUop(BaseUOPRequest baseUOPRequest)
 			throws ResourceFoundException, ResourceNotFoundException {
+		Helpers.inputTitleCase(baseUOPRequest);
 		String uopCode = baseUOPRequest.getUopCode();
 		String uopName = baseUOPRequest.getUopName();
 		boolean exists = baseUOPRepository.existsByUopCodeOrUopName(uopCode, uopName);
@@ -76,12 +79,39 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 	public BaseUOPResponse updateUop(Long id, BaseUOPRequest updateBaseUOPRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
+		Helpers.inputTitleCase(updateBaseUOPRequest);
 		String uopCode = updateBaseUOPRequest.getUopCode();
 		String uopName = updateBaseUOPRequest.getUopName();
 		BaseUOP existingBaseUOP = this.findUopById(id);
 		boolean exists = baseUOPRepository.existsByUopCodeAndIdNotOrUopNameAndIdNot(uopCode, id, uopName, id);
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
-			modelMapper.map(updateBaseUOPRequest, existingBaseUOP);
+			if (!existingBaseUOP.getUopCode().equals(uopCode)) {
+				auditFields.add(new AuditFields(null, "Uop Code", existingBaseUOP.getUopCode(), uopCode));
+				existingBaseUOP.setUopCode(uopCode);
+			}
+			if (!existingBaseUOP.getUopName().equals(uopName)) {
+				auditFields.add(new AuditFields(null, "Uop Name", existingBaseUOP.getUopName(), uopName));
+				existingBaseUOP.setUopName(uopName);
+			}
+			if (!existingBaseUOP.getUopStatus().equals(updateBaseUOPRequest.getUopStatus())) {
+				auditFields.add(new AuditFields(null, "Uop Status", existingBaseUOP.getUopStatus(),
+						updateBaseUOPRequest.getUopStatus()));
+				existingBaseUOP.setUopStatus(updateBaseUOPRequest.getUopStatus());
+			}
+			if (!existingBaseUOP.getDynamicFields().equals(updateBaseUOPRequest.getDynamicFields())) {
+				for (Map.Entry<String, Object> entry : updateBaseUOPRequest.getDynamicFields().entrySet()) {
+					String fieldName = entry.getKey();
+					Object newValue = entry.getValue();
+					Object oldValue = existingBaseUOP.getDynamicFields().get(fieldName);
+					if (oldValue == null || !oldValue.equals(newValue)) {
+						auditFields.add(new AuditFields(null, fieldName, oldValue, newValue));
+						existingBaseUOP.getDynamicFields().put(fieldName, newValue); // Update the dynamic field
+					}
+				}
+			}
+			existingBaseUOP.updateAuditHistory(auditFields); // Update the audit history
 			BaseUOP updatedBaseUOP = baseUOPRepository.save(existingBaseUOP);
 			return mapToBaseUOPResponse(updatedBaseUOP);
 		}
@@ -91,7 +121,14 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 	@Override
 	public BaseUOPResponse updateUopStatus(Long id) throws ResourceNotFoundException {
 		BaseUOP existingBaseUOP = this.findUopById(id);
-		existingBaseUOP.setUopStatus(!existingBaseUOP.getUopStatus());
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		if (existingBaseUOP.getUopStatus() != null) {
+			auditFields.add(new AuditFields(null, "Uop Status", existingBaseUOP.getUopStatus(),
+					!existingBaseUOP.getUopStatus()));
+			existingBaseUOP.setUopStatus(!existingBaseUOP.getUopStatus());
+		}
+		existingBaseUOP.updateAuditHistory(auditFields);
 		baseUOPRepository.save(existingBaseUOP);
 		return this.mapToBaseUOPResponse(existingBaseUOP);
 	}
@@ -99,7 +136,16 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 	@Override
 	public List<BaseUOPResponse> updateBatchUopStatus(List<Long> ids) throws ResourceNotFoundException {
 		List<BaseUOP> baseUOPs = this.findAllById(ids);
-		baseUOPs.forEach(baseUOP -> baseUOP.setUopStatus(!baseUOP.getUopStatus()));
+		// Find properties that have changed
+		List<AuditFields> auditFields = new ArrayList<>();
+		baseUOPs.forEach(existingBaseUOP -> {
+			if (existingBaseUOP.getUopStatus() != null) {
+				auditFields.add(new AuditFields(null, "Uop Status", existingBaseUOP.getUopStatus(),
+						!existingBaseUOP.getUopStatus()));
+				existingBaseUOP.setUopStatus(!existingBaseUOP.getUopStatus());
+			}
+			existingBaseUOP.updateAuditHistory(auditFields);
+		});
 		baseUOPRepository.saveAll(baseUOPs);
 		return baseUOPs.stream().map(this::mapToBaseUOPResponse).toList();
 	}
