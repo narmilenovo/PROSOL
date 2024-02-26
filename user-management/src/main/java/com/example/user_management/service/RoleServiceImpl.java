@@ -14,9 +14,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import com.example.user_management.client.PlantResponse;
-import com.example.user_management.client.PlantServiceClient;
 import com.example.user_management.client.RolePlantResponse;
+import com.example.user_management.client.plant.PlantResponse;
+import com.example.user_management.client.plant.PlantServiceClient;
 import com.example.user_management.dto.request.RolePrivilegeRequest;
 import com.example.user_management.dto.request.RoleRequest;
 import com.example.user_management.dto.response.RoleResponse;
@@ -41,7 +41,7 @@ public class RoleServiceImpl implements RoleService {
 	private final PlantServiceClient plantServiceClient;
 
 	@Override
-	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException {
+	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException, ResourceNotFoundException {
 		Helpers.inputTitleCase(roleRequest);
 		boolean exists = roleRepository.existsByName(roleRequest.getName());
 		if (!exists) {
@@ -91,6 +91,16 @@ public class RoleServiceImpl implements RoleService {
 	@Override
 	public List<RolePlantResponse> findAllRolesPlantStatusTrue() {
 		List<Role> list = roleRepository.findAllByStatusIsTrue();
+		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRolePlantResponse).toList();
+	}
+
+	public List<RoleResponse> findAllByPlantId(Long plantId) {
+		List<Role> roles = roleRepository.findByPlantId(plantId);
+		return roles.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRoleResponse).toList();
+	}
+
+	public List<RolePlantResponse> findAllRolesPlantByPlantId(Long plantId) {
+		List<Role> list = roleRepository.findByPlantId(plantId);
 		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRolePlantResponse).toList();
 	}
 

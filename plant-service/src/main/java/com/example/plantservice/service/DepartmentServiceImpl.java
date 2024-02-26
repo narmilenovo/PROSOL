@@ -44,13 +44,15 @@ public class DepartmentServiceImpl implements DepartmentService {
 		boolean exists = departmentRepo.existsByDepartmentName(departmentName);
 		if (!exists) {
 			Department department = modelMapper.map(departmentRequest, Department.class);
-			for (Map.Entry<String, Object> entryField : department.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Department.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (departmentRequest.getDynamicFields() != null) {
+				for (Map.Entry<String, Object> entryField : department.getDynamicFields().entrySet()) {
+					String fieldName = entryField.getKey();
+					String formName = Department.class.getSimpleName();
+					boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+					if (!fieldExists) {
+						throw new ResourceNotFoundException("Field of '" + fieldName
+								+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+					}
 				}
 			}
 			departmentRepo.save(department);

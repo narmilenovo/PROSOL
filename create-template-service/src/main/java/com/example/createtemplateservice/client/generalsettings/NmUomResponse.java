@@ -1,23 +1,21 @@
-package com.example.attributemaster.client.GeneralSettings;
+package com.example.createtemplateservice.client.generalsettings;
 
 import java.util.Date;
 import java.util.List;
 
-import com.example.attributemaster.entity.UpdateAuditHistory;
+import com.example.createtemplateservice.jpa.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AttributeUomResponse {
+public class NmUomResponse {
 	private Long id;
-	private String attributeUomName;
-	private String attributeUnit;
-	private Boolean attributeUomStatus;
+	private String nmUomName;
+	private Boolean nmUomStatus;
 
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;
-
 }

@@ -57,9 +57,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.example.user_management.client.DepartmentResponse;
-import com.example.user_management.client.PlantResponse;
-import com.example.user_management.client.PlantServiceClient;
+import com.example.user_management.client.plant.DepartmentResponse;
+import com.example.user_management.client.plant.PlantResponse;
+import com.example.user_management.client.plant.PlantServiceClient;
 import com.example.user_management.dto.request.ForgotPasswordRequest;
 import com.example.user_management.dto.request.ResetPasswordRequest;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
@@ -106,7 +106,8 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PostMapping("/saveUser")
-	public ResponseEntity<Object> saveUser(@Valid @RequestBody UserRequest userRequest) throws ResourceFoundException {
+	public ResponseEntity<Object> saveUser(@Valid @RequestBody UserRequest userRequest)
+			throws ResourceFoundException, ResourceNotFoundException {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveUser").toUriString());
 		UserResponse user = userService.saveUser(userRequest);
 		return ResponseEntity.created(uri).body(user);
@@ -160,6 +161,21 @@ public class UserController {
 		case "d" -> userService.getAllUserDepartment(show);
 		case "pd" -> userService.getAllUserDepartmentPlants(show);
 		default -> userService.getAllUsers(show);
+		};
+		return ResponseEntity.ok(users);
+	}
+
+	@GetMapping(value = "/getAllUsersByPlantId")
+	public ResponseEntity<Object> getAllUsers(@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show,
+			@RequestBody List<Long> plantIds) {
+		if (show == null) {
+			return ResponseEntity.ok(userService.getAllUsersByPlantId(show, plantIds));
+		}
+		List<?> users = switch (show) {
+		case "p" -> userService.getAllUserPlantsByPlantId(show, plantIds);
+		case "d" -> userService.getAllUserDepartmentByPlantId(show, plantIds);
+		case "pd" -> userService.getAllUserDepartmentPlantsByPlantId(show, plantIds);
+		default -> userService.getAllUsersByPlantId(show, plantIds);
 		};
 		return ResponseEntity.ok(users);
 	}

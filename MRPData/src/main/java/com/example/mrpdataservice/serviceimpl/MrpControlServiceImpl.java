@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.mrpdataservice.client.MrpPlantResponse;
 import com.example.mrpdataservice.client.Dynamic.DynamicClient;
-import com.example.mrpdataservice.client.Plant.MrpPlantClient;
+import com.example.mrpdataservice.client.Plant.PlantServiceClient;
 import com.example.mrpdataservice.entity.AuditFields;
 import com.example.mrpdataservice.entity.MrpControl;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
@@ -37,7 +37,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 	private final MrpControlRepo mrpControlRepo;
 	private final ExcelFileHelper excelFileHelper;
 	private final ModelMapper modelMapper;
-	private final MrpPlantClient mrpPlantClient;
+	private final PlantServiceClient mrpPlantClient;
 	private final DynamicClient dynamicClient;
 
 	@Override

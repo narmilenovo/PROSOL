@@ -1,7 +1,9 @@
 package com.example.requestitemservice.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import com.example.requestitemservice.client.salesothers.MaterialStrategicGroupR
 import com.example.requestitemservice.client.salesothers.SalesServiceClient;
 import com.example.requestitemservice.dto.request.RequestItemRequest;
 import com.example.requestitemservice.dto.response.RequestItemResponse;
+import com.example.requestitemservice.entity.AuditFields;
 import com.example.requestitemservice.entity.RequestItem;
 import com.example.requestitemservice.repository.RequestItemRepository;
 import com.example.requestitemservice.service.interfaces.RequestItemService;
@@ -78,14 +81,45 @@ public class RequestItemServiceImpl implements RequestItemService {
 	@Override
 	public RequestItemResponse update(Long id, RequestItemRequest updatedItem, MultipartFile file) {
 		RequestItem existingRequestItem = this.getRequestItemById(id);
-		modelMapper.map(existingRequestItem, updatedItem);
-		existingRequestItem.setId(id);
 
+		List<AuditFields> auditFields = new ArrayList<>();
+
+		if (!Objects.equals(existingRequestItem.getPlantId(), updatedItem.getPlantId())) {
+			auditFields.add(new AuditFields(null, "Plant", existingRequestItem.getPlantId(), updatedItem.getPlantId()));
+			existingRequestItem.setPlantId(updatedItem.getPlantId());
+		}
+		if (!Objects.equals(existingRequestItem.getStorageLocationId(), updatedItem.getStorageLocationId())) {
+			auditFields.add(new AuditFields(null, "Storage Location", existingRequestItem.getStorageLocationId(),
+					updatedItem.getStorageLocationId()));
+			existingRequestItem.setStorageLocationId((updatedItem.getStorageLocationId()));
+		}
+		if (!Objects.equals(existingRequestItem.getMaterialTypeId(), updatedItem.getMaterialTypeId())) {
+			auditFields.add(new AuditFields(null, "Material Type", existingRequestItem.getMaterialTypeId(),
+					updatedItem.getMaterialTypeId()));
+			existingRequestItem.setMaterialTypeId((updatedItem.getMaterialTypeId()));
+		}
+		if (!Objects.equals(existingRequestItem.getIndustrySectorId(), updatedItem.getIndustrySectorId())) {
+			auditFields.add(new AuditFields(null, "Industry Sector", existingRequestItem.getIndustrySectorId(),
+					updatedItem.getIndustrySectorId()));
+			existingRequestItem.setIndustrySectorId((updatedItem.getIndustrySectorId()));
+		}
+		if (!Objects.equals(existingRequestItem.getMaterialGroupId(), updatedItem.getMaterialGroupId())) {
+			auditFields.add(new AuditFields(null, "Material Group", existingRequestItem.getMaterialGroupId(),
+					updatedItem.getMaterialGroupId()));
+			existingRequestItem.setMaterialGroupId((updatedItem.getMaterialGroupId()));
+		}
+		if (!Objects.equals(existingRequestItem.getSource(), updatedItem.getSource())) {
+			auditFields.add(new AuditFields(null, "Source", existingRequestItem.getSource(), updatedItem.getSource()));
+			existingRequestItem.setSource((updatedItem.getSource()));
+		}
 		String existingFile = existingRequestItem.getAttachment();
-		fileUploadUtil.deleteFile(existingFile, id);
-		String newFile = fileUploadUtil.storeFile(file, id);
-		existingRequestItem.setAttachment(newFile);
-
+		if (!Objects.equals(existingFile, updatedItem.getAttachment())) {
+			fileUploadUtil.deleteFile(existingFile, id);
+			String newFile = fileUploadUtil.storeFile(file, id);
+			auditFields.add(new AuditFields(null, "Attachment", existingFile, newFile));
+			existingRequestItem.setAttachment(newFile);
+		}
+		existingRequestItem.updateAuditHistory(auditFields);
 		RequestItem updatedRequestItem = requestItemRepository.save(existingRequestItem);
 		return mapToRequestItemResponse(updatedRequestItem);
 	}

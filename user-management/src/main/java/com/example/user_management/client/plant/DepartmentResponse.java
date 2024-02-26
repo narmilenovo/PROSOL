@@ -1,10 +1,10 @@
-package com.example.requestitemservice.client.salesothers;
+package com.example.user_management.client.plant;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.example.requestitemservice.entity.UpdateAuditHistory;
+import com.example.user_management.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -13,11 +13,11 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MaterialStrategicGroupResponse {
+public class DepartmentResponse {
 	private Long id;
-	private String msCode;
-	private String msName;
-	private Boolean msStatus;
+	private String departmentName;
+	private Boolean status;
+
 	@JsonAnyGetter
 	@JsonIgnore
 	private Map<String, Object> dynamicFields;

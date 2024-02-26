@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.plantservice.client.ValuationMaterialResponse;
 import com.example.plantservice.client.Dynamic.DynamicClient;
-import com.example.plantservice.client.General.MaterialTypeClient;
+import com.example.plantservice.client.General.GeneralServiceClient;
 import com.example.plantservice.dto.request.ValuationClassRequest;
 import com.example.plantservice.dto.response.DepartmentResponse;
 import com.example.plantservice.dto.response.ValuationClassResponse;
@@ -39,7 +39,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	private final ExcelFileHelper excelFileHelper;
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
-	private final MaterialTypeClient materialTypeClient;
+	private final GeneralServiceClient materialTypeClient;
 
 	@Override
 	public ValuationClassResponse saveValuationClass(ValuationClassRequest valuationClassRequest)

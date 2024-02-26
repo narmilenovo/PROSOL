@@ -9,9 +9,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.attributemaster.client.AttributeMasterUomResponse;
-import com.example.attributemaster.client.Dynamic.DynamicClient;
-import com.example.attributemaster.client.GeneralSettings.AttributeUomClient;
+import com.example.attributemaster.client.Dynamic.DynamicServiceClient;
 import com.example.attributemaster.client.GeneralSettings.AttributeUomResponse;
+import com.example.attributemaster.client.GeneralSettings.SettingServiceClient;
 import com.example.attributemaster.entity.AttributeMaster;
 import com.example.attributemaster.entity.AuditFields;
 import com.example.attributemaster.exception.AlreadyExistsException;
@@ -29,8 +29,8 @@ import lombok.RequiredArgsConstructor;
 public class AttributeMasterServiceImpl implements AttributeMasterService {
 	private final AttributeMasterRepo attributeMasterRepo;
 	private final ModelMapper modelMapper;
-	private final AttributeUomClient attributeUomClient;
-	private final DynamicClient dynamicClient;
+	private final SettingServiceClient serviceClient;
+	private final DynamicServiceClient dynamicServiceClient;
 
 	@Override
 	public AttributeMasterResponse saveAttributeMaster(AttributeMasterRequest attributeMasterRequest)
@@ -42,7 +42,7 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 			for (Map.Entry<String, Object> entryField : attributeMaster.getDynamicFields().entrySet()) {
 				String fieldName = entryField.getKey();
 				String formName = AttributeMaster.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+				boolean fieldExists = dynamicServiceClient.checkFieldNameInForm(fieldName, formName);
 				if (!fieldExists) {
 					throw new ResourceNotFoundException("Field of '" + fieldName
 							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
@@ -172,10 +172,10 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 				AttributeMasterUomResponse.class);
 		List<AttributeUomResponse> attributeUomResponses = new ArrayList<>();
 		for (Long id : attributeMaster.getListUom()) {
-			if (attributeUomClient == null) {
+			if (serviceClient == null) {
 				throw new IllegalStateException("AttributeUomClient is not initialized");
 			}
-			AttributeUomResponse attributeUomResponse1 = attributeUomClient.getAttributeUomById(id);
+			AttributeUomResponse attributeUomResponse1 = serviceClient.getAttributeUomById(id);
 			attributeUomResponses.add(attributeUomResponse1);
 		}
 		attributeUomResponse.setListUom(attributeUomResponses);

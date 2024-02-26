@@ -75,7 +75,8 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PostMapping("/saveRole")
-	public ResponseEntity<Object> saveRole(@Valid @RequestBody RoleRequest roleRequest) throws ResourceFoundException {
+	public ResponseEntity<Object> saveRole(@Valid @RequestBody RoleRequest roleRequest)
+			throws ResourceFoundException, ResourceNotFoundException {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveRole").toUriString());
 		RoleResponse savedRole = roleService.saveRole(roleRequest);
 		return ResponseEntity.created(uri).body(savedRole);
@@ -134,6 +135,18 @@ public class RoleController {
 		} else {
 
 			responseList = roleService.findAllStatusTrue();
+		}
+		return ResponseEntity.ok(responseList);
+	}
+
+	@GetMapping("/getAllRolesByPlantId/{plantId}")
+	public ResponseEntity<Object> listRolesByPlantId(@RequestParam Boolean show, @PathVariable Long plantId) {
+		List<?> responseList;
+		if (Boolean.TRUE.equals(show)) {
+			responseList = roleService.findAllByPlantId(plantId);
+		} else {
+
+			responseList = roleService.findAllRolesPlantByPlantId(plantId);
 		}
 		return ResponseEntity.ok(responseList);
 	}

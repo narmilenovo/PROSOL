@@ -15,11 +15,16 @@ import java.util.Map;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFDataValidation;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationConstraint;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -98,8 +103,38 @@ public class ExcelFileHelper extends AbstractExporter {
 				String headerName = field.getName();
 				createCell(row, i, Helpers.capitalizeWordsWithSpace(headerName), headerCellStyle);
 				sheet.autoSizeColumn(i); // Auto resize column width to fit data
+
+				if ("Status".contains(field.getName())) {
+					addDataValidationForStatusColumn(sheet, i);
+				}
 			}
 		}
+	}
+
+	private void addDataValidationForStatusColumn(XSSFSheet sheet, int columnIndex) {
+//		DataValidationHelper validationHelper = sheet.getDataValidationHelper();
+//		DataValidationConstraint constraint = validationHelper
+//				.createExplicitListConstraint(new String[] { "TRUE", "FALSE" });
+//		CellRangeAddressList range = new CellRangeAddressList(1, sheet.getLastRowNum(), columnIndex, columnIndex);
+//		DataValidation dataValidation = validationHelper.createValidation(constraint, range);
+//		dataValidation.setSuppressDropDownArrow(true);
+//		dataValidation.setErrorStyle(DataValidation.ErrorStyle.STOP);
+//		dataValidation.createErrorBox("Invalid Value", "Please enter either TRUE or FALSE.");
+//		dataValidation.setShowErrorBox(true);
+//		sheet.addValidationData(dataValidation);
+
+		XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(sheet);
+		XSSFDataValidationConstraint dvConstraint = (XSSFDataValidationConstraint) dvHelper
+				.createExplicitListConstraint(new String[] { "TRUE", "FALSE" });
+		CellRangeAddressList addressList = new CellRangeAddressList(1, sheet.getLastRowNum(), columnIndex, columnIndex);
+		XSSFDataValidation validation = (XSSFDataValidation) dvHelper.createValidation(dvConstraint, addressList);
+		validation.setSuppressDropDownArrow(true);
+		validation.setShowErrorBox(true);
+		validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
+		validation.createErrorBox("Invalid Value", "Only TRUE or FALSE values are allowed.");
+		validation.setShowPromptBox(true);
+		validation.createPromptBox("Validation Rule", "Custom validation rule: ");
+		sheet.addValidationData(validation);
 	}
 
 	private List<Field> getCachedFields(Class<?> clazz) {
@@ -168,8 +203,7 @@ public class ExcelFileHelper extends AbstractExporter {
 		int headerCellCount = headerRow.getLastCellNum();
 
 		// Exclude dynamicFields from the header count
-		long dynamicFieldsCount = fields.stream()
-				.filter(field -> "dynamicFields".equalsIgnoreCase(field.getName()))
+		long dynamicFieldsCount = fields.stream().filter(field -> "dynamicFields".equalsIgnoreCase(field.getName()))
 				.count();
 
 		// Check if there are extra columns

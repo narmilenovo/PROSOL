@@ -16,4 +16,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
 	boolean existsByNameAndIdNot(String roleName, Long id);
 
+	List<Role> findByPlantId(Long plantId);
+
 }

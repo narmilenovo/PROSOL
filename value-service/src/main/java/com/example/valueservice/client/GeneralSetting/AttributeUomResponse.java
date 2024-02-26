@@ -1,21 +1,22 @@
 package com.example.valueservice.client.GeneralSetting;
 
 import java.util.Date;
+import java.util.List;
 
-import lombok.AllArgsConstructor;
+import com.example.valueservice.entity.UpdateAuditHistory;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class AttributeUom {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class AttributeUomResponse {
 	private Long id;
 	private String attributeUomName;
 	private String attributeUomUnit;
 	private Boolean attributeUomStatus;
+
 	private String createdBy;
-	private String updatedBy;
 	private Date createdAt;
-	private Date updatedAt;
+	private List<UpdateAuditHistory> updateAuditHistories;
 }

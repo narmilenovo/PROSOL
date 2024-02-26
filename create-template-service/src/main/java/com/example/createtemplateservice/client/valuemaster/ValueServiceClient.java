@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "value-service", url = "http://localhost:8012")
-public interface ValueMasterClient {
+public interface ValueServiceClient {
+
 	@GetMapping("/getValueById/{id}")
 	ValueAttributeUom getValueById(@PathVariable Long id, @RequestParam(required = false) Boolean attributeUom);
 }

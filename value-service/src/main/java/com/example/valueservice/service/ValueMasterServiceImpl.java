@@ -18,8 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.valueservice.client.ValueAttributeUom;
 import com.example.valueservice.client.Dynamic.DynamicClient;
-import com.example.valueservice.client.GeneralSetting.AttributeUom;
-import com.example.valueservice.client.GeneralSetting.SettingClient;
+import com.example.valueservice.client.GeneralSetting.AttributeUomResponse;
+import com.example.valueservice.client.GeneralSetting.SettingServiceClient;
 import com.example.valueservice.dto.request.ValueMasterRequest;
 import com.example.valueservice.dto.response.ValueMasterResponse;
 import com.example.valueservice.entity.AuditFields;
@@ -46,7 +46,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 	private final ValueMasterRepository valueMasterRepository;
 	private final ModelMapper modelMapper;
-	private final SettingClient settingClient;
+	private final SettingServiceClient settingClient;
 	private final Tracer tracer;
 	private final DynamicClient dynamicClient;
 	@Lazy
@@ -272,8 +272,9 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 			if (settingClient == null) {
 				throw new IllegalStateException("Setting Client is not initiated");
 			}
-			AttributeUom abbreviationUnit = settingClient.getAttributeUomById(valueMaster.getAbbreviationUnit());
-			AttributeUom equivalentUnit = settingClient.getAttributeUomById(valueMaster.getEquivalentUnit());
+			AttributeUomResponse abbreviationUnit = settingClient
+					.getAttributeUomById(valueMaster.getAbbreviationUnit());
+			AttributeUomResponse equivalentUnit = settingClient.getAttributeUomById(valueMaster.getEquivalentUnit());
 			valueAttributeUom.setAbbreviationUnit(abbreviationUnit);
 			valueAttributeUom.setEquivalentUnit(equivalentUnit);
 			return valueAttributeUom;

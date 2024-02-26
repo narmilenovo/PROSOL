@@ -16,7 +16,7 @@ import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 
 public interface UserService {
-	UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException;
+	UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException;
 
 	List<UserResponse> saveAllUser(List<UserRequest> userRequests);
 
@@ -37,6 +37,14 @@ public interface UserService {
 	List<UserDepartmentResponse> getAllUserDepartment(String show);
 
 	List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show);
+
+	List<UserResponse> getAllUsersByPlantId(String show, List<Long> plantIds);
+
+	List<UserDepartmentResponse> getAllUserDepartmentByPlantId(String show, List<Long> plantIds);
+
+	List<UserDepartmentPlantResponse> getAllUserDepartmentPlantsByPlantId(String show, List<Long> plantIds);
+
+	List<UserPlantResponse> getAllUserPlantsByPlantId(String show, List<Long> plantIds);
 
 	UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException;
 

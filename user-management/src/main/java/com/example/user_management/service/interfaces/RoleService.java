@@ -12,7 +12,7 @@ import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 
 public interface RoleService {
-	RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException;
+	RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException, ResourceNotFoundException;
 
 	RoleResponse getRoleById(Long id) throws ResourceNotFoundException;
 
@@ -25,6 +25,10 @@ public interface RoleService {
 	List<RoleResponse> findAllStatusTrue();
 
 	List<RolePlantResponse> findAllRolesPlantStatusTrue();
+
+	List<RoleResponse> findAllByPlantId(Long plantId);
+
+	List<RolePlantResponse> findAllRolesPlantByPlantId(Long plantId);
 
 	RoleResponse updateRole(Long id, RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException;

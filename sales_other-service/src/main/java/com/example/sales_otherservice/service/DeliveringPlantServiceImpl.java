@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.DpPlant;
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
-import com.example.sales_otherservice.clients.Plant.PlantClient;
 import com.example.sales_otherservice.clients.Plant.PlantResponse;
+import com.example.sales_otherservice.clients.Plant.PlantServiceClient;
 import com.example.sales_otherservice.dto.request.DeliveringPlantRequest;
 import com.example.sales_otherservice.dto.response.DeliveringPlantResponse;
 import com.example.sales_otherservice.entity.AuditFields;
@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	private final DeliveringPlantRepository deliveringPlantRepository;
-	private final PlantClient plantClient;
+	private final PlantServiceClient plantClient;
 	private final ModelMapper modelMapper;
 	private final DynamicClient dynamicClient;
 

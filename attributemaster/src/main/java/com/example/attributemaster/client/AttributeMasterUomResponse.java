@@ -6,28 +6,26 @@ import java.util.Map;
 
 import com.example.attributemaster.client.GeneralSettings.AttributeUomResponse;
 import com.example.attributemaster.entity.FieldType;
+import com.example.attributemaster.entity.UpdateAuditHistory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AttributeMasterUomResponse {
-    private Long id;
-    private String attributeName;
-    // @Enumerated(EnumType.STRING)
-    private FieldType fieldType;
-    private List<AttributeUomResponse> listUom;
-    private String createdBy;
-    private String updatedBy;
-    private Date createdAt;
-    private Date updatedAt;
+	private Long id;
+	private String attributeName;
+	private FieldType fieldType;
+	private List<AttributeUomResponse> listUom;
 
-    @JsonAnyGetter
-    @JsonIgnore
-    private Map<String, Object> dynamicFields;
+	@JsonAnyGetter
+	@JsonIgnore
+	private Map<String, Object> dynamicFields;
+
+	private String createdBy;
+	private Date createdAt;
+	private List<UpdateAuditHistory> updateAuditHistories;
 }

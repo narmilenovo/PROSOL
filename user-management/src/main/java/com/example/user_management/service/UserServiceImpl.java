@@ -16,12 +16,12 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.example.user_management.client.DepartmentResponse;
-import com.example.user_management.client.PlantResponse;
-import com.example.user_management.client.PlantServiceClient;
 import com.example.user_management.client.UserDepartmentPlantResponse;
 import com.example.user_management.client.UserDepartmentResponse;
 import com.example.user_management.client.UserPlantResponse;
+import com.example.user_management.client.plant.DepartmentResponse;
+import com.example.user_management.client.plant.PlantResponse;
+import com.example.user_management.client.plant.PlantServiceClient;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
 	private final PlantServiceClient plantService;
 
 	@Override
-	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException {
+	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException {
 		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
 		Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
 		boolean exists = userRepository.existsByEmail(userRequest.getEmail());
@@ -133,6 +133,31 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show) {
 		List<User> users = userRepository.findAll();
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
+				.toList();
+	}
+
+	@Override
+	public List<UserResponse> getAllUsersByPlantId(String show, List<Long> plantIds) {
+		List<User> users = userRepository.findByPlantId(plantIds);
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserResponse).toList();
+	}
+
+	@Override
+	public List<UserPlantResponse> getAllUserPlantsByPlantId(String show, List<Long> plantIds) {
+		List<User> users = userRepository.findByPlantId(plantIds);
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserPlantResponse).toList();
+	}
+
+	@Override
+	public List<UserDepartmentResponse> getAllUserDepartmentByPlantId(String show, List<Long> plantIds) {
+		List<User> users = userRepository.findByPlantId(plantIds);
+		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentResponse).toList();
+	}
+
+	@Override
+	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlantsByPlantId(String show, List<Long> plantIds) {
+		List<User> users = userRepository.findByPlantId(plantIds);
 		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
 				.toList();
 	}

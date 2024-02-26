@@ -44,13 +44,15 @@ public class PlantServiceImpl implements PlantService {
 				plantRequest.getPlantName());
 		if (!exists) {
 			Plant plant = modelMapper.map(plantRequest, Plant.class);
-			for (Map.Entry<String, Object> entryField : plant.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Plant.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			if (plantRequest.getDynamicFields() != null) {
+				for (Map.Entry<String, Object> entryField : plant.getDynamicFields().entrySet()) {
+					String fieldName = entryField.getKey();
+					String formName = Plant.class.getSimpleName();
+					boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+					if (!fieldExists) {
+						throw new ResourceNotFoundException("Field of '" + fieldName
+								+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+					}
 				}
 			}
 			plantRepo.save(plant);

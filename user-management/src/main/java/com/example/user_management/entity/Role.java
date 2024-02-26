@@ -28,11 +28,9 @@ public class Role extends BaseEntity {
 	private Long id;
 	private String name;
 	private String description;
-//    private String plantName;
 	private Long plantId;
 	private Boolean status;
 
-	// @JsonIgnore
 	@ManyToMany(fetch = FetchType.EAGER, mappedBy = "roles")
 	private Set<User> users;
 

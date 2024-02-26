@@ -10,15 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.createtemplateservice.client.AttributeUomResponse;
 import com.example.createtemplateservice.client.DictionaryAllResponse;
 import com.example.createtemplateservice.client.DictionaryAttributeAllResponse;
-import com.example.createtemplateservice.client.attributemaster.AttributeClient;
 import com.example.createtemplateservice.client.attributemaster.AttributeMasterUomResponse;
-import com.example.createtemplateservice.client.generalsettings.AttributeUom;
-import com.example.createtemplateservice.client.generalsettings.GeneralSettingClient;
-import com.example.createtemplateservice.client.generalsettings.NmUom;
+import com.example.createtemplateservice.client.attributemaster.AttributeServiceClient;
+import com.example.createtemplateservice.client.generalsettings.NmUomResponse;
+import com.example.createtemplateservice.client.generalsettings.SettingServiceClient;
 import com.example.createtemplateservice.client.valuemaster.ValueAttributeUom;
-import com.example.createtemplateservice.client.valuemaster.ValueMasterClient;
+import com.example.createtemplateservice.client.valuemaster.ValueServiceClient;
 import com.example.createtemplateservice.exceptions.ResourceFoundException;
 import com.example.createtemplateservice.exceptions.ResourceNotFoundException;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
@@ -42,9 +42,9 @@ public class DictionaryServiceImpl implements DictionaryService {
 	private final DictionaryRepository dictionaryRepository;
 	private final DictionaryAttributeRepository dictionaryAttributeRepository;
 	private final ModelMapper modelMapper;
-	private final GeneralSettingClient generalSettingClient;
-	private final AttributeClient attributeClient;
-	private final ValueMasterClient valueMasterClient;
+	private final SettingServiceClient generalSettingClient;
+	private final AttributeServiceClient attributeClient;
+	private final ValueServiceClient valueMasterClient;
 	private final FileUploadUtil fileUploadUtil;
 
 	@Override
@@ -264,12 +264,12 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	private DictionaryAllResponse mapToDictionaryAll(Dictionary dictionary) {
 		DictionaryAllResponse dictionaryNmUom = modelMapper.map(dictionary, DictionaryAllResponse.class);
-		List<NmUom> nmUoms = new ArrayList<>();
+		List<NmUomResponse> nmUoms = new ArrayList<>();
 		for (Long id : dictionary.getNmUoms()) {
 			if (generalSettingClient == null) {
 				throw new IllegalStateException("General setting Client is not initialized");
 			}
-			NmUom nmUom = generalSettingClient.getNmUomById(id);
+			NmUomResponse nmUom = generalSettingClient.getNmUomById(id);
 			nmUoms.add(nmUom);
 		}
 		dictionaryNmUom.setNmUoms(nmUoms);
@@ -304,12 +304,12 @@ public class DictionaryServiceImpl implements DictionaryService {
 		}
 		dictionaryAttributeAllResponse.setValues(values);
 		// General Setting Client
-		List<AttributeUom> attrUoms = new ArrayList<>();
+		List<AttributeUomResponse> attrUoms = new ArrayList<>();
 		for (Long id : dictionaryAttribute.getAttrUomId()) {
 			if (generalSettingClient == null) {
 				throw new IllegalStateException("General setting Client is not initialized");
 			}
-			AttributeUom attrUom = generalSettingClient.getAttributeUomById(id);
+			AttributeUomResponse attrUom = generalSettingClient.getAttributeUomById(id);
 			attrUoms.add(attrUom);
 		}
 		dictionaryAttributeAllResponse.setAttrUoms(attrUoms);
