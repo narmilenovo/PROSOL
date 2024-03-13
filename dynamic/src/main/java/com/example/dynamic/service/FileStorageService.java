@@ -8,12 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -29,7 +27,6 @@ public class FileStorageService {
 
 	private final Path fileStorageLocation;
 
-	@Autowired
 	public FileStorageService(FileStorageProperties fileStorageProperties) {
 		this.fileStorageLocation = Paths.get(fileStorageProperties.getUploadDir()).toAbsolutePath().normalize();
 
@@ -43,7 +40,7 @@ public class FileStorageService {
 
 	public String storeFile(MultipartFile file, String formName, Long id) {
 		// Normalize file name
-		String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+		String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
 		try {
 			// Check if the file's name contains invalid characters

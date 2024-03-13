@@ -29,7 +29,7 @@ public class FormDataServiceImpl implements FormDataService {
 	private final FormRepository formRepository;
 	private final FormDataRepository formDataRepository;
 	private final FormFieldRepository fieldRepository;
-	private FileStorageService fileStorageService;
+	private final FileStorageService fileStorageService;
 	private final FormDataMapper formDataMapper;
 
 	@Override
@@ -47,7 +47,6 @@ public class FormDataServiceImpl implements FormDataService {
 
 		if (dynamicFiles != null && !dynamicFiles.isEmpty()) {
 			handleDynamicFiles(dynamicFiles, formName, formData);
-			formDataRepository.save(formData);
 		}
 
 		return formDataMapper.mapToFormDataResponse(formData);
@@ -83,6 +82,7 @@ public class FormDataServiceImpl implements FormDataService {
 				}
 				formData.getDynamicFields().put(fileFieldName,
 						fileResponses.size() == 1 ? fileResponses.get(0) : fileResponses);
+				formDataRepository.save(formData);
 			}
 		}
 	}

@@ -83,4 +83,4 @@ springdoc:
   writer-with-default-pretty-printer: true
   
 file:
-  upload-dir: ./images
+  upload-dir: dynamic/images
