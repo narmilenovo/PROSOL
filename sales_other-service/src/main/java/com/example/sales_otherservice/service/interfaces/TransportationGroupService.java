@@ -2,6 +2,8 @@ package com.example.sales_otherservice.service.interfaces;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 import com.example.sales_otherservice.dto.request.TransportationGroupRequest;
 import com.example.sales_otherservice.dto.response.TransportationGroupResponse;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
@@ -11,21 +13,21 @@ public interface TransportationGroupService {
 	TransportationGroupResponse saveTg(TransportationGroupRequest transportationGroupRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	TransportationGroupResponse getTgById(Long id) throws ResourceNotFoundException;
+	TransportationGroupResponse getTgById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<TransportationGroupResponse> getAllTg();
 
 	List<TransportationGroupResponse> findAllStatusTrue();
 
-	TransportationGroupResponse updateTg(Long id, TransportationGroupRequest updateTransportationGroupRequest)
+	TransportationGroupResponse updateTg(@NonNull Long id, TransportationGroupRequest updateTransportationGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
-	TransportationGroupResponse updateTgStatus(Long id) throws ResourceNotFoundException;
+	TransportationGroupResponse updateTgStatus(@NonNull Long id) throws ResourceNotFoundException;
 
-	List<TransportationGroupResponse> updateBatchTgStatus(List<Long> ids) throws ResourceNotFoundException;
+	List<TransportationGroupResponse> updateBatchTgStatus(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
-	void deleteTgById(Long id) throws ResourceNotFoundException;
+	void deleteTgById(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatchTg(List<Long> ids) throws ResourceNotFoundException;
+	void deleteBatchTg(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
 }

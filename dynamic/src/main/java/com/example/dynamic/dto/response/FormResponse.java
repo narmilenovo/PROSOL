@@ -15,8 +15,9 @@ public class FormResponse {
 	private Long id;
 
 	private String formName;
+	private String formDescription;
 
-	private List<FieldResponse> fields;
+	private List<FormFieldResponse> formFields;
 
 	private String createdBy;
 	private String updatedBy;

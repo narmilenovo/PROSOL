@@ -3,12 +3,11 @@ package com.example.mrpdataservice.serviceimpl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +17,7 @@ import com.example.mrpdataservice.entity.ProcurementType;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
+import com.example.mrpdataservice.mapping.ProcurementTypeMapper;
 import com.example.mrpdataservice.repository.ProcurementTypeRepo;
 import com.example.mrpdataservice.request.ProcurementTypeRequest;
 import com.example.mrpdataservice.response.ProcurementTypeResponse;
@@ -34,43 +34,35 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 
 	private final ProcurementTypeRepo procurementTypeRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final ProcurementTypeMapper procurementTypeMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public ProcurementTypeResponse saveProcurementType(ProcurementTypeRequest procurementTypeRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(procurementTypeRequest);
-		boolean exists = procurementTypeRepo.existsByProcurementTypeCodeAndProcurementTypeName(
-				procurementTypeRequest.getProcurementTypeCode(), procurementTypeRequest.getProcurementTypeName());
-		if (!exists) {
-			ProcurementType procurementType = modelMapper.map(procurementTypeRequest, ProcurementType.class);
-			for (Map.Entry<String, Object> entryField : procurementType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ProcurementType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			procurementTypeRepo.save(procurementType);
-			return mapToProcurementTypeResponse(procurementType);
-		} else {
+		String procurementTypeCode = procurementTypeRequest.getProcurementTypeCode();
+		String procurementTypeName = procurementTypeRequest.getProcurementTypeName();
+		if (procurementTypeRepo.existsByProcurementTypeCodeAndProcurementTypeName(procurementTypeCode,
+				procurementTypeName)) {
 			throw new AlreadyExistsException("ProcurementType with this name already exists");
 		}
+		ProcurementType procurementType = procurementTypeMapper.mapToProcurementType(procurementTypeRequest);
+		validateDynamicFields(procurementType);
+		procurementTypeRepo.save(procurementType);
+		return procurementTypeMapper.mapToProcurementTypeResponse(procurementType);
 	}
 
 	@Override
 	public ProcurementTypeResponse getProcurementTypeById(Long id) throws ResourceNotFoundException {
 		ProcurementType procurementType = this.findProcurementTypeById(id);
-		return mapToProcurementTypeResponse(procurementType);
+		return procurementTypeMapper.mapToProcurementTypeResponse(procurementType);
 	}
 
 	@Override
 	public List<ProcurementTypeResponse> getAllProcurementType() {
 		List<ProcurementType> procurementType = procurementTypeRepo.findAllByOrderByIdAsc();
-		return procurementType.stream().map(this::mapToProcurementTypeResponse).toList();
+		return procurementType.stream().map(procurementTypeMapper::mapToProcurementTypeResponse).toList();
 	}
 
 	@Override
@@ -121,7 +113,7 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 			}
 			existingProcurementType.updateAuditHistory(auditFields);
 			procurementTypeRepo.save(existingProcurementType);
-			return mapToProcurementTypeResponse(existingProcurementType);
+			return procurementTypeMapper.mapToProcurementTypeResponse(existingProcurementType);
 		} else {
 			throw new AlreadyExistsException("ProcurementType with this name already exists");
 		}
@@ -144,7 +136,7 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 
 		});
 		procurementTypeRepo.saveAll(existingProcurementTypes);
-		return existingProcurementTypes.stream().map(this::mapToProcurementTypeResponse).toList();
+		return existingProcurementTypes.stream().map(procurementTypeMapper::mapToProcurementTypeResponse).toList();
 	}
 
 	@Override
@@ -160,7 +152,7 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 		}
 		existingProcurementType.updateAuditHistory(auditFields);
 		procurementTypeRepo.save(existingProcurementType);
-		return mapToProcurementTypeResponse(existingProcurementType);
+		return procurementTypeMapper.mapToProcurementTypeResponse(existingProcurementType);
 	}
 
 	@Override
@@ -171,8 +163,10 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 
 	@Override
 	public void deleteBatchProcurementType(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllProcTypeById(ids);
-		procurementTypeRepo.deleteAllByIdInBatch(ids);
+		List<ProcurementType> procurementTypes = this.findAllProcTypeById(ids);
+		if (!procurementTypes.isEmpty()) {
+			procurementTypeRepo.deleteAll(procurementTypes);
+		}
 	}
 
 	@Override
@@ -224,30 +218,34 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 		return procurementType;
 	}
 
-	private ProcurementTypeResponse mapToProcurementTypeResponse(ProcurementType procurementType) {
-		return modelMapper.map(procurementType, ProcurementTypeResponse.class);
+	private void validateDynamicFields(ProcurementType procurementType) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : procurementType.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ProcurementType.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private ProcurementType findProcurementTypeById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ProcurementType> procurementType = procurementTypeRepo.findById(id);
-		if (procurementType.isEmpty()) {
-			throw new ResourceNotFoundException("Procurement Type with ID " + id + " not found.");
-		}
-		return procurementType.get();
+		return procurementTypeRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Procurement Type with ID " + id + " not found."));
 	}
 
 	private List<ProcurementType> findAllProcTypeById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<ProcurementType> types = procurementTypeRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<ProcurementType> foundTypes = types.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Procurement Type with IDs " + missingIds + " not found.");
 		}
-		return types;
+		return foundTypes;
 	}
+
 }

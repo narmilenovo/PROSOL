@@ -28,7 +28,10 @@ public class Plant extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+//	@NotNull
 	private Long id;
+//	@Min(value = 2)
+//	@Max(value = 30)
 	private String plantCode;
 	private String plantName;
 	private Boolean plantStatus;

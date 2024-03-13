@@ -2,11 +2,12 @@ package com.example.sales_otherservice.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -17,6 +18,7 @@ import com.example.sales_otherservice.entity.DistributionChannel;
 import com.example.sales_otherservice.entity.SalesOrganization;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.DistributionChannelMapper;
 import com.example.sales_otherservice.repository.DistributionChannelRepository;
 import com.example.sales_otherservice.repository.SalesOrganizationRepository;
 import com.example.sales_otherservice.service.interfaces.DistributionChannelService;
@@ -29,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class DistributionChannelServiceImpl implements DistributionChannelService {
 	private final DistributionChannelRepository distributionChannelRepository;
 	private final SalesOrganizationRepository organizationRepository;
-	private final ModelMapper modelMapper;
+	private final DistributionChannelMapper channelMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -38,57 +40,47 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 		Helpers.inputTitleCase(deliveringPlantRequest);
 		String dcCode = deliveringPlantRequest.getDcCode();
 		String dcName = deliveringPlantRequest.getDcName();
-		boolean exists = distributionChannelRepository.existsByDcCodeOrDcName(dcCode, dcName);
-		if (!exists) {
-			DistributionChannel channel = modelMapper.map(deliveringPlantRequest, DistributionChannel.class);
-			for (Map.Entry<String, Object> entryField : channel.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = DistributionChannel.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			channel.setId(null);
-			SalesOrganization salesOrganization = findSalesOrgById(deliveringPlantRequest.getSalesOrganizationId());
-			channel.setSalesOrganization(salesOrganization);
-			DistributionChannel savedChannel = distributionChannelRepository.save(channel);
-			return mapToDistributionChannelResponse(savedChannel);
+		if (distributionChannelRepository.existsByDcCodeOrDcName(dcCode, dcName)) {
+			throw new ResourceFoundException("Distributed Channel Already Exists");
 		}
-		throw new ResourceFoundException("Distributed Channel Already Exists");
+		DistributionChannel channel = channelMapper.mapToDistributionChannel(deliveringPlantRequest);
+
+		validateDynamicFields(channel);
+
+		channel.setId(null);
+		SalesOrganization salesOrganization = findSalesOrgById(deliveringPlantRequest.getSalesOrganizationId());
+		channel.setSalesOrganization(salesOrganization);
+		DistributionChannel savedChannel = distributionChannelRepository.save(channel);
+		return channelMapper.mapToDistributionChannelResponse(savedChannel);
 	}
 
-	private SalesOrganization findSalesOrgById(Long salesOrganizationId) throws ResourceNotFoundException {
-		Optional<SalesOrganization> organization = organizationRepository.findById(salesOrganizationId);
-		if (organization.isEmpty()) {
-			throw new ResourceNotFoundException("No organization Found");
-		}
-		return organization.get();
+	private SalesOrganization findSalesOrgById(@NonNull Long salesOrganizationId) throws ResourceNotFoundException {
+		return organizationRepository.findById(salesOrganizationId)
+				.orElseThrow(() -> new ResourceNotFoundException("No organization Found"));
 	}
 
 	@Override
-	public DistributionChannelResponse getDcById(Long id) throws ResourceNotFoundException {
+	public DistributionChannelResponse getDcById(@NonNull Long id) throws ResourceNotFoundException {
 		DistributionChannel channel = this.findDCById(id);
-		return mapToDistributionChannelResponse(channel);
+		return channelMapper.mapToDistributionChannelResponse(channel);
 	}
 
 	@Override
 	public List<DistributionChannelResponse> getAllDc() {
-		List<DistributionChannel> distributionChannels = distributionChannelRepository.findAll();
-		return distributionChannels.stream().sorted(Comparator.comparing(DistributionChannel::getId))
-				.map(this::mapToDistributionChannelResponse).toList();
+		return distributionChannelRepository.findAll().stream().sorted(Comparator.comparing(DistributionChannel::getId))
+				.map(channelMapper::mapToDistributionChannelResponse).toList();
 	}
 
 	@Override
 	public List<DistributionChannelResponse> findAllStatusTrue() {
-		List<DistributionChannel> distributionChannels = distributionChannelRepository.findAllByDcStatusIsTrue();
-		return distributionChannels.stream().sorted(Comparator.comparing(DistributionChannel::getId))
-				.map(this::mapToDistributionChannelResponse).toList();
+		return distributionChannelRepository.findAllByDcStatusIsTrue().stream()
+				.sorted(Comparator.comparing(DistributionChannel::getId))
+				.map(channelMapper::mapToDistributionChannelResponse).toList();
 	}
 
 	@Override
-	public DistributionChannelResponse updateDc(Long id, DistributionChannelRequest updateDistributionChannelRequest)
+	public DistributionChannelResponse updateDc(@NonNull Long id,
+			DistributionChannelRequest updateDistributionChannelRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDistributionChannelRequest);
@@ -136,13 +128,13 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 			}
 			existingChannel.updateAuditHistory(auditFields);
 			DistributionChannel updatedChannel = distributionChannelRepository.save(existingChannel);
-			return mapToDistributionChannelResponse(updatedChannel);
+			return channelMapper.mapToDistributionChannelResponse(updatedChannel);
 		}
 		throw new ResourceFoundException("Distributed Channel Already Exists");
 	}
 
 	@Override
-	public DistributionChannelResponse updateDcStatus(Long id) throws ResourceNotFoundException {
+	public DistributionChannelResponse updateDcStatus(@NonNull Long id) throws ResourceNotFoundException {
 		DistributionChannel existingChannel = this.findDCById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -153,11 +145,12 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 		}
 		existingChannel.updateAuditHistory(auditFields);
 		distributionChannelRepository.save(existingChannel);
-		return mapToDistributionChannelResponse(existingChannel);
+		return channelMapper.mapToDistributionChannelResponse(existingChannel);
 	}
 
 	@Override
-	public List<DistributionChannelResponse> updateBatchDcStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<DistributionChannelResponse> updateBatchDcStatus(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<DistributionChannel> channels = this.findAllDcById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -172,41 +165,48 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 		});
 		distributionChannelRepository.saveAll(channels);
 		return channels.stream().sorted(Comparator.comparing(DistributionChannel::getId))
-				.map(this::mapToDistributionChannelResponse).toList();
+				.map(channelMapper::mapToDistributionChannelResponse).toList();
 	}
 
 	@Override
-	public void deleteDcId(Long id) throws ResourceNotFoundException {
+	public void deleteDcId(@NonNull Long id) throws ResourceNotFoundException {
 		DistributionChannel channel = this.findDCById(id);
-		distributionChannelRepository.deleteById(channel.getId());
+		if (channel != null) {
+			distributionChannelRepository.delete(channel);
+		}
 	}
 
 	@Override
-	public void deleteBatchDc(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllDcById(ids);
-		distributionChannelRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private DistributionChannelResponse mapToDistributionChannelResponse(DistributionChannel distributionChannel) {
-		return modelMapper.map(distributionChannel, DistributionChannelResponse.class);
-	}
-
-	private DistributionChannel findDCById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<DistributionChannel> distributionChannel = distributionChannelRepository.findById(id);
-		if (distributionChannel.isEmpty()) {
-			throw new ResourceNotFoundException("Distribution Channel not found with this Id");
+	public void deleteBatchDc(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<DistributionChannel> distributionChannels = this.findAllDcById(ids);
+		if (!distributionChannels.isEmpty()) {
+			distributionChannelRepository.deleteAll(distributionChannels);
 		}
-		return distributionChannel.get();
 	}
 
-	private List<DistributionChannel> findAllDcById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(DistributionChannel channel) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : channel.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = DistributionChannel.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private DistributionChannel findDCById(@NonNull Long id) throws ResourceNotFoundException {
+		return distributionChannelRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Distribution Channel not found with this Id"));
+	}
+
+	private List<DistributionChannel> findAllDcById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		Set<Long> idSet = new HashSet<>(ids);
 		List<DistributionChannel> channels = distributionChannelRepository.findAllById(ids);
 
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> channels.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception

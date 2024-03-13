@@ -23,8 +23,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        '[format_sql]': true
     show-sql: true
+    
+  output:
+    ansi:
+      enabled: always 
+      
 # Eureka Server configuration
 eureka:
   instance:

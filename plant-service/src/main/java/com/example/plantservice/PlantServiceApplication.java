@@ -1,6 +1,5 @@
 package com.example.plantservice;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -23,11 +22,6 @@ public class PlantServiceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(PlantServiceApplication.class, args);
-	}
-
-	@Bean
-	ModelMapper modelMapper() {
-		return new ModelMapper();
 	}
 
 	@Bean

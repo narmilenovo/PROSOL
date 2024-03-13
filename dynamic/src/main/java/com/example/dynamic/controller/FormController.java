@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +32,7 @@ public class FormController {
 	}
 
 	@GetMapping("/getFormById/{id}")
-	public ResponseEntity<Object> getFormById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getFormById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		FormResponse form = formService.getFormById(id);
 		return ResponseEntity.ok(form);
 	}
@@ -52,10 +53,9 @@ public class FormController {
 		}
 	}
 
-	@DeleteMapping("/deleteFormById{id}")
-	public ResponseEntity<String> deleteFormById(@PathVariable("id") Long id) throws ResourceNotFoundException {
+	@DeleteMapping("/deleteFormById/{id}")
+	public ResponseEntity<String> deleteFormById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		formService.deleteFormById(id);
 		return new ResponseEntity<>("Form of '" + id + "' is deleted Successfully", HttpStatus.NO_CONTENT);
 	}
-
 }

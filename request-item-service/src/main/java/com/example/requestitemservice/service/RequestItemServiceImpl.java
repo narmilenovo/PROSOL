@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +22,7 @@ import com.example.requestitemservice.dto.request.RequestItemRequest;
 import com.example.requestitemservice.dto.response.RequestItemResponse;
 import com.example.requestitemservice.entity.AuditFields;
 import com.example.requestitemservice.entity.RequestItem;
+import com.example.requestitemservice.mapping.RequestItemMapper;
 import com.example.requestitemservice.repository.RequestItemRepository;
 import com.example.requestitemservice.service.interfaces.RequestItemService;
 import com.example.requestitemservice.utils.FileUploadUtil;
@@ -33,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class RequestItemServiceImpl implements RequestItemService {
 
 	private final RequestItemRepository requestItemRepository;
-	private final ModelMapper modelMapper;
+	private final RequestItemMapper requestItemMapper;
 	private final FileUploadUtil fileUploadUtil;
 	private final PlantServiceClient plantClient;
 	private final GeneralServiceClient generalClient;
@@ -41,7 +42,7 @@ public class RequestItemServiceImpl implements RequestItemService {
 
 	@Override
 	public RequestItemResponse save(RequestItemRequest requestItemRequest, MultipartFile file) {
-		RequestItem requestItem = modelMapper.map(requestItemRequest, RequestItem.class);
+		RequestItem requestItem = requestItemMapper.mapToRequestItem(requestItemRequest);
 		requestItem.setId(null);
 		RequestItem saveEmptyRequestId = requestItemRepository.save(requestItem);
 
@@ -49,17 +50,17 @@ public class RequestItemServiceImpl implements RequestItemService {
 		saveEmptyRequestId.setAttachment(fileName);
 
 		RequestItem savedRequestItem = requestItemRepository.save(saveEmptyRequestId);
-		return mapToRequestItemResponse(savedRequestItem);
+		return requestItemMapper.mapToRequestItemResponse(savedRequestItem);
 	}
 
 	@Override
-	public RequestItemResponse getRequestItem(Long id) {
+	public RequestItemResponse getRequestItem(@NonNull Long id) {
 		RequestItem requestItem = this.getRequestItemById(id);
-		return mapToRequestItemResponse(requestItem);
+		return requestItemMapper.mapToRequestItemResponse(requestItem);
 	}
 
 	@Override
-	public MaterialItem getMaterialItem(Long id) {
+	public MaterialItem getMaterialItem(@NonNull Long id) {
 		RequestItem requestItem = this.getRequestItemById(id);
 		return mapToMaterialItem(requestItem);
 	}
@@ -68,7 +69,7 @@ public class RequestItemServiceImpl implements RequestItemService {
 	public List<RequestItemResponse> getAllRequestItem() {
 		List<RequestItem> requestItems = requestItemRepository.findAll();
 		return requestItems.stream().sorted(Comparator.comparing(RequestItem::getId))
-				.map(this::mapToRequestItemResponse).toList();
+				.map(requestItemMapper::mapToRequestItemResponse).toList();
 	}
 
 	@Override
@@ -79,7 +80,7 @@ public class RequestItemServiceImpl implements RequestItemService {
 	}
 
 	@Override
-	public RequestItemResponse update(Long id, RequestItemRequest updatedItem, MultipartFile file) {
+	public RequestItemResponse update(@NonNull Long id, RequestItemRequest updatedItem, MultipartFile file) {
 		RequestItem existingRequestItem = this.getRequestItemById(id);
 
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -121,32 +122,30 @@ public class RequestItemServiceImpl implements RequestItemService {
 		}
 		existingRequestItem.updateAuditHistory(auditFields);
 		RequestItem updatedRequestItem = requestItemRepository.save(existingRequestItem);
-		return mapToRequestItemResponse(updatedRequestItem);
+		return requestItemMapper.mapToRequestItemResponse(updatedRequestItem);
 	}
 
 	@Override
-	public void delete(Long id) {
+	public void delete(@NonNull Long id) {
 		RequestItem requestItem = this.getRequestItemById(id);
-		fileUploadUtil.deleteDir(requestItem.getAttachment(), id);
-		requestItemRepository.delete(requestItem);
+		if (requestItem != null) {
+			fileUploadUtil.deleteDir(requestItem.getAttachment(), id);
+			requestItemRepository.delete(requestItem);
+		}
 	}
 
 	@Override
-	public void deleteBatchRequest(List<Long> ids) {
+	public void deleteBatchRequest(@NonNull List<Long> ids) {
 		requestItemRepository.deleteAllByIdInBatch(ids);
 	}
 
-	private RequestItem getRequestItemById(Long id) {
+	private RequestItem getRequestItemById(@NonNull Long id) {
 		return requestItemRepository.findById(id).orElseThrow(() -> new RuntimeException("RequestItem not found"));
 
 	}
 
-	private RequestItemResponse mapToRequestItemResponse(RequestItem requestItem) {
-		return modelMapper.map(requestItem, RequestItemResponse.class);
-	}
-
 	private MaterialItem mapToMaterialItem(RequestItem requestItem) {
-		MaterialItem materialItem = modelMapper.map(requestItem, MaterialItem.class);
+		MaterialItem materialItem = requestItemMapper.mapToMaterialItem(requestItem);
 		// Plant Client
 		PlantResponse plant = plantClient.getPlantById(requestItem.getPlantId());
 		materialItem.setPlant(plant);

@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -16,6 +17,7 @@ import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.SalesOrganization;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.SalesOrganizationMapper;
 import com.example.sales_otherservice.repository.SalesOrganizationRepository;
 import com.example.sales_otherservice.service.interfaces.SalesOrganizationService;
 import com.example.sales_otherservice.utils.Helpers;
@@ -26,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 	private final SalesOrganizationRepository salesOrganizationRepository;
-	private final ModelMapper modelMapper;
+	private final SalesOrganizationMapper organizationMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -35,47 +37,40 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 		Helpers.inputTitleCase(salesOrganizationRequest);
 		String soCode = salesOrganizationRequest.getSoCode();
 		String soName = salesOrganizationRequest.getSoName();
-		boolean exists = salesOrganizationRepository.existsBySoCodeOrSoName(soCode, soName);
-		if (!exists) {
-
-			SalesOrganization salesOrganization = modelMapper.map(salesOrganizationRequest, SalesOrganization.class);
-			for (Map.Entry<String, Object> entryField : salesOrganization.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = SalesOrganization.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			SalesOrganization savedSalesOrganization = salesOrganizationRepository.save(salesOrganization);
-			return mapToSalesOrganizationResponse(savedSalesOrganization);
+		if (salesOrganizationRepository.existsBySoCodeOrSoName(soCode, soName)) {
+			throw new ResourceFoundException("Sales Organization Already exists");
 		}
-		throw new ResourceFoundException("Sales Organization Already exists");
+
+		SalesOrganization salesOrganization = organizationMapper.mapToSalesOrganization(salesOrganizationRequest);
+
+		validateDynamicFields(salesOrganization);
+
+		SalesOrganization savedSalesOrganization = salesOrganizationRepository.save(salesOrganization);
+		return organizationMapper.mapToSalesOrganizationResponse(savedSalesOrganization);
 	}
 
 	@Override
-	public SalesOrganizationResponse getSoById(Long id) throws ResourceNotFoundException {
+	public SalesOrganizationResponse getSoById(@NonNull Long id) throws ResourceNotFoundException {
 		SalesOrganization salesOrganization = this.findSoById(id);
-		return mapToSalesOrganizationResponse(salesOrganization);
+		return organizationMapper.mapToSalesOrganizationResponse(salesOrganization);
 	}
 
 	@Override
 	public List<SalesOrganizationResponse> getAllSo() {
 		List<SalesOrganization> salesOrganizations = salesOrganizationRepository.findAll();
 		return salesOrganizations.stream().sorted(Comparator.comparing(SalesOrganization::getId))
-				.map(this::mapToSalesOrganizationResponse).toList();
+				.map(organizationMapper::mapToSalesOrganizationResponse).toList();
 	}
 
 	@Override
 	public List<SalesOrganizationResponse> findAllStatusTrue() {
 		List<SalesOrganization> salesOrganizations = salesOrganizationRepository.findAllBySoStatusIsTrue();
 		return salesOrganizations.stream().sorted(Comparator.comparing(SalesOrganization::getId))
-				.map(this::mapToSalesOrganizationResponse).toList();
+				.map(organizationMapper::mapToSalesOrganizationResponse).toList();
 	}
 
 	@Override
-	public SalesOrganizationResponse updateSo(Long id, SalesOrganizationRequest updateSalesOrganizationRequest)
+	public SalesOrganizationResponse updateSo(@NonNull Long id, SalesOrganizationRequest updateSalesOrganizationRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateSalesOrganizationRequest);
@@ -113,13 +108,13 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 			}
 			existingSalesOrganization.updateAuditHistory(auditFields);
 			SalesOrganization updatedSalesOrganization = salesOrganizationRepository.save(existingSalesOrganization);
-			return mapToSalesOrganizationResponse(updatedSalesOrganization);
+			return organizationMapper.mapToSalesOrganizationResponse(updatedSalesOrganization);
 		}
 		throw new ResourceFoundException("Sales Organization Already exists");
 	}
 
 	@Override
-	public SalesOrganizationResponse updateSoStatus(Long id) throws ResourceNotFoundException {
+	public SalesOrganizationResponse updateSoStatus(@NonNull Long id) throws ResourceNotFoundException {
 		SalesOrganization existingSalesOrganization = this.findSoById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -130,11 +125,12 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 		}
 		existingSalesOrganization.updateAuditHistory(auditFields);
 		salesOrganizationRepository.save(existingSalesOrganization);
-		return mapToSalesOrganizationResponse(existingSalesOrganization);
+		return organizationMapper.mapToSalesOrganizationResponse(existingSalesOrganization);
 	}
 
 	@Override
-	public List<SalesOrganizationResponse> updateBatchSoStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<SalesOrganizationResponse> updateBatchSoStatus(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<SalesOrganization> organizations = this.findAllSoById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -148,44 +144,54 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 
 		});
 		salesOrganizationRepository.saveAll(organizations);
-		return organizations.stream().map(this::mapToSalesOrganizationResponse).toList();
+		return organizations.stream().map(organizationMapper::mapToSalesOrganizationResponse).toList();
 	}
 
 	@Override
-	public void deleteSoById(Long id) throws ResourceNotFoundException {
+	public void deleteSoById(@NonNull Long id) throws ResourceNotFoundException {
 		SalesOrganization salesOrganization = this.findSoById(id);
-		salesOrganizationRepository.deleteById(salesOrganization.getId());
+		if (salesOrganization != null) {
+			salesOrganizationRepository.delete(salesOrganization);
+		}
 	}
 
 	@Override
-	public void deleteBatchSo(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllSoById(ids);
-		salesOrganizationRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private SalesOrganizationResponse mapToSalesOrganizationResponse(SalesOrganization salesOrganization) {
-		return modelMapper.map(salesOrganization, SalesOrganizationResponse.class);
-	}
-
-	private SalesOrganization findSoById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<SalesOrganization> salesOrganization = salesOrganizationRepository.findById(id);
-		if (salesOrganization.isEmpty()) {
-			throw new ResourceNotFoundException("Sales Organization Key not found with this Id");
+	public void deleteBatchSo(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<SalesOrganization> salesOrganizations = this.findAllSoById(ids);
+		if (!salesOrganizations.isEmpty()) {
+			salesOrganizationRepository.deleteAll(salesOrganizations);
 		}
-		return salesOrganization.get();
 	}
 
-	private List<SalesOrganization> findAllSoById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(SalesOrganization salesOrganization) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : salesOrganization.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = SalesOrganization.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private SalesOrganization findSoById(@NonNull Long id) throws ResourceNotFoundException {
+		return salesOrganizationRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Sales Organization Key not found with this Id"));
+	}
+
+	private List<SalesOrganization> findAllSoById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<SalesOrganization> salesOrganizations = salesOrganizationRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> salesOrganizations.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		Map<Long, SalesOrganization> salesOrganizationMap = salesOrganizations.stream()
+				.collect(Collectors.toMap(SalesOrganization::getId, Function.identity()));
+
+		List<Long> missingIds = ids.stream().filter(id -> !salesOrganizationMap.containsKey(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Sales Organization with IDs " + missingIds + " not found");
 		}
+
 		return salesOrganizations;
 	}
 

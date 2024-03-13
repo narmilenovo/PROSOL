@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +17,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.IndustrySector;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.IndustrySectorMapper;
 import com.example.generalservice.repository.IndustrySectorRepository;
 import com.example.generalservice.service.interfaces.IndustrySectorService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class IndustrySectorServiceImpl implements IndustrySectorService {
 	private final IndustrySectorRepository sectorRepository;
-	private final ModelMapper modelMapper;
+	private final IndustrySectorMapper industrySectorMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -38,50 +39,38 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 		String sectorName = industrySectorRequest.getSectorName();
 		boolean exists = sectorRepository.existsBySectorCodeOrSectorName(sectorCode, sectorName);
 		if (!exists) {
-			IndustrySector industrySector = modelMapper.map(industrySectorRequest, IndustrySector.class);
-			for (Map.Entry<String, Object> entryField : industrySector.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = IndustrySector.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
+			IndustrySector industrySector = industrySectorMapper.mapToIndustrySector(industrySectorRequest);
+			validateDynamicFields(industrySector);
+
 			IndustrySector savedSector = sectorRepository.save(industrySector);
-			return mapToIndustrySectorResponse(savedSector);
+			return industrySectorMapper.mapToIndustrySectorResponse(savedSector);
 		}
 		throw new ResourceFoundException("Industry Sector Already Exist");
 	}
 
 	@Override
-	@Cacheable("sector")
-	public IndustrySectorResponse getSectorById(Long id) throws ResourceNotFoundException {
+	public IndustrySectorResponse getSectorById(@NonNull Long id) throws ResourceNotFoundException {
 		IndustrySector industrySector = this.findSectorById(id);
-		return mapToIndustrySectorResponse(industrySector);
+		return industrySectorMapper.mapToIndustrySectorResponse(industrySector);
 
 	}
 
 	@Override
-	@Cacheable("sector")
 	public List<IndustrySectorResponse> getAllSector() {
-		List<IndustrySector> sectorResponses = sectorRepository.findAll();
-		return sectorResponses.stream().sorted(Comparator.comparing(IndustrySector::getId))
-				.map(this::mapToIndustrySectorResponse).toList();
+		return sectorRepository.findAll().stream().sorted(Comparator.comparing(IndustrySector::getId))
+				.map(industrySectorMapper::mapToIndustrySectorResponse).toList();
 	}
 
 	@Override
-	@Cacheable("sector")
 	public List<IndustrySectorResponse> findAllStatusTrue() {
-		List<IndustrySector> sectorResponses = sectorRepository.findAllBySectorStatusIsTrue();
-		return sectorResponses.stream().sorted(Comparator.comparing(IndustrySector::getId))
-				.map(this::mapToIndustrySectorResponse).toList();
+		return sectorRepository.findAllBySectorStatusIsTrue().stream()
+				.sorted(Comparator.comparing(IndustrySector::getId))
+				.map(industrySectorMapper::mapToIndustrySectorResponse).toList();
 	}
 
 	@Override
-	public IndustrySectorResponse updateSector(Long id, IndustrySectorRequest updateIndustrySectorRequest)
+	public IndustrySectorResponse updateSector(@NonNull Long id, IndustrySectorRequest updateIndustrySectorRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateIndustrySectorRequest);
 		String sectorCode = updateIndustrySectorRequest.getSectorCode();
 		String sectorName = updateIndustrySectorRequest.getSectorName();
@@ -119,13 +108,13 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 			}
 			existingIndustrySector.updateAuditHistory(auditFields);
 			IndustrySector updatedIndustrySector = sectorRepository.save(existingIndustrySector);
-			return mapToIndustrySectorResponse(updatedIndustrySector);
+			return industrySectorMapper.mapToIndustrySectorResponse(updatedIndustrySector);
 		}
 		throw new ResourceFoundException("Industry Sector Already Exist");
 	}
 
 	@Override
-	public IndustrySectorResponse updateSectorStatus(Long id) throws ResourceNotFoundException {
+	public IndustrySectorResponse updateSectorStatus(@NonNull Long id) throws ResourceNotFoundException {
 		IndustrySector existingSector = this.findSectorById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -136,11 +125,11 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 		}
 		existingSector.updateAuditHistory(auditFields);
 		sectorRepository.save(existingSector);
-		return this.mapToIndustrySectorResponse(existingSector);
+		return industrySectorMapper.mapToIndustrySectorResponse(existingSector);
 	}
 
 	@Override
-	public List<IndustrySectorResponse> updateBatchSectorResponseStatus(List<Long> ids) {
+	public List<IndustrySectorResponse> updateBatchSectorResponseStatus(@NonNull List<Long> ids) {
 		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -155,44 +144,48 @@ public class IndustrySectorServiceImpl implements IndustrySectorService {
 		});
 		sectorRepository.saveAll(industrySectors);
 		return industrySectors.stream().sorted(Comparator.comparing(IndustrySector::getId))
-				.map(this::mapToIndustrySectorResponse).toList();
+				.map(industrySectorMapper::mapToIndustrySectorResponse).toList();
 	}
 
 	@Override
-	public void deleteSectorId(Long id) throws ResourceNotFoundException {
+	public void deleteSectorId(@NonNull Long id) throws ResourceNotFoundException {
 		IndustrySector industrySector = this.findSectorById(id);
-		sectorRepository.deleteById(industrySector.getId());
+		if (industrySector != null) {
+			sectorRepository.delete(industrySector);
+		}
 	}
 
 	@Override
-	public void deleteBatchSector(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllById(ids);
-		sectorRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private IndustrySectorResponse mapToIndustrySectorResponse(IndustrySector industrySector) {
-		return modelMapper.map(industrySector, IndustrySectorResponse.class);
-	}
-
-	private IndustrySector findSectorById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<IndustrySector> sector = sectorRepository.findById(id);
-		if (sector.isEmpty()) {
-			throw new ResourceNotFoundException("No Industry Sector found with this Id");
+	public void deleteBatchSector(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<IndustrySector> industrySectors = this.findAllById(ids);
+		if (!industrySectors.isEmpty()) {
+			sectorRepository.deleteAll(industrySectors);
 		}
-		return sector.get();
 	}
 
-	private List<IndustrySector> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> industrySectors.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+	private void validateDynamicFields(IndustrySector industrySector) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : industrySector.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = IndustrySector.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
 
+	private IndustrySector findSectorById(@NonNull Long id) throws ResourceNotFoundException {
+		return sectorRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Industry Sector found with this Id"));
+	}
+
+	private List<IndustrySector> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<IndustrySector> industrySectors = sectorRepository.findAllById(ids);
+		Set<Long> idSet = industrySectors.stream().map(IndustrySector::getId).collect(Collectors.toSet());
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).collect(Collectors.toList());
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+			throw new ResourceNotFoundException("Industry Sector with IDs " + missingIds + " not found.");
 		}
 		return industrySectors;
 	}

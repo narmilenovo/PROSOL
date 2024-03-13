@@ -2,18 +2,18 @@ package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.EquipmentUnit;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.EquipmentUnitMapper;
 import com.example.generalsettings.repo.EquipmentUnitRepo;
 import com.example.generalsettings.request.EquipmentUnitRequest;
 import com.example.generalsettings.response.EquipmentUnitResponse;
@@ -25,36 +25,33 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class EquipmentUnitServiceImpl implements EquipmentUnitService {
-	private final ModelMapper modelMapper;
+	private final EquipmentUnitMapper equipmentUnitMapper;
 	private final EquipmentUnitRepo equipmentUnitRepo;
-
-	public static final String ATTRIBUTE_TYPE_NOT_FOUND_MESSAGE = null;
 
 	@Override
 	public EquipmentUnitResponse saveEquipmentUnit(EquipmentUnitRequest equipmentUnitRequest)
 			throws AlreadyExistsException {
 		Helpers.inputTitleCase(equipmentUnitRequest);
-		boolean exists = equipmentUnitRepo.existsByEquipmentUnitCodeAndEquipmentUnitName(
-				equipmentUnitRequest.getEquipmentUnitCode(), equipmentUnitRequest.getEquipmentUnitName());
-		if (!exists) {
-			EquipmentUnit equipmentUnit = modelMapper.map(equipmentUnitRequest, EquipmentUnit.class);
-			equipmentUnitRepo.save(equipmentUnit);
-			return mapToEquipmentUnitResponse(equipmentUnit);
-		} else {
+		String equipmentUnitCode = equipmentUnitRequest.getEquipmentUnitCode();
+		String equipmentUnitName = equipmentUnitRequest.getEquipmentUnitName();
+		if (equipmentUnitRepo.existsByEquipmentUnitCodeAndEquipmentUnitName(equipmentUnitCode, equipmentUnitName)) {
 			throw new AlreadyExistsException("EquipmentUnit with this name already exists");
 		}
+		EquipmentUnit equipmentUnit = equipmentUnitMapper.mapToEquipmentUnit(equipmentUnitRequest);
+		equipmentUnitRepo.save(equipmentUnit);
+		return equipmentUnitMapper.mapToEquipmentUnitResponse(equipmentUnit);
 	}
 
 	@Override
 	public EquipmentUnitResponse getEquipmentUnitById(Long id) throws ResourceNotFoundException {
 		EquipmentUnit equipmentUnit = this.findEquipmentUnitById(id);
-		return mapToEquipmentUnitResponse(equipmentUnit);
+		return equipmentUnitMapper.mapToEquipmentUnitResponse(equipmentUnit);
 	}
 
 	@Override
 	public List<EquipmentUnitResponse> getAllEquipmentUnit() {
-		List<EquipmentUnit> equipmentUnit = equipmentUnitRepo.findAllByOrderByIdAsc();
-		return equipmentUnit.stream().map(this::mapToEquipmentUnitResponse).toList();
+		return equipmentUnitRepo.findAllByOrderByIdAsc().stream().map(equipmentUnitMapper::mapToEquipmentUnitResponse)
+				.toList();
 	}
 
 	@Override
@@ -65,7 +62,6 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 	@Override
 	public EquipmentUnitResponse updateEquipmentUnit(Long id, EquipmentUnitRequest equipmentUnitRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(equipmentUnitRequest);
 		String name = equipmentUnitRequest.getEquipmentUnitName();
 		String code = equipmentUnitRequest.getEquipmentUnitCode();
@@ -92,7 +88,7 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 			}
 			existingEquipmentUnit.updateAuditHistory(auditFields);
 			equipmentUnitRepo.save(existingEquipmentUnit);
-			return mapToEquipmentUnitResponse(existingEquipmentUnit);
+			return equipmentUnitMapper.mapToEquipmentUnitResponse(existingEquipmentUnit);
 		} else {
 			throw new AlreadyExistsException("EquipmentUnit with this name already exists");
 		}
@@ -114,7 +110,7 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 
 		});
 		equipmentUnitRepo.saveAll(existingEquipmentUnits);
-		return existingEquipmentUnits.stream().map(this::mapToEquipmentUnitResponse).toList();
+		return existingEquipmentUnits.stream().map(equipmentUnitMapper::mapToEquipmentUnitResponse).toList();
 	}
 
 	@Override
@@ -129,19 +125,23 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 		}
 		existingEquipmentUnit.updateAuditHistory(auditFields);
 		equipmentUnitRepo.save(existingEquipmentUnit);
-		return mapToEquipmentUnitResponse(existingEquipmentUnit);
+		return equipmentUnitMapper.mapToEquipmentUnitResponse(existingEquipmentUnit);
 	}
 
 	@Override
 	public void deleteEquipmentUnit(Long id) throws ResourceNotFoundException {
 		EquipmentUnit equipmentUnit = this.findEquipmentUnitById(id);
-		equipmentUnitRepo.deleteById(equipmentUnit.getId());
+		if (equipmentUnit != null) {
+			equipmentUnitRepo.delete(equipmentUnit);
+		}
 	}
 
 	@Override
 	public void deleteBatchEquipmentUnit(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllUnitsById(ids);
-		equipmentUnitRepo.deleteAllByIdInBatch(ids);
+		List<EquipmentUnit> equipmentUnits = this.findAllUnitsById(ids);
+		if (!equipmentUnits.isEmpty()) {
+			equipmentUnitRepo.deleteAll(equipmentUnits);
+		}
 	}
 
 	@Override
@@ -158,30 +158,21 @@ public class EquipmentUnitServiceImpl implements EquipmentUnitService {
 		return dataList;
 	}
 
-	private EquipmentUnitResponse mapToEquipmentUnitResponse(EquipmentUnit equipmentUnit) {
-		return modelMapper.map(equipmentUnit, EquipmentUnitResponse.class);
-	}
-
 	private EquipmentUnit findEquipmentUnitById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<EquipmentUnit> equipmentUnit = equipmentUnitRepo.findById(id);
-		if (equipmentUnit.isEmpty()) {
-			throw new ResourceNotFoundException(ATTRIBUTE_TYPE_NOT_FOUND_MESSAGE);
-		}
-		return equipmentUnit.get();
+		return equipmentUnitRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Attribute type with " + id + " not found !!"));
 	}
 
 	private List<EquipmentUnit> findAllUnitsById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<EquipmentUnit> units = equipmentUnitRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> units.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		Set<Long> idSet = new HashSet<>(ids);
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+			throw new ResourceNotFoundException("Equipment Unit with IDs " + missingIds + " not found.");
 		}
+
 		return units;
 	}
+
 }

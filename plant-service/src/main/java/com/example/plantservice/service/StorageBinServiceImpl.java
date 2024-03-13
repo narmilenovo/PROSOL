@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +21,7 @@ import com.example.plantservice.entity.StorageLocation;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.StorageBinMapper;
 import com.example.plantservice.repository.PlantRepo;
 import com.example.plantservice.repository.StorageBinRepo;
 import com.example.plantservice.repository.StorageLocationRepo;
@@ -43,7 +43,7 @@ public class StorageBinServiceImpl implements StorageBinService {
 	private final StorageLocationRepo storageLocationRepo;
 	private final DynamicClient dynamicClient;
 
-	private final ModelMapper modelMapper;
+	private final StorageBinMapper storageBinMapper;
 
 	@Override
 	public StorageBinResponse saveStorageBin(StorageBinRequest storageBinRequest)
@@ -52,21 +52,14 @@ public class StorageBinServiceImpl implements StorageBinService {
 		boolean exists = storageBinRepo.existsByStorageBinCodeAndStorageBinName(storageBinRequest.getStorageBinCode(),
 				storageBinRequest.getStorageBinName());
 		if (!exists) {
-			StorageBin storageBin = modelMapper.map(storageBinRequest, StorageBin.class);
-			for (Map.Entry<String, Object> entryField : storageBin.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = StorageBin.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
+			StorageBin storageBin = storageBinMapper.mapToStorageBin(storageBinRequest);
+
+			validateDynamicFields(storageBin);
 			storageBin.setId(null);
 			storageBin.setPlant(getPlantById(storageBinRequest.getPlantId()));
 			storageBin.setStorageLocation(getStorageLocationById(storageBinRequest.getStorageLocationId()));
 			StorageBin saved = storageBinRepo.save(storageBin);
-			return mapToStorageBinResponse(saved);
+			return storageBinMapper.mapToStorageBinResponse(saved);
 		} else {
 			throw new AlreadyExistsException("StorageLocationBin with this name already exists");
 		}
@@ -75,13 +68,12 @@ public class StorageBinServiceImpl implements StorageBinService {
 	@Override
 	public StorageBinResponse getStorageBinById(Long id) throws ResourceNotFoundException {
 		StorageBin storageBin = this.findStorageBinById(id);
-		return mapToStorageBinResponse(storageBin);
+		return storageBinMapper.mapToStorageBinResponse(storageBin);
 	}
 
 	@Override
 	public List<StorageBinResponse> getAllStorageBin() {
-		List<StorageBin> storageBin = storageBinRepo.findAllByOrderByIdAsc();
-		return storageBin.stream().map(this::mapToStorageBinResponse).toList();
+		return storageBinRepo.findAllByOrderByIdAsc().stream().map(storageBinMapper::mapToStorageBinResponse).toList();
 	}
 
 	@Override
@@ -140,7 +132,7 @@ public class StorageBinServiceImpl implements StorageBinService {
 			}
 			existStorageBin.updateAuditHistory(auditFields);
 			storageBinRepo.save(existStorageBin);
-			return mapToStorageBinResponse(existStorageBin);
+			return storageBinMapper.mapToStorageBinResponse(existStorageBin);
 		} else {
 			throw new AlreadyExistsException("StorageBin with this name already exists");
 		}
@@ -161,7 +153,7 @@ public class StorageBinServiceImpl implements StorageBinService {
 			existingStorageBin.updateAuditHistory(auditFields);
 		});
 		storageBinRepo.saveAll(existingStorageBins);
-		return existingStorageBins.stream().map(this::mapToStorageBinResponse).toList();
+		return existingStorageBins.stream().map(storageBinMapper::mapToStorageBinResponse).toList();
 	}
 
 	@Override
@@ -177,19 +169,23 @@ public class StorageBinServiceImpl implements StorageBinService {
 		}
 		existingStorageBin.updateAuditHistory(auditFields);
 		storageBinRepo.save(existingStorageBin);
-		return mapToStorageBinResponse(existingStorageBin);
+		return storageBinMapper.mapToStorageBinResponse(existingStorageBin);
 	}
 
 	@Override
 	public void deleteStorageBin(Long id) throws ResourceNotFoundException {
 		StorageBin storageBin = this.findStorageBinById(id);
-		storageBinRepo.deleteById(storageBin.getId());
+		if (storageBin != null) {
+			storageBinRepo.delete(storageBin);
+		}
 	}
 
 	@Override
 	public void deleteBatchStorageBin(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllBinsById(ids);
-		storageBinRepo.deleteAllByIdInBatch(ids);
+		List<StorageBin> storageBins = this.findAllBinsById(ids);
+		if (!storageBins.isEmpty()) {
+			storageBinRepo.deleteAll(storageBins);
+		}
 	}
 
 	@Override
@@ -242,43 +238,45 @@ public class StorageBinServiceImpl implements StorageBinService {
 		return data;
 	}
 
+	private void validateDynamicFields(StorageBin storageBin) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : storageBin.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = StorageBin.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
 	private Plant getPlantById(Long plantId) {
-		Optional<Plant> fetchplantOptional = plantRepo.findById(plantId);
-		return fetchplantOptional.orElse(null);
+		return plantRepo.findById(plantId).orElse(null);
 
 	}
 
 	private StorageLocation getStorageLocationById(Long id) {
-		Optional<StorageLocation> fetchStorageOptional1 = storageLocationRepo.findById(id);
-		return fetchStorageOptional1.orElse(null);
+		return storageLocationRepo.findById(id).orElse(null);
 
-	}
-
-	private StorageBinResponse mapToStorageBinResponse(StorageBin storageLocation) {
-		return modelMapper.map(storageLocation, StorageBinResponse.class);
 	}
 
 	private StorageBin findStorageBinById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<StorageBin> storageBin = storageBinRepo.findById(id);
-		if (storageBin.isEmpty()) {
-			throw new ResourceNotFoundException("Storage Bin with ID " + id + " not found");
-		}
-		return storageBin.get();
+		return storageBinRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Storage Bin with ID " + id + " not found"));
 	}
 
 	private List<StorageBin> findAllBinsById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<StorageBin> bins = findAllBinsById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> bins.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<StorageBin> bins = storageBinRepo.findAllById(ids);
+
+		Set<Long> idSet = new HashSet<>(ids);
+		List<StorageBin> foundBins = bins.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Storage Bin with IDs " + missingIds + " not found.");
 		}
-		return bins;
+		return foundBins;
 	}
 
 }

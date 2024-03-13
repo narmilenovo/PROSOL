@@ -2,11 +2,12 @@ package com.example.sales_otherservice.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -16,6 +17,7 @@ import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.MaterialStrategicGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.MaterialStrategicGroupMapper;
 import com.example.sales_otherservice.repository.MaterialStrategicGroupRepository;
 import com.example.sales_otherservice.service.interfaces.MaterialStrategicGroupService;
 import com.example.sales_otherservice.utils.Helpers;
@@ -26,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroupService {
 	private final MaterialStrategicGroupRepository materialStrategicGroupRepository;
-	private final ModelMapper modelMapper;
+	private final MaterialStrategicGroupMapper strategicGroupMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -35,48 +37,40 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 		Helpers.inputTitleCase(materialStrategicGroupRequest);
 		String msCode = materialStrategicGroupRequest.getMsCode();
 		String msName = materialStrategicGroupRequest.getMsName();
-		boolean exists = materialStrategicGroupRepository.existsByMsCodeOrMsName(msCode, msName);
-		if (!exists) {
-
-			MaterialStrategicGroup strategicGroup = modelMapper.map(materialStrategicGroupRequest,
-					MaterialStrategicGroup.class);
-			for (Map.Entry<String, Object> entryField : strategicGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MaterialStrategicGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			MaterialStrategicGroup savedMaterialStrategicGroup = materialStrategicGroupRepository.save(strategicGroup);
-			return mapToStrategicGroupResponse(savedMaterialStrategicGroup);
+		if (materialStrategicGroupRepository.existsByMsCodeOrMsName(msCode, msName)) {
+			throw new ResourceFoundException("Material Strategic Already exists");
 		}
-		throw new ResourceFoundException("Material Strategic Already exists");
+
+		MaterialStrategicGroup strategicGroup = strategicGroupMapper.mapToStrategicGroup(materialStrategicGroupRequest);
+
+		validateDynamicFields(strategicGroup);
+
+		MaterialStrategicGroup savedMaterialStrategicGroup = materialStrategicGroupRepository.save(strategicGroup);
+		return strategicGroupMapper.mapToStrategicGroupResponse(savedMaterialStrategicGroup);
 	}
 
 	@Override
-	public MaterialStrategicGroupResponse getMsgById(Long id) throws ResourceNotFoundException {
+	public MaterialStrategicGroupResponse getMsgById(@NonNull Long id) throws ResourceNotFoundException {
 		MaterialStrategicGroup strategicGroup = this.findMsgById(id);
-		return mapToStrategicGroupResponse(strategicGroup);
+		return strategicGroupMapper.mapToStrategicGroupResponse(strategicGroup);
 	}
 
 	@Override
 	public List<MaterialStrategicGroupResponse> getAllMsg() {
 		List<MaterialStrategicGroup> strategicGroups = materialStrategicGroupRepository.findAll();
 		return strategicGroups.stream().sorted(Comparator.comparing(MaterialStrategicGroup::getId))
-				.map(this::mapToStrategicGroupResponse).toList();
+				.map(strategicGroupMapper::mapToStrategicGroupResponse).toList();
 	}
 
 	@Override
 	public List<MaterialStrategicGroupResponse> findAllStatusTrue() {
 		List<MaterialStrategicGroup> strategicGroups = materialStrategicGroupRepository.findAllByMsStatusIsTrue();
 		return strategicGroups.stream().sorted(Comparator.comparing(MaterialStrategicGroup::getId))
-				.map(this::mapToStrategicGroupResponse).toList();
+				.map(strategicGroupMapper::mapToStrategicGroupResponse).toList();
 	}
 
 	@Override
-	public MaterialStrategicGroupResponse updateMsg(Long id,
+	public MaterialStrategicGroupResponse updateMsg(@NonNull Long id,
 			MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
@@ -118,13 +112,13 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 			existingStrategicGroup.updateAuditHistory(auditFields);
 			MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository
 					.save(existingStrategicGroup);
-			return mapToStrategicGroupResponse(updatedStrategicGroup);
+			return strategicGroupMapper.mapToStrategicGroupResponse(updatedStrategicGroup);
 		}
 		throw new ResourceFoundException("Material Strategic Already exists");
 	}
 
 	@Override
-	public MaterialStrategicGroupResponse updateMsgStatus(Long id) throws ResourceNotFoundException {
+	public MaterialStrategicGroupResponse updateMsgStatus(@NonNull Long id) throws ResourceNotFoundException {
 		MaterialStrategicGroup existingStrategicGroup = this.findMsgById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -135,11 +129,12 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 		}
 		existingStrategicGroup.updateAuditHistory(auditFields);
 		MaterialStrategicGroup updatedStrategicGroup = materialStrategicGroupRepository.save(existingStrategicGroup);
-		return mapToStrategicGroupResponse(updatedStrategicGroup);
+		return strategicGroupMapper.mapToStrategicGroupResponse(updatedStrategicGroup);
 	}
 
 	@Override
-	public List<MaterialStrategicGroupResponse> updateBatchMsgStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<MaterialStrategicGroupResponse> updateBatchMsgStatus(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<MaterialStrategicGroup> strategicGroups = this.findAllMsgById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -154,41 +149,48 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 		});
 		materialStrategicGroupRepository.saveAll(strategicGroups);
 		return strategicGroups.stream().sorted(Comparator.comparing(MaterialStrategicGroup::getId))
-				.map(this::mapToStrategicGroupResponse).toList();
+				.map(strategicGroupMapper::mapToStrategicGroupResponse).toList();
 	}
 
 	@Override
-	public void deleteMsgById(Long id) throws ResourceNotFoundException {
+	public void deleteMsgById(@NonNull Long id) throws ResourceNotFoundException {
 		MaterialStrategicGroup strategicGroup = this.findMsgById(id);
-		materialStrategicGroupRepository.deleteById(strategicGroup.getId());
+		if (strategicGroup != null) {
+			materialStrategicGroupRepository.delete(strategicGroup);
+		}
 	}
 
 	@Override
-	public void deleteBatchMsg(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllMsgById(ids);
-		materialStrategicGroupRepository.deleteAllByIdInBatch(ids);
-
-	}
-
-	private MaterialStrategicGroupResponse mapToStrategicGroupResponse(MaterialStrategicGroup materialStrategicGroup) {
-		return modelMapper.map(materialStrategicGroup, MaterialStrategicGroupResponse.class);
-	}
-
-	private MaterialStrategicGroup findMsgById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<MaterialStrategicGroup> strategicGroup = materialStrategicGroupRepository.findById(id);
-		if (strategicGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Material Strategic Group not found with this Id");
+	public void deleteBatchMsg(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<MaterialStrategicGroup> strategicGroups = this.findAllMsgById(ids);
+		if (!strategicGroups.isEmpty()) {
+			materialStrategicGroupRepository.deleteAll(strategicGroups);
 		}
-		return strategicGroup.get();
+
 	}
 
-	private List<MaterialStrategicGroup> findAllMsgById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(MaterialStrategicGroup strategicGroup) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : strategicGroup.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = MaterialStrategicGroup.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private MaterialStrategicGroup findMsgById(@NonNull Long id) throws ResourceNotFoundException {
+		return materialStrategicGroupRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Material Strategic Group not found with this Id"));
+	}
+
+	private List<MaterialStrategicGroup> findAllMsgById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		Set<Long> idSet = new HashSet<>(ids);
 		List<MaterialStrategicGroup> strategicGroups = materialStrategicGroupRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> strategicGroups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception

@@ -16,14 +16,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DropDown {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String value;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String value;
 
-    // @ManyToOne(cascade = CascadeType.PERSIST)
-    @ManyToOne
-    // @JoinColumn(name = "field_id")
-    // @JsonIgnore // Add this annotation to break the infinite loop
-    private Field field;
+	@ManyToOne
+	private FormField formField;
 }

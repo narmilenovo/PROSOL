@@ -2,11 +2,12 @@ package com.example.sales_otherservice.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -16,6 +17,7 @@ import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.LoadingGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.LoadingGroupMapper;
 import com.example.sales_otherservice.repository.LoadingGroupRepository;
 import com.example.sales_otherservice.service.interfaces.LoadingGroupService;
 import com.example.sales_otherservice.utils.Helpers;
@@ -26,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LoadingGroupServiceImpl implements LoadingGroupService {
 	private final LoadingGroupRepository loadingGroupRepository;
-	private final ModelMapper modelMapper;
+	private final LoadingGroupMapper loadingGroupMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -35,47 +37,37 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
 		Helpers.inputTitleCase(loadingGroupRequest);
 		String lgCode = loadingGroupRequest.getLgCode();
 		String lgName = loadingGroupRequest.getLgName();
-		boolean exists = loadingGroupRepository.existsByLgCodeOrLgName(lgCode, lgName);
-		if (!exists) {
-
-			LoadingGroup loadingGroup = modelMapper.map(loadingGroupRequest, LoadingGroup.class);
-			for (Map.Entry<String, Object> entryField : loadingGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = LoadingGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			LoadingGroup savedGroup = loadingGroupRepository.save(loadingGroup);
-			return mapToLoadingGroupResponse(savedGroup);
+		if (loadingGroupRepository.existsByLgCodeOrLgName(lgCode, lgName)) {
+			throw new ResourceFoundException("Loading Group already Exists !!!");
 		}
-		throw new ResourceFoundException("Loading Group already Exists !!!");
+
+		LoadingGroup loadingGroup = loadingGroupMapper.mapToLoadingGroup(loadingGroupRequest);
+		validateDynamicFields(loadingGroup);
+		LoadingGroup savedGroup = loadingGroupRepository.save(loadingGroup);
+		return loadingGroupMapper.mapToLoadingGroupResponse(savedGroup);
 	}
 
 	@Override
-	public LoadingGroupResponse getLgById(Long id) throws ResourceNotFoundException {
+	public LoadingGroupResponse getLgById(@NonNull Long id) throws ResourceNotFoundException {
 		LoadingGroup loadingGroup = this.findLgById(id);
-		return mapToLoadingGroupResponse(loadingGroup);
+		return loadingGroupMapper.mapToLoadingGroupResponse(loadingGroup);
 	}
 
 	@Override
 	public List<LoadingGroupResponse> getAllLg() {
-		List<LoadingGroup> loadingGroups = loadingGroupRepository.findAll();
-		return loadingGroups.stream().sorted(Comparator.comparing(LoadingGroup::getId))
-				.map(this::mapToLoadingGroupResponse).toList();
+		return loadingGroupRepository.findAll().stream().sorted(Comparator.comparing(LoadingGroup::getId))
+				.map(loadingGroupMapper::mapToLoadingGroupResponse).toList();
 	}
 
 	@Override
 	public List<LoadingGroupResponse> findAllStatusTrue() {
-		List<LoadingGroup> loadingGroups = loadingGroupRepository.findAllByLgStatusIsTrue();
-		return loadingGroups.stream().sorted(Comparator.comparing(LoadingGroup::getId))
-				.map(this::mapToLoadingGroupResponse).toList();
+		return loadingGroupRepository.findAllByLgStatusIsTrue().stream()
+				.sorted(Comparator.comparing(LoadingGroup::getId)).map(loadingGroupMapper::mapToLoadingGroupResponse)
+				.toList();
 	}
 
 	@Override
-	public LoadingGroupResponse updateLg(Long id, LoadingGroupRequest updateLoadingGroupRequest)
+	public LoadingGroupResponse updateLg(@NonNull Long id, LoadingGroupRequest updateLoadingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateLoadingGroupRequest);
@@ -112,13 +104,13 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
 			}
 			existingLoadingGroup.updateAuditHistory(auditFields);
 			LoadingGroup updatedLoadingGroup = loadingGroupRepository.save(existingLoadingGroup);
-			return mapToLoadingGroupResponse(updatedLoadingGroup);
+			return loadingGroupMapper.mapToLoadingGroupResponse(updatedLoadingGroup);
 		}
 		throw new ResourceFoundException("Loading Group already Exists !!!");
 	}
 
 	@Override
-	public LoadingGroupResponse updateLgStatus(Long id) throws ResourceNotFoundException {
+	public LoadingGroupResponse updateLgStatus(@NonNull Long id) throws ResourceNotFoundException {
 		LoadingGroup existingLoadingGroup = this.findLgById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -129,11 +121,11 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
 		}
 		existingLoadingGroup.updateAuditHistory(auditFields);
 		LoadingGroup savedGroup = loadingGroupRepository.save(existingLoadingGroup);
-		return mapToLoadingGroupResponse(savedGroup);
+		return loadingGroupMapper.mapToLoadingGroupResponse(savedGroup);
 	}
 
 	@Override
-	public List<LoadingGroupResponse> updateBatchLgStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<LoadingGroupResponse> updateBatchLgStatus(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<LoadingGroup> loadingGroups = this.findAllLgById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -148,40 +140,48 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
 		});
 		loadingGroupRepository.saveAll(loadingGroups);
 		return loadingGroups.stream().sorted(Comparator.comparing(LoadingGroup::getId))
-				.map(this::mapToLoadingGroupResponse).toList();
+				.map(loadingGroupMapper::mapToLoadingGroupResponse).toList();
 	}
 
 	@Override
-	public void deleteLgById(Long id) throws ResourceNotFoundException {
+	public void deleteLgById(@NonNull Long id) throws ResourceNotFoundException {
 		LoadingGroup loadingGroup = this.findLgById(id);
-		loadingGroupRepository.deleteById(loadingGroup.getId());
+		if (loadingGroup != null) {
+			loadingGroupRepository.delete(loadingGroup);
+		}
 	}
 
 	@Override
-	public void deleteBatchLg(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllLgById(ids);
-		loadingGroupRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private LoadingGroupResponse mapToLoadingGroupResponse(LoadingGroup loadingGroup) {
-		return modelMapper.map(loadingGroup, LoadingGroupResponse.class);
-	}
-
-	private LoadingGroup findLgById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<LoadingGroup> loadingGroup = loadingGroupRepository.findById(id);
-		if (loadingGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Loading Group not found with this Id");
+	public void deleteBatchLg(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<LoadingGroup> loadingGroups = this.findAllLgById(ids);
+		if (!loadingGroups.isEmpty()) {
+			loadingGroupRepository.deleteAll(loadingGroups);
 		}
-		return loadingGroup.get();
 	}
 
-	private List<LoadingGroup> findAllLgById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(LoadingGroup loadingGroup) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : loadingGroup.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = LoadingGroup.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private LoadingGroup findLgById(@NonNull Long id) throws ResourceNotFoundException {
+		return loadingGroupRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Loading Group not found with this Id"));
+	}
+
+	private List<LoadingGroup> findAllLgById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		Set<Long> idSet = new HashSet<>(ids);
 		List<LoadingGroup> loadingGroups = loadingGroupRepository.findAllById(ids);
+
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> loadingGroups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
 			// Handle missing IDs, you can log a message or throw an exception

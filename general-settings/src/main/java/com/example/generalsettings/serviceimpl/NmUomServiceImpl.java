@@ -2,18 +2,18 @@ package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.NmUom;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.NmUomMapper;
 import com.example.generalsettings.repo.NmUomRepo;
 import com.example.generalsettings.request.NmUomRequest;
 import com.example.generalsettings.response.NmUomResponse;
@@ -27,25 +27,24 @@ import lombok.RequiredArgsConstructor;
 public class NmUomServiceImpl implements NmUomService {
 	private final NmUomRepo nmUomRepo;
 
-	private final ModelMapper modelMapper;
+	private final NmUomMapper nmUomMapper;
 
 	@Override
 	public NmUomResponse saveNmUom(NmUomRequest nmUomRequest) throws AlreadyExistsException {
-		boolean exists = nmUomRepo.existsByNmUomName(nmUomRequest.getNmUomName());
-		if (!exists) {
-			NmUom nmUom = modelMapper.map(nmUomRequest, NmUom.class);
-			nmUomRepo.save(nmUom);
-			return mapToNmUomResponse(nmUom);
-
-		} else {
+		String nmUomName = Helpers.capitalize(nmUomRequest.getNmUomName());
+		if (nmUomRepo.existsByNmUomName(nmUomName)) {
 			throw new AlreadyExistsException("NmUom with this name already exists");
 		}
+		NmUom nmUom = nmUomMapper.mapToNmUom(nmUomRequest);
+		nmUomRepo.save(nmUom);
+		return nmUomMapper.mapToNmUomResponse(nmUom);
+
 	}
 
 	@Override
 	public NmUomResponse getNmUomById(Long id) throws ResourceNotFoundException {
 		NmUom nmUom = this.findNmUomById(id);
-		return mapToNmUomResponse(nmUom);
+		return nmUomMapper.mapToNmUomResponse(nmUom);
 	}
 
 	@Override
@@ -55,14 +54,12 @@ public class NmUomServiceImpl implements NmUomService {
 
 	@Override
 	public List<NmUomResponse> getAllNmUom() {
-		List<NmUom> nmUom = nmUomRepo.findAllByOrderByIdAsc();
-		return nmUom.stream().map(this::mapToNmUomResponse).toList();
+		return nmUomRepo.findAllByOrderByIdAsc().stream().map(nmUomMapper::mapToNmUomResponse).toList();
 	}
 
 	@Override
 	public NmUomResponse updateNmUom(Long id, NmUomRequest nmUomRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(nmUomRequest);
 		String name = nmUomRequest.getNmUomName();
 		boolean exists = nmUomRepo.existsByNmUomNameAndIdNot(name, id);
@@ -81,7 +78,7 @@ public class NmUomServiceImpl implements NmUomService {
 				existingNmUom.setNmUomStatus(nmUomRequest.getNmUomStatus());
 			}
 			existingNmUom.updateAuditHistory(auditFields);
-			return mapToNmUomResponse(existingNmUom);
+			return nmUomMapper.mapToNmUomResponse(existingNmUom);
 		} else {
 			throw new AlreadyExistsException("NmUom with this name already exists");
 		}
@@ -101,7 +98,7 @@ public class NmUomServiceImpl implements NmUomService {
 			existingNmUom.updateAuditHistory(auditFields);
 		});
 		nmUomRepo.saveAll(existingNmUomList);
-		return existingNmUomList.stream().map(this::mapToNmUomResponse).toList();
+		return existingNmUomList.stream().map(nmUomMapper::mapToNmUomResponse).toList();
 	}
 
 	@Override
@@ -116,19 +113,23 @@ public class NmUomServiceImpl implements NmUomService {
 		}
 		existingNmUom.updateAuditHistory(auditFields);
 		nmUomRepo.save(existingNmUom);
-		return mapToNmUomResponse(existingNmUom);
+		return nmUomMapper.mapToNmUomResponse(existingNmUom);
 	}
 
 	@Override
 	public void deleteNmUom(Long id) throws ResourceNotFoundException {
 		NmUom nmUom = this.findNmUomById(id);
-		nmUomRepo.deleteById(nmUom.getId());
+		if (nmUom != null) {
+			nmUomRepo.delete(nmUom);
+		}
 	}
 
 	@Override
 	public void deleteBatchNmUom(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllNmUomById(ids);
-		nmUomRepo.deleteAllByIdInBatch(ids);
+		List<NmUom> nmUoms = this.findAllNmUomById(ids);
+		if (!nmUoms.isEmpty()) {
+			nmUomRepo.deleteAll(nmUoms);
+		}
 	}
 
 	@Override
@@ -145,31 +146,25 @@ public class NmUomServiceImpl implements NmUomService {
 		return dataList;
 	}
 
-	private NmUomResponse mapToNmUomResponse(NmUom nmUom) {
-		return modelMapper.map(nmUom, NmUomResponse.class);
-	}
-
 	private NmUom findNmUomById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<NmUom> nmUom = nmUomRepo.findById(id);
-		if (nmUom.isEmpty()) {
-			throw new ResourceNotFoundException("Nm Uom with ID " + id + " not found.");
-		}
-		return nmUom.get();
+		return nmUomRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Nm Uom with ID " + id + " not found."));
 	}
 
 	private List<NmUom> findAllNmUomById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<NmUom> nmUoms = nmUomRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> nmUoms.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		Set<Long> idSet = new HashSet<>(ids);
+
+		List<NmUom> foundNmUoms = nmUoms.stream().filter(nmUom -> idSet.contains(nmUom.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Nm Uom with IDs " + missingIds + " not found.");
 		}
-		return nmUoms;
+
+		return foundNmUoms;
 	}
+
 }

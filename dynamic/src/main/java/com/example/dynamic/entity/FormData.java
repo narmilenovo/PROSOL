@@ -34,7 +34,7 @@ public class FormData {
 	private Form form;
 
 	@ElementCollection
-	@CollectionTable(name = "form_fields", joinColumns = @JoinColumn(name = "form_data_id"))
+	@CollectionTable(name = "dynamic_form_fields", joinColumns = @JoinColumn(name = "form_data_id"))
 	@MapKeyColumn(name = "field_name")
 	@Column(name = "field_value")
 	@Convert(converter = ObjectToJsonConverter.class)

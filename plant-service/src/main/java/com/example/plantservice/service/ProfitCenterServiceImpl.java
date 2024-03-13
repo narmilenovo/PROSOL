@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +21,7 @@ import com.example.plantservice.entity.ProfitCenter;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.ProfitCenterMapper;
 import com.example.plantservice.repository.PlantRepo;
 import com.example.plantservice.repository.ProfitCenterRepo;
 import com.example.plantservice.service.interfaces.ProfitCenterService;
@@ -39,45 +39,38 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 	private final PlantRepo plantRepo;
 	private final ExcelFileHelper excelFileHelper;
 	private final DynamicClient dynamicClient;
-	private final ModelMapper modelMapper;
+	private final ProfitCenterMapper profitCenterMapper;
 
 	@Override
 	public ProfitCenterResponse saveProfitCenter(ProfitCenterRequest profitCenterRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(profitCenterRequest);
-		boolean exists = profitCenterRepo.existsByProfitCenterCodeAndProfitCenterName(
-				profitCenterRequest.getProfitCenterCode(), profitCenterRequest.getProfitCenterName());
-		if (!exists) {
-			ProfitCenter profitCenter = modelMapper.map(profitCenterRequest, ProfitCenter.class);
-			profitCenter.setId(null);
-			Plant plant = this.getPlantById(profitCenterRequest.getPlantId());
-			profitCenter.setPlant(plant);
-			for (Map.Entry<String, Object> entryField : profitCenterRequest.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ProfitCenter.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			ProfitCenter savedProfitCenter = profitCenterRepo.save(profitCenter);
-			return this.mapToProfitCenterResponse(savedProfitCenter);
-		} else {
+		String profitCenterCode = profitCenterRequest.getProfitCenterCode();
+		String profitCenterName = profitCenterRequest.getProfitCenterName();
+		if (profitCenterRepo.existsByProfitCenterCodeAndProfitCenterName(profitCenterCode, profitCenterName)) {
 			throw new AlreadyExistsException("ProfitCenter with this name already exists");
 		}
+		ProfitCenter profitCenter = profitCenterMapper.mapToProfitCenter(profitCenterRequest);
+		profitCenter.setId(null);
+		Plant plant = this.getPlantById(profitCenterRequest.getPlantId());
+		profitCenter.setPlant(plant);
+
+		validateDynamicFields(profitCenter);
+
+		ProfitCenter savedProfitCenter = profitCenterRepo.save(profitCenter);
+		return profitCenterMapper.mapToProfitCenterResponse(savedProfitCenter);
 	}
 
 	@Override
 	public ProfitCenterResponse getProfitCenterById(Long id) throws ResourceNotFoundException {
 		ProfitCenter profitCenter = this.findProfitCenterById(id);
-		return mapToProfitCenterResponse(profitCenter);
+		return profitCenterMapper.mapToProfitCenterResponse(profitCenter);
 	}
 
 	@Override
 	public List<ProfitCenterResponse> getAllProfitCenter() {
 		List<ProfitCenter> profitCenter = profitCenterRepo.findAllByOrderByIdAsc();
-		return profitCenter.stream().map(this::mapToProfitCenterResponse).toList();
+		return profitCenter.stream().map(profitCenterMapper::mapToProfitCenterResponse).toList();
 	}
 
 	@Override
@@ -132,7 +125,7 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 			}
 			existingProfitCenter.updateAuditHistory(auditFields);
 			ProfitCenter savedProfitCenter = profitCenterRepo.save(existingProfitCenter);
-			return this.mapToProfitCenterResponse(savedProfitCenter);
+			return profitCenterMapper.mapToProfitCenterResponse(savedProfitCenter);
 		} else {
 			throw new AlreadyExistsException("ProfitCenter with this name already exists");
 
@@ -154,7 +147,7 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 			existingProfitCenter.updateAuditHistory(auditFields);
 		});
 		profitCenterRepo.saveAll(existingProfitCenters);
-		return existingProfitCenters.stream().map(this::mapToProfitCenterResponse).toList();
+		return existingProfitCenters.stream().map(profitCenterMapper::mapToProfitCenterResponse).toList();
 	}
 
 	@Override
@@ -169,19 +162,23 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 		}
 		existingProfitCenter.updateAuditHistory(auditFields);
 		profitCenterRepo.save(existingProfitCenter);
-		return mapToProfitCenterResponse(existingProfitCenter);
+		return profitCenterMapper.mapToProfitCenterResponse(existingProfitCenter);
 	}
 
 	@Override
 	public void deleteProfitCenter(Long id) throws ResourceNotFoundException {
 		ProfitCenter profitCenter = this.findProfitCenterById(id);
-		profitCenterRepo.deleteById(profitCenter.getId());
+		if (profitCenter != null) {
+			profitCenterRepo.delete(profitCenter);
+		}
 	}
 
 	@Override
 	public void deleteBatchProfitCenter(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllProfitCenterById(ids);
-		profitCenterRepo.deleteAllByIdInBatch(ids);
+		List<ProfitCenter> profitCenters = this.findAllProfitCenterById(ids);
+		if (!profitCenters.isEmpty()) {
+			profitCenterRepo.deleteAll(profitCenters);
+		}
 	}
 
 	@Override
@@ -234,36 +231,40 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 		return profits;
 	}
 
-	private ProfitCenterResponse mapToProfitCenterResponse(ProfitCenter profitCenter) {
-		return modelMapper.map(profitCenter, ProfitCenterResponse.class);
+	private void validateDynamicFields(ProfitCenter profitCenter) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : profitCenter.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ProfitCenter.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private Plant getPlantById(Long id) throws ResourceNotFoundException {
-		Optional<Plant> plant = plantRepo.findById(id);
-		return plant.orElseThrow(() -> new ResourceNotFoundException("Plant with id " + id + " not found"));
+		return plantRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Plant with id " + id + " not found"));
 	}
 
 	private ProfitCenter findProfitCenterById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ProfitCenter> profitCenter = profitCenterRepo.findById(id);
-		if (profitCenter.isEmpty()) {
-			throw new ResourceNotFoundException("Profit Center with ID " + id + " not found");
-		}
-		return profitCenter.get();
+		return profitCenterRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Profit Center with ID " + id + " not found"));
 	}
 
 	private List<ProfitCenter> findAllProfitCenterById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<ProfitCenter> profitCenters = profitCenterRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> profitCenters.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<ProfitCenter> foundProfitCenters = profitCenters.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Profit Center with IDs " + missingIds + " not found.");
 		}
-		return profitCenters;
+		return foundProfitCenters;
 	}
+
 }

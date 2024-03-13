@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +17,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.BaseUOP;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.BaseUOPMapper;
 import com.example.generalservice.repository.BaseUOPRepository;
 import com.example.generalservice.service.interfaces.BaseUOPService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BaseUOPServiceImpl implements BaseUOPService {
 	private final BaseUOPRepository baseUOPRepository;
-	private final ModelMapper modelMapper;
+	private final BaseUOPMapper baseUOPMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -36,47 +37,35 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 		Helpers.inputTitleCase(baseUOPRequest);
 		String uopCode = baseUOPRequest.getUopCode();
 		String uopName = baseUOPRequest.getUopName();
-		boolean exists = baseUOPRepository.existsByUopCodeOrUopName(uopCode, uopName);
-		if (!exists) {
-			BaseUOP baseUOP = modelMapper.map(baseUOPRequest, BaseUOP.class);
-			for (Map.Entry<String, Object> entryField : baseUOP.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = BaseUOP.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			BaseUOP savedUop = baseUOPRepository.save(baseUOP);
-			return mapToBaseUOPResponse(savedUop);
+		if (baseUOPRepository.existsByUopCodeOrUopName(uopCode, uopName)) {
+			throw new ResourceFoundException("Uop Already Exists");
 		}
-		throw new ResourceFoundException("Uop Already Exists");
+		BaseUOP baseUOP = baseUOPMapper.mapToBaseUOP(baseUOPRequest);
+		validateDynamicFields(baseUOP);
+		BaseUOP savedUop = baseUOPRepository.save(baseUOP);
+		return baseUOPMapper.mapToBaseUOPResponse(savedUop);
 	}
 
 	@Override
-	@Cacheable("uop")
-	public BaseUOPResponse getUopById(Long id) throws ResourceNotFoundException {
+	public BaseUOPResponse getUopById(@NonNull Long id) throws ResourceNotFoundException {
 		BaseUOP baseUOP = this.findUopById(id);
-		return mapToBaseUOPResponse(baseUOP);
+		return baseUOPMapper.mapToBaseUOPResponse(baseUOP);
 	}
 
 	@Override
-	@Cacheable("uop")
 	public List<BaseUOPResponse> getAllUop() {
-		List<BaseUOP> uopList = baseUOPRepository.findAll();
-		return uopList.stream().sorted(Comparator.comparing(BaseUOP::getId)).map(this::mapToBaseUOPResponse).toList();
+		return baseUOPRepository.findAll().stream().sorted(Comparator.comparing(BaseUOP::getId))
+				.map(baseUOPMapper::mapToBaseUOPResponse).toList();
 	}
 
 	@Override
-	@Cacheable("uop")
 	public List<BaseUOPResponse> findAllStatusTrue() {
-		List<BaseUOP> uopList = baseUOPRepository.findAllByUopStatusIsTrue();
-		return uopList.stream().sorted(Comparator.comparing(BaseUOP::getId)).map(this::mapToBaseUOPResponse).toList();
+		return baseUOPRepository.findAllByUopStatusIsTrue().stream().sorted(Comparator.comparing(BaseUOP::getId))
+				.map(baseUOPMapper::mapToBaseUOPResponse).toList();
 	}
 
 	@Override
-	public BaseUOPResponse updateUop(Long id, BaseUOPRequest updateBaseUOPRequest)
+	public BaseUOPResponse updateUop(@NonNull Long id, BaseUOPRequest updateBaseUOPRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateBaseUOPRequest);
@@ -113,13 +102,13 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 			}
 			existingBaseUOP.updateAuditHistory(auditFields); // Update the audit history
 			BaseUOP updatedBaseUOP = baseUOPRepository.save(existingBaseUOP);
-			return mapToBaseUOPResponse(updatedBaseUOP);
+			return baseUOPMapper.mapToBaseUOPResponse(updatedBaseUOP);
 		}
 		throw new ResourceFoundException("Uop Already Exist");
 	}
 
 	@Override
-	public BaseUOPResponse updateUopStatus(Long id) throws ResourceNotFoundException {
+	public BaseUOPResponse updateUopStatus(@NonNull Long id) throws ResourceNotFoundException {
 		BaseUOP existingBaseUOP = this.findUopById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -130,11 +119,11 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 		}
 		existingBaseUOP.updateAuditHistory(auditFields);
 		baseUOPRepository.save(existingBaseUOP);
-		return this.mapToBaseUOPResponse(existingBaseUOP);
+		return baseUOPMapper.mapToBaseUOPResponse(existingBaseUOP);
 	}
 
 	@Override
-	public List<BaseUOPResponse> updateBatchUopStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<BaseUOPResponse> updateBatchUopStatus(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<BaseUOP> baseUOPs = this.findAllById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -147,44 +136,44 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 			existingBaseUOP.updateAuditHistory(auditFields);
 		});
 		baseUOPRepository.saveAll(baseUOPs);
-		return baseUOPs.stream().map(this::mapToBaseUOPResponse).toList();
+		return baseUOPs.stream().map(baseUOPMapper::mapToBaseUOPResponse).toList();
 	}
 
 	@Override
-	public void deleteUopId(Long id) throws ResourceNotFoundException {
+	public void deleteUopId(@NonNull Long id) throws ResourceNotFoundException {
 		BaseUOP baseUOP = this.findUopById(id);
-		baseUOPRepository.deleteById(baseUOP.getId());
+		if (baseUOP != null) {
+			baseUOPRepository.delete(baseUOP);
+		}
 	}
 
 	@Override
-	public void deleteBatchUop(List<Long> ids) throws ResourceNotFoundException {
+	public void deleteBatchUop(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		this.findAllById(ids);
 		baseUOPRepository.deleteAllByIdInBatch(ids);
 	}
 
-	private BaseUOPResponse mapToBaseUOPResponse(BaseUOP baseUOP) {
-		return modelMapper.map(baseUOP, BaseUOPResponse.class);
-	}
-
-	private BaseUOP findUopById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<BaseUOP> uop = baseUOPRepository.findById(id);
-		if (uop.isEmpty()) {
-			throw new ResourceNotFoundException("No Uop found with this Id");
+	private void validateDynamicFields(BaseUOP baseUOP) throws ResourceNotFoundException {
+		for (String fieldName : baseUOP.getDynamicFields().keySet()) {
+			if (!dynamicClient.checkFieldNameInForm(fieldName, BaseUOP.class.getSimpleName())) {
+				throw new ResourceNotFoundException(
+						"Field of '" + fieldName + "' does not exist in Dynamic Field creation for form '"
+								+ BaseUOP.class.getSimpleName() + "' !!");
+			}
 		}
-		return uop.get();
 	}
 
-	private List<BaseUOP> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<BaseUOP> baseUOPs = baseUOPRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> baseUOPs.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+	private BaseUOP findUopById(@NonNull Long id) throws ResourceNotFoundException {
+		return baseUOPRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Uop found with this Id"));
+	}
 
+	private List<BaseUOP> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<BaseUOP> baseUOPs = baseUOPRepository.findAllById(ids);
+		Set<Long> idSet = baseUOPs.stream().map(BaseUOP::getId).collect(Collectors.toSet());
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+			throw new ResourceNotFoundException("Base UOP with IDs " + missingIds + " not found.");
 		}
 		return baseUOPs;
 	}

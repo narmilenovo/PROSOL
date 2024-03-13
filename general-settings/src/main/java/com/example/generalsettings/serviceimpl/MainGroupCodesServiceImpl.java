@@ -2,18 +2,18 @@ package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.MainGroupCodes;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.MainGroupCodeMapper;
 import com.example.generalsettings.repo.MainGroupCodesRepo;
 import com.example.generalsettings.request.MainGroupCodesRequest;
 import com.example.generalsettings.response.MainGroupCodesResponse;
@@ -28,35 +28,32 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 
 	private final MainGroupCodesRepo mainGroupCodesRepo;
 
-	private final ModelMapper modelMapper;
-
-	public static final String MAIN_GROUP_CODE_NOT_FOUND_MESSAGE = null;
+	private final MainGroupCodeMapper mainGroupCodeMapper;
 
 	@Override
 	public MainGroupCodesResponse saveMainGroupCodes(MainGroupCodesRequest mainGroupCodesRequest)
 			throws AlreadyExistsException {
 		Helpers.inputTitleCase(mainGroupCodesRequest);
-		boolean exists = mainGroupCodesRepo.existsByMainGroupCodeAndMainGroupName(
-				mainGroupCodesRequest.getMainGroupCode(), mainGroupCodesRequest.getMainGroupName());
-		if (!exists) {
-			MainGroupCodes mainGroupCodes = modelMapper.map(mainGroupCodesRequest, MainGroupCodes.class);
-			mainGroupCodesRepo.save(mainGroupCodes);
-			return mapToMainGroupCodesResponse(mainGroupCodes);
-		} else {
+		String mainGroupCode = mainGroupCodesRequest.getMainGroupCode();
+		String mainGroupName = mainGroupCodesRequest.getMainGroupName();
+		if (mainGroupCodesRepo.existsByMainGroupCodeAndMainGroupName(mainGroupCode, mainGroupName)) {
 			throw new AlreadyExistsException("MainGroupCodes with this name already exists");
 		}
+		MainGroupCodes mainGroupCodes = mainGroupCodeMapper.mapToMainGroupCodes(mainGroupCodesRequest);
+		mainGroupCodesRepo.save(mainGroupCodes);
+		return mainGroupCodeMapper.mapToMainGroupCodesResponse(mainGroupCodes);
 	}
 
 	@Override
 	public MainGroupCodesResponse getMainGroupCodesById(Long id) throws ResourceNotFoundException {
 		MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(id);
-		return mapToMainGroupCodesResponse(mainGroupCodes);
+		return mainGroupCodeMapper.mapToMainGroupCodesResponse(mainGroupCodes);
 	}
 
 	@Override
 	public List<MainGroupCodesResponse> getAllMainGroupCodes() {
-		List<MainGroupCodes> mainGroupCodes = mainGroupCodesRepo.findAllByOrderByIdAsc();
-		return mainGroupCodes.stream().map(this::mapToMainGroupCodesResponse).toList();
+		return mainGroupCodesRepo.findAllByOrderByIdAsc().stream().map(mainGroupCodeMapper::mapToMainGroupCodesResponse)
+				.toList();
 	}
 
 	@Override
@@ -93,7 +90,7 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 			}
 			existingMainGroupCodes.updateAuditHistory(auditFields);
 			mainGroupCodesRepo.save(existingMainGroupCodes);
-			return mapToMainGroupCodesResponse(existingMainGroupCodes);
+			return mainGroupCodeMapper.mapToMainGroupCodesResponse(existingMainGroupCodes);
 		} else {
 			throw new AlreadyExistsException("MainGroupCodes with this name already exists");
 		}
@@ -116,7 +113,7 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 
 		});
 		mainGroupCodesRepo.saveAll(existingMainGroupCodes);
-		return existingMainGroupCodes.stream().map(this::mapToMainGroupCodesResponse).toList();
+		return existingMainGroupCodes.stream().map(mainGroupCodeMapper::mapToMainGroupCodesResponse).toList();
 	}
 
 	@Override
@@ -131,19 +128,23 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 		}
 		existingMainGroupCode.updateAuditHistory(auditFields);
 		mainGroupCodesRepo.save(existingMainGroupCode);
-		return mapToMainGroupCodesResponse(existingMainGroupCode);
+		return mainGroupCodeMapper.mapToMainGroupCodesResponse(existingMainGroupCode);
 	}
 
 	@Override
 	public void deleteMainGroupCodes(Long id) throws ResourceNotFoundException {
 		MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(id);
-		mainGroupCodesRepo.deleteById(mainGroupCodes.getId());
+		if (mainGroupCodes != null) {
+			mainGroupCodesRepo.delete(mainGroupCodes);
+		}
 	}
 
 	@Override
 	public void deleteBatchMainGroupCodes(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllMainGrpById(ids);
-		mainGroupCodesRepo.deleteAllByIdInBatch(ids);
+		List<MainGroupCodes> mainGroupCodes = this.findAllMainGrpById(ids);
+		if (!mainGroupCodes.isEmpty()) {
+			mainGroupCodesRepo.deleteAll(mainGroupCodes);
+		}
 	}
 
 	@Override
@@ -160,30 +161,22 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 		return dataList;
 	}
 
-	private MainGroupCodesResponse mapToMainGroupCodesResponse(MainGroupCodes mainGroupCodes) {
-		return modelMapper.map(mainGroupCodes, MainGroupCodesResponse.class);
-	}
-
 	private MainGroupCodes findMainGroupCodesById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<MainGroupCodes> mainGroupCodes = mainGroupCodesRepo.findById(id);
-		if (mainGroupCodes.isEmpty()) {
-			throw new ResourceNotFoundException(MAIN_GROUP_CODE_NOT_FOUND_MESSAGE);
-		}
-		return mainGroupCodes.get();
+		return mainGroupCodesRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Main Group Code with" + id + " not found !!!"));
 	}
 
 	private List<MainGroupCodes> findAllMainGrpById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<MainGroupCodes> codes = mainGroupCodesRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> codes.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
 
+		Set<Long> idSet = new HashSet<>(ids);
+		List<MainGroupCodes> foundCodes = codes.stream().filter(code -> idSet.contains(code.getId())).toList();
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Main Group Codes with IDs " + missingIds + " not found.");
 		}
-		return codes;
+
+		return foundCodes;
 	}
+
 }

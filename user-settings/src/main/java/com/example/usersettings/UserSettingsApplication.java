@@ -1,6 +1,5 @@
 package com.example.usersettings;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -19,11 +18,6 @@ public class UserSettingsApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(UserSettingsApplication.class, args);
-	}
-
-	@Bean
-	ModelMapper modelMapper() {
-		return new ModelMapper();
 	}
 
 	@Bean

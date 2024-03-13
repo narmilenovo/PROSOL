@@ -2,6 +2,8 @@ package com.example.sales_otherservice.service.interfaces;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 import com.example.sales_otherservice.dto.request.AccAssignmentRequest;
 import com.example.sales_otherservice.dto.response.AccAssignmentResponse;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
@@ -11,21 +13,21 @@ public interface AccAssignmentService {
 	AccAssignmentResponse saveAcc(AccAssignmentRequest accAssignmentRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	AccAssignmentResponse getAccById(Long id) throws ResourceNotFoundException;
+	AccAssignmentResponse getAccById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<AccAssignmentResponse> getAllAcc();
 
 	List<AccAssignmentResponse> findAllStatusTrue();
 
-	AccAssignmentResponse updateAcc(Long id, AccAssignmentRequest updateAccAssignmentRequest)
+	AccAssignmentResponse updateAcc(@NonNull Long id, AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
-	AccAssignmentResponse updateAccStatus(Long id) throws ResourceNotFoundException;
+	AccAssignmentResponse updateAccStatus(@NonNull Long id) throws ResourceNotFoundException;
 
-	List<AccAssignmentResponse> updateBatchAccStatus(List<Long> ids) throws ResourceNotFoundException;
+	List<AccAssignmentResponse> updateBatchAccStatus(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
-	void deleteAccId(Long id) throws ResourceNotFoundException;
+	void deleteAccId(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatchAcc(List<Long> ids) throws ResourceNotFoundException;
+	void deleteBatchAcc(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
 }

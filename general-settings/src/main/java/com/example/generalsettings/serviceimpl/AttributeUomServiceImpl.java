@@ -1,17 +1,17 @@
 package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AttributeUom;
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.AttributeUomMapper;
 import com.example.generalsettings.repo.AttributeUomRepo;
 import com.example.generalsettings.request.AttributeUomRequest;
 import com.example.generalsettings.response.AttributeUomResponse;
@@ -23,39 +23,37 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AttributeUomServiceImpl implements AttributeUomService {
-	private final ModelMapper modelMapper;
+	private final AttributeUomMapper attributeUomMapper;
 	private final AttributeUomRepo attributeUomRepo;
 
 	@Override
 	public AttributeUomResponse saveAttributeUom(AttributeUomRequest attributeUomRequest)
 			throws AlreadyExistsException {
 		Helpers.inputTitleCase(attributeUomRequest);
-		boolean exists = attributeUomRepo.existsByAttributeUomName(attributeUomRequest.getAttributeUomName());
-		if (!exists) {
-			AttributeUom attributeUom = modelMapper.map(attributeUomRequest, AttributeUom.class);
-			attributeUomRepo.save(attributeUom);
-			return mapToAttributeUomResponse(attributeUom);
-		} else {
+		String attributeUomName = attributeUomRequest.getAttributeUomName();
+		if (attributeUomRepo.existsByAttributeUomName(attributeUomName)) {
 			throw new AlreadyExistsException("AttributeUom with this name already exists");
 		}
+		AttributeUom attributeUom = attributeUomMapper.mapToAttributeUom(attributeUomRequest);
+		attributeUomRepo.save(attributeUom);
+		return attributeUomMapper.mapToAttributeUomResponse(attributeUom);
 	}
 
 	@Override
 	public AttributeUomResponse getAttributeUomById(Long id) throws ResourceNotFoundException {
 		AttributeUom attributeUom = this.findAttributeUomById(id);
-		return mapToAttributeUomResponse(attributeUom);
+		return attributeUomMapper.mapToAttributeUomResponse(attributeUom);
 	}
 
 	@Override
 	public List<AttributeUomResponse> getAllAttributeUom() {
-		List<AttributeUom> attributeUom = attributeUomRepo.findAllByOrderByIdAsc();
-		return attributeUom.stream().map(this::mapToAttributeUomResponse).toList();
+		return attributeUomRepo.findAllByOrderByIdAsc().stream().map(attributeUomMapper::mapToAttributeUomResponse)
+				.toList();
 	}
 
 	@Override
 	public AttributeUomResponse updateAttributeUom(Long id, AttributeUomRequest attributeUomRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(attributeUomRequest);
 		String name = attributeUomRequest.getAttributeUomName();
 		boolean exists = attributeUomRepo.existsByAttributeUomNameAndIdNot(name, id);
@@ -80,7 +78,7 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 			}
 			existingAttributeUom.updateAuditHistory(auditFields);
 			attributeUomRepo.save(existingAttributeUom);
-			return mapToAttributeUomResponse(existingAttributeUom);
+			return attributeUomMapper.mapToAttributeUomResponse(existingAttributeUom);
 		} else {
 			throw new AlreadyExistsException("AttributeUom with this name already exists");
 		}
@@ -101,7 +99,7 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 
 		});
 		attributeUomRepo.saveAll(existingAttributeUomList);
-		return existingAttributeUomList.stream().map(this::mapToAttributeUomResponse).toList();
+		return existingAttributeUomList.stream().map(attributeUomMapper::mapToAttributeUomResponse).toList();
 	}
 
 	@Override
@@ -116,7 +114,7 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 		}
 		existingAttributeUom.updateAuditHistory(auditFields);
 		attributeUomRepo.save(existingAttributeUom);
-		return mapToAttributeUomResponse(existingAttributeUom);
+		return attributeUomMapper.mapToAttributeUomResponse(existingAttributeUom);
 	}
 
 	@Override
@@ -131,31 +129,20 @@ public class AttributeUomServiceImpl implements AttributeUomService {
 		attributeUomRepo.deleteAllByIdInBatch(ids);
 	}
 
-	private AttributeUomResponse mapToAttributeUomResponse(AttributeUom attributeUom) {
-		return modelMapper.map(attributeUom, AttributeUomResponse.class);
-	}
-
 	private AttributeUom findAttributeUomById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<AttributeUom> attributeUom = attributeUomRepo.findById(id);
-		if (attributeUom.isEmpty()) {
-			throw new ResourceNotFoundException("AttributeUom with ID " + id + " not found");
-		}
-		return attributeUom.get();
+		return attributeUomRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("AttributeUom with ID " + id + " not found"));
 	}
 
 	private List<AttributeUom> findAllUomsById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<AttributeUom> uoms = attributeUomRepo.findAllById(ids);
-
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> uoms.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
-
-		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Attribute Type with IDs " + missingIds + " not found.");
+		Set<Long> idSet = new HashSet<>(ids);
+		List<AttributeUom> foundUoms = uoms.stream().filter(uom -> idSet.contains(uom.getId())).toList();
+		if (foundUoms.size() != ids.size()) {
+			List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
+			throw new ResourceNotFoundException("Attribute Uom with IDs " + missingIds + " not found.");
 		}
+
 		return uoms;
 	}
 

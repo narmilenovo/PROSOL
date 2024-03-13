@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +22,7 @@ import com.example.plantservice.entity.ValuationClass;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.ValuationClassMapper;
 import com.example.plantservice.repository.ValuationClassRepo;
 import com.example.plantservice.service.interfaces.ValuationClassService;
 import com.example.plantservice.util.ExcelFileHelper;
@@ -37,7 +37,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 
 	private final ValuationClassRepo valuationClassRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final ValuationClassMapper valuationClassMapper;
 	private final DynamicClient dynamicClient;
 	private final GeneralServiceClient materialTypeClient;
 
@@ -45,31 +45,23 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	public ValuationClassResponse saveValuationClass(ValuationClassRequest valuationClassRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(valuationClassRequest);
-		boolean exists = valuationClassRepo.existsByValuationClassCodeAndValuationClassName(
-				valuationClassRequest.getValuationClassCode(), valuationClassRequest.getValuationClassName());
-		if (!exists) {
-			ValuationClass valuationClass = modelMapper.map(valuationClassRequest, ValuationClass.class);
-			for (Map.Entry<String, Object> entryField : valuationClass.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ValuationClass.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			valuationClass.setId(null);
-			valuationClassRepo.save(valuationClass);
-			return mapToValuationClassResponse(valuationClass);
-		} else {
+		String valuationClassCode = valuationClassRequest.getValuationClassCode();
+		String valuationClassName = valuationClassRequest.getValuationClassName();
+		if (valuationClassRepo.existsByValuationClassCodeAndValuationClassName(valuationClassCode,
+				valuationClassName)) {
 			throw new AlreadyExistsException("ValuationClass with this name already exists");
 		}
+		ValuationClass valuationClass = valuationClassMapper.mapToValuationClass(valuationClassRequest);
+		validateDynamicFields(valuationClass);
+		valuationClass.setId(null);
+		valuationClassRepo.save(valuationClass);
+		return valuationClassMapper.mapToValuationClassResponse(valuationClass);
 	}
 
 	@Override
 	public ValuationClassResponse getValuationClassById(Long id) throws ResourceNotFoundException {
 		ValuationClass valuationClass = this.findValuationClassById(id);
-		return mapToValuationClassResponse(valuationClass);
+		return valuationClassMapper.mapToValuationClassResponse(valuationClass);
 	}
 
 	@Override
@@ -81,7 +73,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	@Override
 	public List<ValuationClassResponse> getAllValuationClass() throws ResourceNotFoundException {
 		List<ValuationClass> valuationClass = this.findAllValuationClass();
-		return valuationClass.stream().map(this::mapToValuationClassResponse).toList();
+		return valuationClass.stream().map(valuationClassMapper::mapToValuationClassResponse).toList();
 	}
 
 	@Override
@@ -144,7 +136,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 			}
 			existingValuationClass.updateAuditHistory(auditFields);
 			valuationClassRepo.save(existingValuationClass);
-			return mapToValuationClassResponse(existingValuationClass);
+			return valuationClassMapper.mapToValuationClassResponse(existingValuationClass);
 
 		} else {
 			throw new AlreadyExistsException("ValuationClass with this name already exists");
@@ -167,7 +159,7 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 			existingValuationClass.updateAuditHistory(auditFields);
 		});
 		valuationClassRepo.saveAll(existingValuationClasses);
-		return existingValuationClasses.stream().map(this::mapToValuationClassResponse).toList();
+		return existingValuationClasses.stream().map(valuationClassMapper::mapToValuationClassResponse).toList();
 	}
 
 	@Override
@@ -183,19 +175,23 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 		}
 		existingValuationClass.updateAuditHistory(auditFields);
 		valuationClassRepo.save(existingValuationClass);
-		return mapToValuationClassResponse(existingValuationClass);
+		return valuationClassMapper.mapToValuationClassResponse(existingValuationClass);
 	}
 
 	@Override
 	public void deleteValuationClass(Long id) throws ResourceNotFoundException {
 		ValuationClass valuationClass = this.findValuationClassById(id);
-		valuationClassRepo.deleteById(valuationClass.getId());
+		if (valuationClass != null) {
+			valuationClassRepo.delete(valuationClass);
+		}
 	}
 
 	@Override
 	public void deleteBatchValuationClass(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllValuationClassById(ids);
-		valuationClassRepo.deleteAllByIdInBatch(ids);
+		List<ValuationClass> valuationClasses = this.findAllValuationClassById(ids);
+		if (!valuationClasses.isEmpty()) {
+			valuationClassRepo.deleteAll(valuationClasses);
+		}
 	}
 
 	@Override
@@ -249,34 +245,6 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 		return data;
 	}
 
-	private ValuationClassResponse mapToValuationClassResponse(ValuationClass valuationClass) {
-		return modelMapper.map(valuationClass, ValuationClassResponse.class);
-	}
-
-	private ValuationClass findValuationClassById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ValuationClass> valuationClass = valuationClassRepo.findById(id);
-		if (valuationClass.isEmpty()) {
-			throw new ResourceNotFoundException("Valuation Class with ID " + id + " not found.");
-		}
-		return valuationClass.get();
-	}
-
-	private List<ValuationClass> findAllValuationClassById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<ValuationClass> classes = valuationClassRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> classes.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
-
-		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Valuation Class with IDs " + missingIds + " not found.");
-		}
-		return classes;
-	}
-
 	public List<ValuationClass> findAllValuationClass() throws ResourceNotFoundException {
 		List<ValuationClass> valuationClasses = valuationClassRepo.findAllByOrderByIdAsc();
 		if (valuationClasses.isEmpty()) {
@@ -285,13 +253,42 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 		return valuationClasses;
 	}
 
+	private void validateDynamicFields(ValuationClass valuationClass) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : valuationClass.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ValuationClass.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private ValuationClass findValuationClassById(Long id) throws ResourceNotFoundException {
+		return valuationClassRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Valuation Class with ID " + id + " not found."));
+	}
+
+	private List<ValuationClass> findAllValuationClassById(List<Long> ids) throws ResourceNotFoundException {
+		Helpers.validateIds(ids);
+		List<ValuationClass> classes = valuationClassRepo.findAllById(ids);
+
+		Set<Long> idSet = new HashSet<>(ids);
+		List<ValuationClass> foundClasses = classes.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
+
+		if (!missingIds.isEmpty()) {
+			throw new ResourceNotFoundException("Valuation Class with IDs " + missingIds + " not found.");
+		}
+		return foundClasses;
+	}
+
 	private ValuationMaterialResponse mapToValuationMaterialResponse(ValuationClass valuationClass)
 			throws ResourceNotFoundException {
-		ValuationMaterialResponse valuationMaterialResponse = modelMapper.map(valuationClass,
-				ValuationMaterialResponse.class);
-		if (materialTypeClient == null) {
-			throw new IllegalStateException("General service client not initiated");
-		}
+		ValuationMaterialResponse valuationMaterialResponse = valuationClassMapper
+				.mapToValuationMaterialResponse(valuationClass);
 		valuationMaterialResponse.setMaterial(materialTypeClient.getMaterialById(valuationClass.getMaterialTypeId()));
 		return valuationMaterialResponse;
 	}

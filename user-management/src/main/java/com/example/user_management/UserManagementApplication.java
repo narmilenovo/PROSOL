@@ -2,7 +2,6 @@ package com.example.user_management;
 
 import java.util.List;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -35,11 +34,6 @@ public class UserManagementApplication {
 	}
 
 	@Bean
-	ModelMapper modelMapper() {
-		return new ModelMapper();
-	}
-
-	@Bean
 	BCryptPasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
@@ -69,5 +63,4 @@ public class UserManagementApplication {
 					"true", 1L, List.of(2L), true, new Long[] { 3L }));
 		};
 	}
-
 }

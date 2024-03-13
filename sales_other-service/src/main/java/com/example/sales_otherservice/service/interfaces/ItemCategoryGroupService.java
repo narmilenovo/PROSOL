@@ -2,6 +2,8 @@ package com.example.sales_otherservice.service.interfaces;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 import com.example.sales_otherservice.dto.request.ItemCategoryGroupRequest;
 import com.example.sales_otherservice.dto.response.ItemCategoryGroupResponse;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
@@ -13,18 +15,18 @@ public interface ItemCategoryGroupService {
 
 	List<ItemCategoryGroupResponse> getAllIcg();
 
-	ItemCategoryGroupResponse getIcgById(Long id) throws ResourceNotFoundException;
+	ItemCategoryGroupResponse getIcgById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<ItemCategoryGroupResponse> findAllStatusTrue();
 
-	ItemCategoryGroupResponse updateIcg(Long id, ItemCategoryGroupRequest updateItemCategoryGroupRequest)
+	ItemCategoryGroupResponse updateIcg(@NonNull Long id, ItemCategoryGroupRequest updateItemCategoryGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
-	void deleteIcgById(Long id) throws ResourceNotFoundException;
+	void deleteIcgById(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatchIcg(List<Long> ids) throws ResourceNotFoundException;
+	void deleteBatchIcg(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
-	ItemCategoryGroupResponse updateIcgStatus(Long id) throws ResourceNotFoundException;
+	ItemCategoryGroupResponse updateIcgStatus(@NonNull Long id) throws ResourceNotFoundException;
 
-	List<ItemCategoryGroupResponse> updateBatchIcgStatus(List<Long> ids) throws ResourceNotFoundException;
+	List<ItemCategoryGroupResponse> updateBatchIcgStatus(@NonNull List<Long> ids) throws ResourceNotFoundException;
 }

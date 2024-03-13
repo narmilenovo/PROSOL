@@ -3,11 +3,11 @@ package com.example.generalsettings.serviceimpl;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
@@ -15,6 +15,7 @@ import com.example.generalsettings.entity.MainGroupCodes;
 import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.SubGroupMapper;
 import com.example.generalsettings.repo.MainGroupCodesRepo;
 import com.example.generalsettings.repo.SubGroupCodesRepo;
 import com.example.generalsettings.request.SubGroupCodesRequest;
@@ -32,30 +33,29 @@ public class SubGroupServiceImpl implements SubGroupService {
 
 	private final MainGroupCodesRepo mainGroupCodesRepo;
 
-	private final ModelMapper modelMapper = new ModelMapper();
+	private final SubGroupMapper subGroupMapper;
 
 	@Override
 	public SubGroupCodesResponse saveSubMainGroup(SubGroupCodesRequest subGroupCodesRequest)
-			throws AlreadyExistsException {
+			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(subGroupCodesRequest);
-		boolean exists = subGroupCodesRepo.existsBySubGroupCodeAndSubGroupName(subGroupCodesRequest.getSubGroupCode(),
-				subGroupCodesRequest.getSubGroupName());
-		if (!exists) {
-			SubGroupCodes subGroupCodes = modelMapper.map(subGroupCodesRequest, SubGroupCodes.class);
-			subGroupCodes.setId(null);
-			MainGroupCodes mainGroupCodes = this.findMainGroupCodesByid(subGroupCodesRequest.getMainGroupCodesId());
-			subGroupCodes.setMainGroupCodesId(mainGroupCodes);
-			subGroupCodesRepo.save(subGroupCodes);
-			return mapToSubMainGroupResponse(subGroupCodes);
-		} else {
+		String subGroupCode = subGroupCodesRequest.getSubGroupCode();
+		String subGroupName = subGroupCodesRequest.getSubGroupName();
+		if (subGroupCodesRepo.existsBySubGroupCodeAndSubGroupName(subGroupCode, subGroupName)) {
 			throw new AlreadyExistsException("SubGroupCodes with this name already exists");
 		}
+		SubGroupCodes subGroupCodes = subGroupMapper.mapToSubGroupCodes(subGroupCodesRequest);
+		subGroupCodes.setId(null);
+		MainGroupCodes mainGroupCodes = this.findMainGroupCodesByid(subGroupCodesRequest.getMainGroupCodesId());
+		subGroupCodes.setMainGroupCodesId(mainGroupCodes);
+		subGroupCodesRepo.save(subGroupCodes);
+		return subGroupMapper.mapToSubMainGroupResponse(subGroupCodes);
 	}
 
 	@Override
 	public SubGroupCodesResponse getSubMainGroupById(Long id) throws ResourceNotFoundException {
 		SubGroupCodes subGroupCodes = this.findSubMainGroupById(id);
-		return mapToSubMainGroupResponse(subGroupCodes);
+		return subGroupMapper.mapToSubMainGroupResponse(subGroupCodes);
 	}
 
 	@Override
@@ -65,15 +65,15 @@ public class SubGroupServiceImpl implements SubGroupService {
 
 	@Override
 	public List<SubGroupCodesResponse> getAllSubMainGroup() {
-		List<SubGroupCodes> subGroupCodes = subGroupCodesRepo.findAllByOrderByIdAsc();
-		return subGroupCodes.stream().map(this::mapToSubMainGroupResponse).toList();
+		return subGroupCodesRepo.findAllByOrderByIdAsc().stream().map(subGroupMapper::mapToSubMainGroupResponse)
+				.toList();
 	}
 
 	@Override
 	public List<SubGroupCodesResponse> getAllSubGroupCodesByMainGroupId(Long id) {
 		List<SubGroupCodes> subGroupCodes = subGroupCodesRepo.findAllByMainGroupCodesId_Id(id);
 		return subGroupCodes.stream().sorted(Comparator.comparing(SubGroupCodes::getId))
-				.map(this::mapToSubMainGroupResponse).toList();
+				.map(subGroupMapper::mapToSubMainGroupResponse).toList();
 	}
 
 	@Override
@@ -110,7 +110,7 @@ public class SubGroupServiceImpl implements SubGroupService {
 			}
 			existingSubGroupCodes.updateAuditHistory(auditFields);
 			subGroupCodesRepo.save(existingSubGroupCodes);
-			return mapToSubMainGroupResponse(existingSubGroupCodes);
+			return subGroupMapper.mapToSubMainGroupResponse(existingSubGroupCodes);
 		} else {
 			throw new AlreadyExistsException("SubGroupCodes with this name already exists");
 		}
@@ -130,7 +130,7 @@ public class SubGroupServiceImpl implements SubGroupService {
 			existingSubGroupCode.updateAuditHistory(auditFields);
 		});
 		subGroupCodesRepo.saveAll(existingSubGroupCodes);
-		return existingSubGroupCodes.stream().map(this::mapToSubMainGroupResponse).toList();
+		return existingSubGroupCodes.stream().map(subGroupMapper::mapToSubMainGroupResponse).toList();
 	}
 
 	@Override
@@ -145,7 +145,7 @@ public class SubGroupServiceImpl implements SubGroupService {
 		}
 		existingSubGroupCode.updateAuditHistory(auditFields);
 		subGroupCodesRepo.save(existingSubGroupCode);
-		return mapToSubMainGroupResponse(existingSubGroupCode);
+		return subGroupMapper.mapToSubMainGroupResponse(existingSubGroupCode);
 	}
 
 	@Override
@@ -156,8 +156,10 @@ public class SubGroupServiceImpl implements SubGroupService {
 
 	@Override
 	public void deleteBatchSubGroupCodes(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllSubMainGrpById(ids);
-		subGroupCodesRepo.deleteAllByIdInBatch(ids);
+		List<SubGroupCodes> subGroupCodes = this.findAllSubMainGrpById(ids);
+		if (!subGroupCodes.isEmpty()) {
+			subGroupCodesRepo.deleteAll(subGroupCodes);
+		}
 	}
 
 	@Override
@@ -174,35 +176,32 @@ public class SubGroupServiceImpl implements SubGroupService {
 		return dataList;
 	}
 
-	private MainGroupCodes findMainGroupCodesByid(Long id) {
-		Optional<MainGroupCodes> fetchplantOptional = mainGroupCodesRepo.findById(id);
-		return fetchplantOptional.orElse(null);
-	}
-
-	private SubGroupCodesResponse mapToSubMainGroupResponse(SubGroupCodes subGroupCodes) {
-		return modelMapper.map(subGroupCodes, SubGroupCodesResponse.class);
+	private MainGroupCodes findMainGroupCodesByid(Long id) throws ResourceNotFoundException {
+		return mainGroupCodesRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Main Group Codes with ID " + id + " not found"));
 	}
 
 	private SubGroupCodes findSubMainGroupById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<SubGroupCodes> subMainGroup = subGroupCodesRepo.findById(id);
-		if (subMainGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Sub Group Codes with ID " + id + " not found");
-		}
-		return subMainGroup.get();
+		return subGroupCodesRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Sub Group Codes with ID " + id + " not found"));
 	}
 
 	private List<SubGroupCodes> findAllSubMainGrpById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+
 		List<SubGroupCodes> subGroupCodes = subGroupCodesRepo.findAllById(ids);
 
-		List<Long> missingIds = ids.stream()
-				.filter(id -> subGroupCodes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		Set<Long> idSet = new HashSet<>(ids);
+
+		List<SubGroupCodes> foundSubGroupCodes = subGroupCodes.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Sub Group Codes with IDs " + missingIds + " not found.");
 		}
-		return subGroupCodes;
+
+		return foundSubGroupCodes;
 	}
 
 }

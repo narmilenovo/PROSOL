@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +17,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.Division;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.DivisionMapper;
 import com.example.generalservice.repository.DivisionRepository;
 import com.example.generalservice.service.interfaces.DivisionService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DivisionServiceImpl implements DivisionService {
 	private final DivisionRepository divisionRepository;
-	private final ModelMapper modelMapper;
+	private final DivisionMapper divisionMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -36,50 +37,36 @@ public class DivisionServiceImpl implements DivisionService {
 		Helpers.inputTitleCase(divisionRequest);
 		String divCode = divisionRequest.getDivCode();
 		String divName = divisionRequest.getDivName();
-		boolean exists = divisionRepository.existsByDivCodeOrDivName(divCode, divName);
-		if (!exists) {
-
-			Division division = modelMapper.map(divisionRequest, Division.class);
-			for (Map.Entry<String, Object> entryField : division.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = Division.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			Division savedDivision = divisionRepository.save(division);
-			return mapToDivisionResponse(savedDivision);
+		if (divisionRepository.existsByDivCodeOrDivName(divCode, divName)) {
+			throw new ResourceFoundException("Division Already Exist");
 		}
-		throw new ResourceFoundException("Division Already Exist");
+		Division division = divisionMapper.mapToDivision(divisionRequest);
+		validateDynamicFields(division);
+
+		Division savedDivision = divisionRepository.save(division);
+		return divisionMapper.mapToDivisionResponse(savedDivision);
 	}
 
 	@Override
-	@Cacheable("div")
-	public DivisionResponse getDivisionById(Long id) throws ResourceNotFoundException {
+	public DivisionResponse getDivisionById(@NonNull Long id) throws ResourceNotFoundException {
 		Division division = this.findDivisionById(id);
-		return mapToDivisionResponse(division);
+		return divisionMapper.mapToDivisionResponse(division);
 	}
 
 	@Override
-	@Cacheable("div")
 	public List<DivisionResponse> getAllDivision() {
-		List<Division> divisionList = divisionRepository.findAll();
-		return divisionList.stream().sorted(Comparator.comparing(Division::getId)).map(this::mapToDivisionResponse)
-				.toList();
+		return divisionRepository.findAll().stream().sorted(Comparator.comparing(Division::getId))
+				.map(divisionMapper::mapToDivisionResponse).toList();
 	}
 
 	@Override
-	@Cacheable("div")
 	public List<DivisionResponse> findAllStatusTrue() {
-		List<Division> divisionList = divisionRepository.findAllByDivStatusIsTrue();
-		return divisionList.stream().sorted(Comparator.comparing(Division::getId)).map(this::mapToDivisionResponse)
-				.toList();
+		return divisionRepository.findAllByDivStatusIsTrue().stream().sorted(Comparator.comparing(Division::getId))
+				.map(divisionMapper::mapToDivisionResponse).toList();
 	}
 
 	@Override
-	public DivisionResponse updateDivision(Long id, DivisionRequest updateDivisionRequest)
+	public DivisionResponse updateDivision(@NonNull Long id, DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDivisionRequest);
@@ -87,7 +74,6 @@ public class DivisionServiceImpl implements DivisionService {
 		String divName = updateDivisionRequest.getDivName();
 		Division existingDivision = this.findDivisionById(id);
 		boolean exists = divisionRepository.existsByDivCodeAndIdNotOrDivNameAndIdNot(divCode, id, divName, id);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		if (!exists) {
 			if (!existingDivision.getDivCode().equals(divCode)) {
@@ -116,15 +102,14 @@ public class DivisionServiceImpl implements DivisionService {
 			}
 			existingDivision.updateAuditHistory(auditFields);
 			Division updatedDivision = divisionRepository.save(existingDivision);
-			return mapToDivisionResponse(updatedDivision);
+			return divisionMapper.mapToDivisionResponse(updatedDivision);
 		}
 		throw new ResourceFoundException("Division Already Exist");
 	}
 
 	@Override
-	public DivisionResponse updateDivisionStatus(Long id) throws ResourceNotFoundException {
+	public DivisionResponse updateDivisionStatus(@NonNull Long id) throws ResourceNotFoundException {
 		Division existingDivision = this.findDivisionById(id);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		if (existingDivision.getDivStatus() != null) {
 			auditFields.add(new AuditFields(null, "Div Status", existingDivision.getDivStatus(),
@@ -133,13 +118,12 @@ public class DivisionServiceImpl implements DivisionService {
 		}
 		existingDivision.updateAuditHistory(auditFields);
 		divisionRepository.save(existingDivision);
-		return this.mapToDivisionResponse(existingDivision);
+		return divisionMapper.mapToDivisionResponse(existingDivision);
 	}
 
 	@Override
-	public List<DivisionResponse> updateBatchDivisionStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<DivisionResponse> updateBatchDivisionStatus(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<Division> divisions = this.findAllById(ids);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		divisions.forEach(existingDivision -> {
 			if (existingDivision.getDivStatus() != null) {
@@ -150,43 +134,47 @@ public class DivisionServiceImpl implements DivisionService {
 			existingDivision.updateAuditHistory(auditFields);
 		});
 		divisionRepository.saveAll(divisions);
-		return divisions.stream().map(this::mapToDivisionResponse).toList();
+		return divisions.stream().map(divisionMapper::mapToDivisionResponse).toList();
 	}
 
 	@Override
-	public void deleteDivisionId(Long id) throws ResourceNotFoundException {
+	public void deleteDivisionId(@NonNull Long id) throws ResourceNotFoundException {
 		Division division = this.findDivisionById(id);
-		divisionRepository.deleteById(division.getId());
+		if (division != null) {
+			divisionRepository.delete(division);
+		}
 	}
 
 	@Override
-	public void deleteBatchDivision(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllById(ids);
-		divisionRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private DivisionResponse mapToDivisionResponse(Division division) {
-		return modelMapper.map(division, DivisionResponse.class);
-	}
-
-	private Division findDivisionById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<Division> division = divisionRepository.findById(id);
-		if (division.isEmpty()) {
-			throw new ResourceNotFoundException("No Division found with this Id");
+	public void deleteBatchDivision(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<Division> divisions = this.findAllById(ids);
+		if (!divisions.isEmpty()) {
+			divisionRepository.deleteAll(divisions);
 		}
-		return division.get();
 	}
 
-	private List<Division> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<Division> divisions = divisionRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> divisions.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+	private void validateDynamicFields(Division division) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : division.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = Division.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
 
+	private Division findDivisionById(@NonNull Long id) throws ResourceNotFoundException {
+		return divisionRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Division found with this Id"));
+	}
+
+	private List<Division> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<Division> divisions = divisionRepository.findAllById(ids);
+		Set<Long> idSet = divisions.stream().map(Division::getId).collect(Collectors.toSet());
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Division with IDs " + missingIds + " not found.");
 		}
 		return divisions;

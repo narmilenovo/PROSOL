@@ -5,10 +5,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.modelmapper.TypeToken;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,6 +25,7 @@ import com.example.valueservice.entity.AuditFields;
 import com.example.valueservice.entity.ValueMaster;
 import com.example.valueservice.exceptions.ExcelFileException;
 import com.example.valueservice.exceptions.ResourceNotFoundException;
+import com.example.valueservice.mapping.ValueMapper;
 import com.example.valueservice.repository.ValueMasterRepository;
 import com.example.valueservice.service.interfaces.ValueMasterService;
 import com.example.valueservice.utils.ExcelFileHelper;
@@ -37,15 +37,13 @@ import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ValueMasterServiceImpl implements ValueMasterService {
 
 	private final ValueMasterRepository valueMasterRepository;
-	private final ModelMapper modelMapper;
+	private final ValueMapper valueMapper;
 	private final SettingServiceClient settingClient;
 	private final Tracer tracer;
 	private final DynamicClient dynamicClient;
@@ -59,53 +57,41 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	@Override
 	public ValueMasterResponse saveValue(ValueMasterRequest valueMasterRequest) throws ResourceNotFoundException {
 		Helpers.inputTitleCase(valueMasterRequest);
-		ValueMaster valueMaster = modelMapper.map(valueMasterRequest, ValueMaster.class);
-		for (Map.Entry<String, Object> entryField : valueMaster.getDynamicFields().entrySet()) {
-			String fieldName = entryField.getKey();
-			String formName = ValueMaster.class.getSimpleName();
-			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-			if (!fieldExists) {
-				throw new ResourceNotFoundException("Field of '" + fieldName
-						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-			}
-		}
+		ValueMaster valueMaster = valueMapper.mapToValueMaster(valueMasterRequest);
+
+		validateDynamicFields(valueMaster);
+
 		valueMaster.setId(null);
 		ValueMaster savedValue = valueMasterRepository.save(valueMaster);
-		return mapToValueMasterResponse(savedValue);
+		return valueMapper.mapToValueMasterResponse(savedValue);
 	}
 
 	@Override
 	@Cacheable(value = "valueMaster", key = "#id")
 	public ValueMasterResponse getValueById(Long id) throws ResourceNotFoundException {
 		ValueMaster valueMaster = findValueById(id);
-		log.info("Fetch Data from Db {}", valueMaster);
-		return mapToValueMasterResponse(valueMaster);
+		return valueMapper.mapToValueMasterResponse(valueMaster);
 	}
 
 	@Override
 	@Cacheable(value = "valueAttributeUom", key = "#id")
 	public ValueAttributeUom getValueAttributeUomById(Long id) throws ResourceNotFoundException {
 		ValueMaster valueMaster = findValueById(id);
-		log.info("Fetch Data from Db {}", valueMaster);
-		return mapToValueAttributeUom(valueMaster);
+		return valueMapper.mapToValueAttributeUom(valueMaster);
 	}
 
 	@Override
 	@CachePut(value = "valueMaster")
 	public List<ValueMasterResponse> getAllValue(boolean attributeUom) throws ResourceNotFoundException {
-		List<ValueMaster> allValues = this.findAllValues();
-		log.info("Fetch Data from Db {}", allValues);
-		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueMasterResponse)
-				.toList();
+		return this.findAllValues().stream().sorted(Comparator.comparing(ValueMaster::getId))
+				.map(valueMapper::mapToValueMasterResponse).toList();
 	}
 
 	@Override
 	@CachePut(value = "valueAttributeUom")
 	public List<ValueAttributeUom> getAllValueAttributeUom() throws ResourceNotFoundException {
-		List<ValueMaster> allValues = this.findAllValues();
-		log.info("Fetch Data from Db {}", allValues);
-		return allValues.stream().sorted(Comparator.comparing(ValueMaster::getId)).map(this::mapToValueAttributeUom)
-				.toList();
+		return this.findAllValues().stream().sorted(Comparator.comparing(ValueMaster::getId))
+				.map(this::mapToValueAttributeUom).toList();
 	}
 
 	@Override
@@ -113,7 +99,6 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	public ValueMasterResponse updateValue(Long id, ValueMasterRequest updateValueMasterRequest)
 			throws ResourceNotFoundException {
 		try {
-			Helpers.validateId(id);
 			Helpers.inputTitleCase(updateValueMasterRequest);
 			// Find properties that have changed
 			List<AuditFields> auditFields = new ArrayList<>();
@@ -162,11 +147,9 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 			}
 			existingValueMaster.updateAuditHistory(auditFields);
 			ValueMaster updatedValueMaster = valueMasterRepository.save(existingValueMaster);
-			log.info("Update Data from Db {}", updatedValueMaster);
-			return mapToValueMasterResponse(updatedValueMaster);
+			return valueMapper.mapToValueMasterResponse(updatedValueMaster);
 		} catch (Exception e) {
 			// Log the exception or handle it as appropriate for your application.
-			log.error("Error updating cache for ValueMaster with ID {}: {}", id, e.getMessage());
 			throw new RuntimeException("Error updating ValueMaster", e); // You can throw a more specific exception if
 																			// needed.
 		}
@@ -181,8 +164,10 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 
 	@Override
 	public void deleteBatchValue(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllValuesById(ids);
-		valueMasterRepository.deleteAllByIdInBatch(ids);
+		List<ValueMaster> valueMasters = this.findAllValuesById(ids);
+		if (!valueMasters.isEmpty()) {
+			valueMasterRepository.deleteAll(valueMasters);
+		}
 
 	}
 
@@ -200,8 +185,7 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	public void uploadData(MultipartFile file) throws IOException, ExcelFileException {
 		List<ValueMasterRequest> fromExcel = excelFileHelper.readDataFromExcel(file.getInputStream(),
 				ValueMasterRequest.class);
-		List<ValueMaster> valueMasters = modelMapper.map(fromExcel, new TypeToken<List<ValueMaster>>() {
-		}.getType());
+		List<ValueMaster> valueMasters = valueMapper.mapToValueMasterList(fromExcel);
 		valueMasters.forEach(valueMaster -> {
 			Helpers.inputTitleCase(valueMaster);
 			valueMaster.setId(null);
@@ -233,10 +217,21 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 		pdfFileHelper.export(response, headerName, clazz, contentType, extension, prefix, allValues);
 	}
 
+	private void validateDynamicFields(ValueMaster valueMaster) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : valueMaster.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ValueMaster.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
 	private ValueMaster findValueById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ValueMaster> valueMaster = valueMasterRepository.findById(id);
-		return valueMaster.orElseThrow(() -> new ResourceNotFoundException("Value Master with this ID Not found"));
+		return valueMasterRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Value Master with this ID Not found"));
 	}
 
 	private List<ValueMaster> findAllValues() throws ResourceNotFoundException {
@@ -248,23 +243,17 @@ public class ValueMasterServiceImpl implements ValueMasterService {
 	}
 
 	private List<ValueMaster> findAllValuesById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<ValueMaster> valueMasters = valueMasterRepository.findAllById(ids);
-		List<Long> missingIds = ids.stream()
-				.filter(id -> valueMasters.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		Set<Long> existingIds = valueMasters.stream().map(ValueMaster::getId).collect(Collectors.toSet());
+		List<Long> missingIds = ids.stream().filter(id -> !existingIds.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("AttributeMaster with IDs " + missingIds + " not found.");
 		}
 		return valueMasters;
 	}
 
-	private ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster) {
-		return modelMapper.map(valueMaster, ValueMasterResponse.class);
-	}
-
 	private ValueAttributeUom mapToValueAttributeUom(ValueMaster valueMaster) {
-		ValueAttributeUom valueAttributeUom = modelMapper.map(valueMaster, ValueAttributeUom.class);
+		ValueAttributeUom valueAttributeUom = valueMapper.mapToValueAttributeUom(valueMaster);
 
 		Span attributeUomLookUp = tracer.nextSpan().name("AttributeUomLookUp");
 

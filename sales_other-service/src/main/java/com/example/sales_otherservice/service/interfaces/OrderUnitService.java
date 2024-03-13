@@ -2,6 +2,8 @@ package com.example.sales_otherservice.service.interfaces;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 import com.example.sales_otherservice.dto.request.OrderUnitRequest;
 import com.example.sales_otherservice.dto.response.OrderUnitResponse;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
@@ -11,21 +13,21 @@ public interface OrderUnitService {
 	OrderUnitResponse saveOu(OrderUnitRequest orderUnitRequest)
 			throws ResourceFoundException, ResourceNotFoundException;
 
-	OrderUnitResponse getOuById(Long id) throws ResourceNotFoundException;
+	OrderUnitResponse getOuById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<OrderUnitResponse> getAllOu();
 
 	List<OrderUnitResponse> findAllStatusTrue();
 
-	OrderUnitResponse updateOuStatus(Long id) throws ResourceNotFoundException;
+	OrderUnitResponse updateOuStatus(@NonNull Long id) throws ResourceNotFoundException;
 
-	List<OrderUnitResponse> updateBatchOuStatus(List<Long> ids) throws ResourceNotFoundException;
+	List<OrderUnitResponse> updateBatchOuStatus(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
-	OrderUnitResponse updateOu(Long id, OrderUnitRequest updateOrderUnitRequest)
+	OrderUnitResponse updateOu(@NonNull Long id, OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
-	void deleteOuById(Long id) throws ResourceNotFoundException;
+	void deleteOuById(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatchOu(List<Long> ids) throws ResourceNotFoundException;
+	void deleteBatchOu(@NonNull List<Long> ids) throws ResourceNotFoundException;
 
 }

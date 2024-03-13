@@ -1,17 +1,17 @@
 package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.Hsn;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.HsnMapper;
 import com.example.generalsettings.repo.HsnRepo;
 import com.example.generalsettings.request.HsnRequest;
 import com.example.generalsettings.response.HsnResponse;
@@ -23,40 +23,36 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class HsnServiceImpl implements HsnService {
-	private final ModelMapper modelMapper;
+	private final HsnMapper hsnMapper;
 	private final HsnRepo hsnRepo;
-
-	public static final String HSN_NOT_FOUND_MESSAGE = null;
 
 	@Override
 	public HsnResponse saveHsn(HsnRequest hsnRequest) throws AlreadyExistsException {
 		Helpers.inputTitleCase(hsnRequest);
-		boolean exists = hsnRepo.existsByHsnCodeAndHsnDesc(hsnRequest.getHsnCode(), hsnRequest.getHsnDesc());
-		if (!exists) {
-			Hsn hsn = modelMapper.map(hsnRequest, Hsn.class);
-			hsnRepo.save(hsn);
-			return mapToHsnResponse(hsn);
-		} else {
+		String hsnCode = hsnRequest.getHsnCode();
+		String hsnDesc = hsnRequest.getHsnDesc();
+		if (hsnRepo.existsByHsnCodeAndHsnDesc(hsnCode, hsnDesc)) {
 			throw new AlreadyExistsException("Hsn with this name already exists");
 		}
+		Hsn hsn = hsnMapper.mapToHsn(hsnRequest);
+		hsnRepo.save(hsn);
+		return hsnMapper.mapToHsnResponse(hsn);
 	}
 
 	@Override
 	public HsnResponse getHsnById(Long id) throws ResourceNotFoundException {
 		Hsn hsn = this.findHsnById(id);
-		return mapToHsnResponse(hsn);
+		return hsnMapper.mapToHsnResponse(hsn);
 	}
 
 	@Override
 	public List<HsnResponse> getAllHsn() {
-		List<Hsn> hsn = hsnRepo.findAllByOrderByIdAsc();
-		return hsn.stream().map(this::mapToHsnResponse).toList();
+		return hsnRepo.findAllByOrderByIdAsc().stream().map(hsnMapper::mapToHsnResponse).toList();
 	}
 
 	@Override
 	public HsnResponse updateHsn(Long id, HsnRequest hsnRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(hsnRequest);
 		String description = hsnRequest.getHsnDesc();
 		String code = hsnRequest.getHsnCode();
@@ -80,7 +76,7 @@ public class HsnServiceImpl implements HsnService {
 			}
 			existingHsn.updateAuditHistory(auditFields);
 			hsnRepo.save(existingHsn);
-			return mapToHsnResponse(existingHsn);
+			return hsnMapper.mapToHsnResponse(existingHsn);
 		} else {
 			throw new AlreadyExistsException("Hsn with this name already exists");
 		}
@@ -101,7 +97,7 @@ public class HsnServiceImpl implements HsnService {
 
 		});
 		hsnRepo.saveAll(existingHsnList);
-		return existingHsnList.stream().map(this::mapToHsnResponse).toList();
+		return existingHsnList.stream().map(hsnMapper::mapToHsnResponse).toList();
 	}
 
 	@Override
@@ -116,45 +112,41 @@ public class HsnServiceImpl implements HsnService {
 		}
 		existingHsn.updateAuditHistory(auditFields);
 		hsnRepo.save(existingHsn);
-		return mapToHsnResponse(existingHsn);
+		return hsnMapper.mapToHsnResponse(existingHsn);
 	}
 
 	@Override
 	public void deleteHsn(Long id) throws ResourceNotFoundException {
 		Hsn hsn = this.findHsnById(id);
-		hsnRepo.deleteById(hsn.getId());
+		if (hsn != null) {
+			hsnRepo.delete(hsn);
+		}
 	}
 
 	@Override
 	public void deleteBatchHsn(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllHsnById(ids);
-		hsnRepo.deleteAllByIdInBatch(ids);
-	}
-
-	private HsnResponse mapToHsnResponse(Hsn hsn) {
-		return modelMapper.map(hsn, HsnResponse.class);
+		List<Hsn> hsns = this.findAllHsnById(ids);
+		if (!hsns.isEmpty()) {
+			hsnRepo.deleteAll(hsns);
+		}
 	}
 
 	private Hsn findHsnById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<Hsn> hsn = hsnRepo.findById(id);
-		if (hsn.isEmpty()) {
-			throw new ResourceNotFoundException(HSN_NOT_FOUND_MESSAGE);
-		}
-		return hsn.get();
+		return hsnRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Hsn with" + id + " not found !!!"));
 	}
 
 	private List<Hsn> findAllHsnById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-		List<Hsn> hsns = hsnRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> hsns.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
 
+		List<Hsn> hsns = hsnRepo.findAllById(ids);
+		Set<Long> idSet = new HashSet<>(ids);
+		List<Hsn> foundHsns = hsns.stream().filter(hsn -> idSet.contains(hsn.getId())).toList();
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Hsn with IDs " + missingIds + " not found.");
 		}
-		return hsns;
+
+		return foundHsns;
 	}
+
 }

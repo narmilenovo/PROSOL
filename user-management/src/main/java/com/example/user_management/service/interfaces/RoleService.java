@@ -3,6 +3,8 @@ package com.example.user_management.service.interfaces;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.lang.NonNull;
+
 import com.example.user_management.client.RolePlantResponse;
 import com.example.user_management.dto.request.RolePrivilegeRequest;
 import com.example.user_management.dto.request.RoleRequest;
@@ -14,9 +16,9 @@ import com.example.user_management.exceptions.ResourceNotFoundException;
 public interface RoleService {
 	RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException, ResourceNotFoundException;
 
-	RoleResponse getRoleById(Long id) throws ResourceNotFoundException;
+	RoleResponse getRoleById(@NonNull Long id) throws ResourceNotFoundException;
 
-	RolePlantResponse getRolePlantById(Long id) throws ResourceNotFoundException;
+	RolePlantResponse getRolePlantById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<RoleResponse> getAllRoles();
 
@@ -30,23 +32,23 @@ public interface RoleService {
 
 	List<RolePlantResponse> findAllRolesPlantByPlantId(Long plantId);
 
-	RoleResponse updateRole(Long id, RoleRequest updateRoleRequest)
+	RoleResponse updateRole(@NonNull Long id, RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
-	List<RoleResponse> updateBulkStatusRoleId(List<Long> id) throws ResourceNotFoundException;
+	List<RoleResponse> updateBulkStatusRoleId(@NonNull List<Long> id) throws ResourceNotFoundException;
 
-	RoleResponse updateStatusUsingRoleId(Long id) throws ResourceNotFoundException;
+	RoleResponse updateStatusUsingRoleId(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteRoleId(Long id) throws ResourceNotFoundException;
+	void deleteRoleId(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatchRole(List<Long> id) throws ResourceNotFoundException;
+	void deleteBatchRole(@NonNull List<Long> id) throws ResourceNotFoundException;
 
 	Set<Privilege> setToPrivilegeId(Long[] privileges);
 
-	RoleResponse removePrivilegesFromRole(Long id, RolePrivilegeRequest rolePrivilegeRequest)
+	RoleResponse removePrivilegesFromRole(@NonNull Long id, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException;
 
-	RoleResponse addPrivilegesToRole(Long id, RolePrivilegeRequest updateRolePrivilegeRequest)
+	RoleResponse addPrivilegesToRole(@NonNull Long id, RolePrivilegeRequest updateRolePrivilegeRequest)
 			throws ResourceNotFoundException;
 
 }

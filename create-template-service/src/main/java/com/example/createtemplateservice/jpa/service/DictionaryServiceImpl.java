@@ -3,9 +3,7 @@ package com.example.createtemplateservice.jpa.service;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +28,7 @@ import com.example.createtemplateservice.jpa.entity.DictionaryAttribute;
 import com.example.createtemplateservice.jpa.repository.DictionaryAttributeRepository;
 import com.example.createtemplateservice.jpa.repository.DictionaryRepository;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
+import com.example.createtemplateservice.mapping.DictionaryMapper;
 import com.example.createtemplateservice.utils.FileUploadUtil;
 import com.example.createtemplateservice.utils.Helpers;
 
@@ -41,7 +40,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	private final DictionaryRepository dictionaryRepository;
 	private final DictionaryAttributeRepository dictionaryAttributeRepository;
-	private final ModelMapper modelMapper;
+	private final DictionaryMapper dictionaryMapper;
 	private final SettingServiceClient generalSettingClient;
 	private final AttributeServiceClient attributeClient;
 	private final ValueServiceClient valueMasterClient;
@@ -55,43 +54,36 @@ public class DictionaryServiceImpl implements DictionaryService {
 		String noun = dictionaryRequest.getNoun();
 		String modifier = dictionaryRequest.getModifier();
 
-		boolean exists = dictionaryRepository.existsByNounAndModifier(noun, modifier);
-
-		if (!exists) {
-			Dictionary dictionary = modelMapper.map(dictionaryRequest, Dictionary.class);
-			dictionary.setId(null);
-			Dictionary saveEmptyDicId = dictionaryRepository.save(dictionary);
-
-			String fileName = fileUploadUtil.storeFile(file, saveEmptyDicId.getId());
-			saveEmptyDicId.setImage(fileName);
-
-			// Set the parent reference in each child entity
-			List<DictionaryAttribute> attributes = dictionary.getAttributes();
-			if (attributes != null && !attributes.isEmpty()) {
-				for (DictionaryAttribute attribute : attributes) {
-					attribute.setDictionary(saveEmptyDicId);
-				}
-				// Save the child entities (DictionaryAttribute)
-				List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
-				saveEmptyDicId.setAttributes(savedAttributes);
-			}
-			Dictionary savedDictionary = dictionaryRepository.save(saveEmptyDicId);
-			return mapToDictionaryResponse(savedDictionary);
-		} else {
+		if (dictionaryRepository.existsByNounAndModifier(noun, modifier)) {
 			throw new ResourceFoundException("Record with noun and modifer already exists !!!");
 		}
+		Dictionary dictionary = dictionaryMapper.mapToDictionary(dictionaryRequest);
+		dictionary.setId(null);
+		Dictionary savedDictionary = dictionaryRepository.save(dictionary);
+
+		String fileName = fileUploadUtil.storeFile(file, savedDictionary.getId());
+		savedDictionary.setImage(fileName);
+
+		// Set the parent reference in each child entity
+		List<DictionaryAttribute> attributes = dictionary.getAttributes();
+		if (!attributes.isEmpty()) {
+			attributes.forEach(attribute -> attribute.setDictionary(savedDictionary));
+			// Save the child entities (DictionaryAttribute)
+			List<DictionaryAttribute> savedAttributes = dictionaryAttributeRepository.saveAll(attributes);
+			savedDictionary.setAttributes(savedAttributes);
+		}
+
+		return mapToDictionaryResponse(savedDictionary);
 	}
 
 	@Override
 	public DictionaryResponse getDictionaryById(Long id, String show) throws ResourceNotFoundException {
-		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		return mapToDictionaryResponse(dictionary);
 	}
 
 	@Override
 	public DictionaryAllResponse getDictionaryNmUomById(Long id, String show) throws ResourceNotFoundException {
-		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		return mapToDictionaryAll(dictionary);
 	}
@@ -129,7 +121,6 @@ public class DictionaryServiceImpl implements DictionaryService {
 	@Override
 	public DictionaryResponse updateDictionary(Long id, DictionaryRequest updateDictionaryRequest, MultipartFile file)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDictionaryRequest);
 		String noun = updateDictionaryRequest.getNoun();
 		String modifier = updateDictionaryRequest.getModifier();
@@ -208,7 +199,6 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	@Override
 	public void deleteDictionaryId(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
 		Dictionary dictionary = findDictionaryById(id);
 		fileUploadUtil.deleteDir(dictionary.getImage(), id);
 		dictionaryRepository.delete(dictionary);
@@ -231,12 +221,8 @@ public class DictionaryServiceImpl implements DictionaryService {
 	}
 
 	private Dictionary findDictionaryById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<Dictionary> dictionary = dictionaryRepository.findById(id);
-		if (dictionary.isEmpty()) {
-			throw new ResourceNotFoundException("No Dictionary found with this Id");
-		}
-		return dictionary.get();
+		return dictionaryRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Dictionary found with this Id"));
 	}
 
 	private List<Dictionary> findAll() throws ResourceNotFoundException {
@@ -248,70 +234,39 @@ public class DictionaryServiceImpl implements DictionaryService {
 	}
 
 	private DictionaryResponse mapToDictionaryResponse(Dictionary dictionary) {
-		DictionaryResponse dictionaryResponse = modelMapper.map(dictionary, DictionaryResponse.class);
-		List<DictionaryAttributeResponse> attributes = new ArrayList<>();
-		for (DictionaryAttribute attribute : dictionary.getAttributes()) {
-			DictionaryAttributeResponse attributeResponse = mapToDictionaryAttributeResponse(attribute);
-			attributes.add(attributeResponse);
-		}
+		DictionaryResponse dictionaryResponse = dictionaryMapper.mapToDictionaryResponse(dictionary);
+		List<DictionaryAttributeResponse> attributes = dictionary.getAttributes().stream()
+				.map(dictionaryMapper::mapToDictionaryAttributeResponse).toList();
 		dictionaryResponse.setAttributes(attributes);
 		return dictionaryResponse;
 	}
 
-	private DictionaryAttributeResponse mapToDictionaryAttributeResponse(DictionaryAttribute dictionaryAttribute) {
-		return modelMapper.map(dictionaryAttribute, DictionaryAttributeResponse.class);
-	}
-
 	private DictionaryAllResponse mapToDictionaryAll(Dictionary dictionary) {
-		DictionaryAllResponse dictionaryNmUom = modelMapper.map(dictionary, DictionaryAllResponse.class);
-		List<NmUomResponse> nmUoms = new ArrayList<>();
-		for (Long id : dictionary.getNmUoms()) {
-			if (generalSettingClient == null) {
-				throw new IllegalStateException("General setting Client is not initialized");
-			}
-			NmUomResponse nmUom = generalSettingClient.getNmUomById(id);
-			nmUoms.add(nmUom);
-		}
+		DictionaryAllResponse dictionaryNmUom = dictionaryMapper.mapToDictionaryAll(dictionary);
+		List<NmUomResponse> nmUoms = dictionary.getNmUoms().stream().map(generalSettingClient::getNmUomById).toList();
 		dictionaryNmUom.setNmUoms(nmUoms);
-		List<DictionaryAttributeAllResponse> attributes = new ArrayList<>();
-		for (DictionaryAttribute attribute : dictionary.getAttributes()) {
-			DictionaryAttributeAllResponse attributeResponse = mapToDictionaryAttributeAllResponse(attribute);
-			attributes.add(attributeResponse);
-		}
+
+		List<DictionaryAttributeAllResponse> attributes = dictionary.getAttributes().stream()
+				.map(this::mapToDictionaryAttributeAllResponse).toList();
 		dictionaryNmUom.setAttributes(attributes);
+
 		return dictionaryNmUom;
 	}
 
 	private DictionaryAttributeAllResponse mapToDictionaryAttributeAllResponse(
 			DictionaryAttribute dictionaryAttribute) {
-		DictionaryAttributeAllResponse dictionaryAttributeAllResponse = modelMapper.map(dictionaryAttribute,
-				DictionaryAttributeAllResponse.class);
-		// Attribute Client
-		if (attributeClient == null) {
-			throw new IllegalStateException("Attribute Client is not initialized");
-		}
+		DictionaryAttributeAllResponse dictionaryAttributeAllResponse = dictionaryMapper
+				.mapToDictionaryAttributeAllResponse(dictionaryAttribute);
 		AttributeMasterUomResponse attribute = attributeClient
 				.getAttributeMasterById(dictionaryAttribute.getAttributeId());
 		dictionaryAttributeAllResponse.setAttribute(attribute);
 		// Value Master Client
-		List<ValueAttributeUom> values = new ArrayList<>();
-		for (Long id : dictionaryAttribute.getValueId()) {
-			if (valueMasterClient == null) {
-				throw new IllegalStateException("Value master client is not initialized");
-			}
-			ValueAttributeUom value = valueMasterClient.getValueById(id, true);
-			values.add(value);
-		}
+		List<ValueAttributeUom> values = dictionaryAttribute.getValueId().stream()
+				.map(id -> valueMasterClient.getValueById(id, true)).toList();
 		dictionaryAttributeAllResponse.setValues(values);
 		// General Setting Client
-		List<AttributeUomResponse> attrUoms = new ArrayList<>();
-		for (Long id : dictionaryAttribute.getAttrUomId()) {
-			if (generalSettingClient == null) {
-				throw new IllegalStateException("General setting Client is not initialized");
-			}
-			AttributeUomResponse attrUom = generalSettingClient.getAttributeUomById(id);
-			attrUoms.add(attrUom);
-		}
+		List<AttributeUomResponse> attrUoms = dictionaryAttribute.getAttrUomId().stream()
+				.map(generalSettingClient::getAttributeUomById).toList();
 		dictionaryAttributeAllResponse.setAttrUoms(attrUoms);
 		return dictionaryAttributeAllResponse;
 	}

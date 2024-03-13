@@ -1,6 +1,5 @@
 package com.example.generalservice;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -21,11 +20,6 @@ public class GeneralServiceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(GeneralServiceApplication.class, args);
-	}
-
-	@Bean
-	ModelMapper modelMapper() {
-		return new ModelMapper();
 	}
 
 	@Bean

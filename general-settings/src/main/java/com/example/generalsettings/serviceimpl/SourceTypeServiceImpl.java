@@ -2,17 +2,18 @@ package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.SourceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.SourceTypeMapper;
 import com.example.generalsettings.repo.SourceTypeRepo;
 import com.example.generalsettings.request.SourceTypeRequest;
 import com.example.generalsettings.response.SourceTypeResponse;
@@ -26,32 +27,30 @@ import lombok.RequiredArgsConstructor;
 public class SourceTypeServiceImpl implements SourceTypeService {
 	private final SourceTypeRepo sourceTypeRepo;
 
-	private final ModelMapper modelMapper;
+	private final SourceTypeMapper sourceTypeMapper;
 
 	@Override
 	public SourceTypeResponse saveSourceType(SourceTypeRequest sourceTypeRequest) throws AlreadyExistsException {
 		Helpers.inputTitleCase(sourceTypeRequest);
-		boolean exists = sourceTypeRepo.existsBySourceTypeCodeAndSourceTypeName(sourceTypeRequest.getSourceTypeCode(),
-				sourceTypeRequest.getSourceTypeName());
-		if (!exists) {
-			SourceType sourceType = modelMapper.map(sourceTypeRequest, SourceType.class);
-			sourceTypeRepo.save(sourceType);
-			return mapToSourceTypeResponse(sourceType);
-		} else {
+		String sourceTypeCode = sourceTypeRequest.getSourceTypeCode();
+		String sourceTypeName = sourceTypeRequest.getSourceTypeName();
+		if (sourceTypeRepo.existsBySourceTypeCodeAndSourceTypeName(sourceTypeCode, sourceTypeName)) {
 			throw new AlreadyExistsException("SourceType with this name already exists");
 		}
+		SourceType sourceType = sourceTypeMapper.mapToSourceType(sourceTypeRequest);
+		sourceTypeRepo.save(sourceType);
+		return sourceTypeMapper.mapToSourceTypeResponse(sourceType);
 	}
 
 	@Override
 	public SourceTypeResponse getSourceTypeById(Long id) throws ResourceNotFoundException {
 		SourceType sourceType = this.findSourceTypeById(id);
-		return mapToSourceTypeResponse(sourceType);
+		return sourceTypeMapper.mapToSourceTypeResponse(sourceType);
 	}
 
 	@Override
 	public List<SourceTypeResponse> getAllSourceType() {
-		List<SourceType> sourceType = sourceTypeRepo.findAllByOrderByIdAsc();
-		return sourceType.stream().map(this::mapToSourceTypeResponse).toList();
+		return sourceTypeRepo.findAllByOrderByIdAsc().stream().map(sourceTypeMapper::mapToSourceTypeResponse).toList();
 	}
 
 	@Override
@@ -86,7 +85,7 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 			}
 			existingSourceType.updateAuditHistory(auditFields);
 			sourceTypeRepo.save(existingSourceType);
-			return mapToSourceTypeResponse(existingSourceType);
+			return sourceTypeMapper.mapToSourceTypeResponse(existingSourceType);
 		} else {
 			throw new AlreadyExistsException("SourceType with this name already exists");
 		}
@@ -107,7 +106,7 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 			sourceTypeRepo.save(existingSourceType);
 		});
 		sourceTypeRepo.saveAll(existingSourceTypeList);
-		return existingSourceTypeList.stream().map(this::mapToSourceTypeResponse).toList();
+		return existingSourceTypeList.stream().map(sourceTypeMapper::mapToSourceTypeResponse).toList();
 	}
 
 	@Override
@@ -122,19 +121,23 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 		}
 		existingSourceType.updateAuditHistory(auditFields);
 		sourceTypeRepo.save(existingSourceType);
-		return mapToSourceTypeResponse(existingSourceType);
+		return sourceTypeMapper.mapToSourceTypeResponse(existingSourceType);
 	}
 
 	@Override
 	public void deleteSourceType(Long id) throws ResourceNotFoundException {
 		SourceType sourceType = this.findSourceTypeById(id);
-		sourceTypeRepo.deleteById(sourceType.getId());
+		if (sourceType != null) {
+			sourceTypeRepo.delete(sourceType);
+		}
 	}
 
 	@Override
 	public void deleteBatchSourceType(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllSrcTypeById(ids);
-		sourceTypeRepo.deleteAllByIdInBatch(ids);
+		List<SourceType> sourceTypes = this.findAllSrcTypeById(ids);
+		if (!sourceTypes.isEmpty()) {
+			sourceTypeRepo.deleteAll(sourceTypes);
+		}
 	}
 
 	@Override
@@ -151,29 +154,27 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 		return dataList;
 	}
 
-	private SourceTypeResponse mapToSourceTypeResponse(SourceType sourceType) {
-		return modelMapper.map(sourceType, SourceTypeResponse.class);
-	}
-
 	private SourceType findSourceTypeById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<SourceType> sourceType = sourceTypeRepo.findById(id);
-		if (sourceType.isEmpty()) {
-			throw new ResourceNotFoundException("SourceType with ID " + id + " not found");
-		}
-		return sourceType.get();
+		return sourceTypeRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("SourceType with ID " + id + " not found"));
 	}
 
 	private List<SourceType> findAllSrcTypeById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
+
 		List<SourceType> sourceTypes = sourceTypeRepo.findAllById(ids);
-		List<Long> missingIds = ids.stream()
-				.filter(id -> sourceTypes.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		Set<Long> idSet = new HashSet<>(ids);
+
+		List<SourceType> foundTypes = sourceTypes.stream().filter(type -> idSet.contains(type.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Source Type with IDs " + missingIds + " not found.");
 		}
-		return sourceTypes;
+
+		return foundTypes;
 	}
 
 }

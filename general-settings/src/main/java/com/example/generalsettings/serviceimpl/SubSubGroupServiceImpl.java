@@ -2,12 +2,11 @@ package com.example.generalsettings.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
@@ -16,6 +15,7 @@ import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.entity.SubSubGroup;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.SubSubGroupCodeMapper;
 import com.example.generalsettings.repo.MainGroupCodesRepo;
 import com.example.generalsettings.repo.SubGroupCodesRepo;
 import com.example.generalsettings.repo.SubSubGroupRepo;
@@ -34,37 +34,37 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 	private final MainGroupCodesRepo mainGroupCodesRepo;
 	private final SubGroupCodesRepo subGroupCodesRepo;
 
-	private final ModelMapper modelMapper;
+	private final SubSubGroupCodeMapper subSubGroupCodeMapper;
 
 	@Override
-	public SubSubGroupResponse saveSubChildGroup(SubSubGroupRequest subSubGroupRequest) throws AlreadyExistsException {
+	public SubSubGroupResponse saveSubChildGroup(SubSubGroupRequest subSubGroupRequest)
+			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(subSubGroupRequest);
-		boolean exists = subSubGroupRepo.existsBySubSubGroupCodeAndSubSubGroupName(
-				subSubGroupRequest.getSubSubGroupCode(), subSubGroupRequest.getSubSubGroupName());
-		if (!exists) {
-			SubSubGroup subChildGroup = modelMapper.map(subSubGroupRequest, SubSubGroup.class);
-			subChildGroup.setId(null);
-			MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
-			SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
-			subChildGroup.setMainGroupCodesId(mainGroupCodes);
-			subChildGroup.setSubGroupCodesId(subGroupCodes);
-			SubSubGroup saved = subSubGroupRepo.save(subChildGroup);
-			return mapToSubChildGroupResponse(saved);
-		} else {
+		String subSubGroupCode = subSubGroupRequest.getSubSubGroupCode();
+		String subSubGroupName = subSubGroupRequest.getSubSubGroupName();
+		if (subSubGroupRepo.existsBySubSubGroupCodeAndSubSubGroupName(subSubGroupCode, subSubGroupName)) {
 			throw new AlreadyExistsException("SubChildGroup with this name already exists");
 		}
+		SubSubGroup subChildGroup = subSubGroupCodeMapper.mapToSubSubGroup(subSubGroupRequest);
+		subChildGroup.setId(null);
+		MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
+		SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
+		subChildGroup.setMainGroupCodesId(mainGroupCodes);
+		subChildGroup.setSubGroupCodesId(subGroupCodes);
+		SubSubGroup saved = subSubGroupRepo.save(subChildGroup);
+		return subSubGroupCodeMapper.mapToSubChildGroupResponse(saved);
 	}
 
 	@Override
 	public SubSubGroupResponse getSubChildGroupById(Long id) throws ResourceNotFoundException {
 		SubSubGroup subChildGroup = this.findSubChildGroupById(id);
-		return mapToSubChildGroupResponse(subChildGroup);
+		return subSubGroupCodeMapper.mapToSubChildGroupResponse(subChildGroup);
 	}
 
 	@Override
 	public List<SubSubGroupResponse> getAllSubChildGroup() {
-		List<SubSubGroup> subChildGroup = subSubGroupRepo.findAllByOrderByIdAsc();
-		return subChildGroup.stream().map(this::mapToSubChildGroupResponse).toList();
+		return subSubGroupRepo.findAllByOrderByIdAsc().stream().map(subSubGroupCodeMapper::mapToSubChildGroupResponse)
+				.toList();
 	}
 
 	@Override
@@ -75,7 +75,6 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 	@Override
 	public SubSubGroupResponse updateSubChildGroup(Long subId, SubSubGroupRequest subSubGroupRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(subId);
 		Helpers.inputTitleCase(subSubGroupRequest);
 		String name = subSubGroupRequest.getSubSubGroupName();
 		String code = subSubGroupRequest.getSubSubGroupCode();
@@ -113,7 +112,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 			}
 			existSubChildGroup.updateAuditHistory(auditFields);
 			subSubGroupRepo.save(existSubChildGroup);
-			return mapToSubChildGroupResponse(existSubChildGroup);
+			return subSubGroupCodeMapper.mapToSubChildGroupResponse(existSubChildGroup);
 		} else {
 			throw new AlreadyExistsException("SubChildGroup with this name already exists");
 		}
@@ -133,7 +132,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 			existingSubChildGroup.updateAuditHistory(auditFields);
 		});
 		subSubGroupRepo.saveAll(existingSubChildGroupList);
-		return existingSubChildGroupList.stream().map(this::mapToSubChildGroupResponse).toList();
+		return existingSubChildGroupList.stream().map(subSubGroupCodeMapper::mapToSubChildGroupResponse).toList();
 	}
 
 	@Override
@@ -148,19 +147,23 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		}
 		existingSubChildGroup.updateAuditHistory(auditFields);
 		subSubGroupRepo.save(existingSubChildGroup);
-		return mapToSubChildGroupResponse(existingSubChildGroup);
+		return subSubGroupCodeMapper.mapToSubChildGroupResponse(existingSubChildGroup);
 	}
 
 	@Override
 	public void deleteSubChildGroup(Long id) throws ResourceNotFoundException {
 		SubSubGroup subChildGroup = this.findSubChildGroupById(id);
-		subSubGroupRepo.deleteById(subChildGroup.getId());
+		if (subChildGroup != null) {
+			subSubGroupRepo.delete(subChildGroup);
+		}
 	}
 
 	@Override
 	public void deleteBatchSubSubGroup(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllSubChildGrpById(ids);
-		subSubGroupRepo.deleteAllByIdInBatch(ids);
+		List<SubSubGroup> subSubGroups = findAllSubChildGrpById(ids);
+		if (!subSubGroups.isEmpty()) {
+			subSubGroupRepo.deleteAll(subSubGroups);
+		}
 	}
 
 	@Override
@@ -177,43 +180,38 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		return dataList;
 	}
 
-	private MainGroupCodes findMainGroupCodesById(Long mainId) {
-		Optional<MainGroupCodes> fetchplantOptional = mainGroupCodesRepo.findById(mainId);
-		return fetchplantOptional.orElse(null);
-
+	private MainGroupCodes findMainGroupCodesById(Long mainId) throws ResourceNotFoundException {
+		return mainGroupCodesRepo.findById(mainId)
+				.orElseThrow(() -> new ResourceNotFoundException("Main Child Group with id " + mainId + " not found"));
 	}
 
-	private SubGroupCodes findSubGroupCodesById(Long subId) {
-		Optional<SubGroupCodes> fetchStorageOptional1 = subGroupCodesRepo.findById(subId);
-		return fetchStorageOptional1.orElse(null);
+	private SubGroupCodes findSubGroupCodesById(Long subId) throws ResourceNotFoundException {
+		return subGroupCodesRepo.findById(subId).orElseThrow(
+				() -> new ResourceNotFoundException("Sub Sub Child Group with id " + subId + " not found"));
 
-	}
-
-	private SubSubGroupResponse mapToSubChildGroupResponse(SubSubGroup subChildGroup) {
-		return modelMapper.map(subChildGroup, SubSubGroupResponse.class);
 	}
 
 	private SubSubGroup findSubChildGroupById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<SubSubGroup> subChildGroup = subSubGroupRepo.findById(id);
-		if (subChildGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Sub Sub Child Group with id " + id + " not found");
-		}
-		return subChildGroup.get();
+		return subSubGroupRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Sub Sub Child Group with id " + id + " not found"));
 	}
 
 	private List<SubSubGroup> findAllSubChildGrpById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+
 		List<SubSubGroup> subChildGroupCodes = subSubGroupRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> subChildGroupCodes.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		Set<Long> idSet = new HashSet<>(ids);
+
+		List<SubSubGroup> foundSubChildGroupCodes = subChildGroupCodes.stream()
+				.filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Sub Sub Child Group with IDs " + missingIds + " not found.");
 		}
-		return subChildGroupCodes;
+
+		return foundSubChildGroupCodes;
 	}
+
 }

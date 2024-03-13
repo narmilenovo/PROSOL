@@ -13,5 +13,5 @@ public class DropDownRequest {
     private String value;
 
     @JsonIgnore
-    private FieldRequest field;
+    private FormFieldRequest formField;
 }

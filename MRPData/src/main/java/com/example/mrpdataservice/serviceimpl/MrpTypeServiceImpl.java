@@ -3,12 +3,11 @@ package com.example.mrpdataservice.serviceimpl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +17,7 @@ import com.example.mrpdataservice.entity.MrpType;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
+import com.example.mrpdataservice.mapping.MrpTypeMapper;
 import com.example.mrpdataservice.repository.MrpTypeRepo;
 import com.example.mrpdataservice.request.MrpTypeRequest;
 import com.example.mrpdataservice.response.MrpTypeResponse;
@@ -34,7 +34,7 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 
 	private final MrpTypeRepo mrpTypeRepo;
 
-	private final ModelMapper modelMapper;
+	private final MrpTypeMapper mrpTypeMapper;
 	private final DynamicClient dynamicClient;
 
 	private final ExcelFileHelper excelFileHelper;
@@ -43,36 +43,26 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 	public MrpTypeResponse saveMrpType(MrpTypeRequest mrpTypeRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(mrpTypeRequest);
-		boolean exists = mrpTypeRepo.existsByMrpTypeCodeAndMrpTypeName(mrpTypeRequest.getMrpTypeCode(),
-				mrpTypeRequest.getMrpTypeName());
-		if (!exists) {
-			MrpType mrpType = modelMapper.map(mrpTypeRequest, MrpType.class);
-			for (Map.Entry<String, Object> entryField : mrpType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MrpType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			mrpTypeRepo.save(mrpType);
-			return mapToMrpTypeResponse(mrpType);
-		} else {
+		String mrpTypeCode = mrpTypeRequest.getMrpTypeCode();
+		String mrpTypeName = mrpTypeRequest.getMrpTypeName();
+		if (mrpTypeRepo.existsByMrpTypeCodeAndMrpTypeName(mrpTypeCode, mrpTypeName)) {
 			throw new AlreadyExistsException("MrpType with this name already exists");
 		}
+		MrpType mrpType = mrpTypeMapper.mapToMrpType(mrpTypeRequest);
+		validateDynamicFields(mrpType);
+		mrpTypeRepo.save(mrpType);
+		return mrpTypeMapper.mapToMrpTypeResponse(mrpType);
 	}
 
 	@Override
 	public MrpTypeResponse getMrpTypeById(Long id) throws ResourceNotFoundException {
 		MrpType valuationCategory = this.findMrpTypeById(id);
-		return mapToMrpTypeResponse(valuationCategory);
+		return mrpTypeMapper.mapToMrpTypeResponse(valuationCategory);
 	}
 
 	@Override
 	public List<MrpTypeResponse> getAllMrpType() {
-		List<MrpType> valuationCategory = mrpTypeRepo.findAllByOrderByIdAsc();
-		return valuationCategory.stream().map(this::mapToMrpTypeResponse).toList();
+		return mrpTypeRepo.findAllByOrderByIdAsc().stream().map(mrpTypeMapper::mapToMrpTypeResponse).toList();
 	}
 
 	@Override
@@ -118,7 +108,7 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 			}
 			existingMrpType.updateAuditHistory(auditFields);
 			mrpTypeRepo.save(existingMrpType);
-			return mapToMrpTypeResponse(existingMrpType);
+			return mrpTypeMapper.mapToMrpTypeResponse(existingMrpType);
 		} else {
 			throw new AlreadyExistsException("MrpType with this name already exists");
 		}
@@ -138,7 +128,7 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 			existingMrpType.updateAuditHistory(auditFields);
 		});
 		mrpTypeRepo.saveAll(existingMrpTypes);
-		return existingMrpTypes.stream().map(this::mapToMrpTypeResponse).toList();
+		return existingMrpTypes.stream().map(mrpTypeMapper::mapToMrpTypeResponse).toList();
 	}
 
 	@Override
@@ -153,19 +143,23 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 		}
 		existingMrpType.updateAuditHistory(auditFields);
 		mrpTypeRepo.save(existingMrpType);
-		return mapToMrpTypeResponse(existingMrpType);
+		return mrpTypeMapper.mapToMrpTypeResponse(existingMrpType);
 	}
 
 	@Override
 	public void deleteMrpType(Long id) throws ResourceNotFoundException {
-		MrpType valuationCategory = this.findMrpTypeById(id);
-		mrpTypeRepo.deleteById(valuationCategory.getId());
+		MrpType mrpType = this.findMrpTypeById(id);
+		if (mrpType != null) {
+			mrpTypeRepo.delete(mrpType);
+		}
 	}
 
 	@Override
 	public void deleteBatchMrpType(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllMrpTypeById(ids);
-		mrpTypeRepo.deleteAllByIdInBatch(ids);
+		List<MrpType> mrpTypes = this.findAllMrpTypeById(ids);
+		if (!mrpTypes.isEmpty()) {
+			mrpTypeRepo.deleteAll(mrpTypes);
+		}
 	}
 
 	@Override
@@ -216,31 +210,34 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 		return mrpType;
 	}
 
-	private MrpTypeResponse mapToMrpTypeResponse(MrpType valuationCategory) {
-		return modelMapper.map(valuationCategory, MrpTypeResponse.class);
+	private void validateDynamicFields(MrpType mrpType) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : mrpType.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = MrpType.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private MrpType findMrpTypeById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<MrpType> valuationCategory = mrpTypeRepo.findById(id);
-		if (valuationCategory.isEmpty()) {
-			throw new ResourceNotFoundException("Mrp Type with ID " + id + " not found.");
-		}
-		return valuationCategory.get();
+		return mrpTypeRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Mrp Type with ID " + id + " not found."));
 	}
 
 	private List<MrpType> findAllMrpTypeById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<MrpType> mrpTypes = mrpTypeRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> mrpTypes.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<MrpType> foundMrpTypes = mrpTypes.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Mrp Type with IDs " + missingIds + " not found.");
 		}
-		return mrpTypes;
+		return foundMrpTypes;
 	}
+
 }

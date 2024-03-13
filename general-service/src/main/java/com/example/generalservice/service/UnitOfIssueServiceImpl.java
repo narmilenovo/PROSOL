@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +17,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.UnitOfIssue;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.UnitOfIssueMapper;
 import com.example.generalservice.repository.UnitOfIssueRepository;
 import com.example.generalservice.service.interfaces.UnitOfIssueService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	private final UnitOfIssueRepository unitOfIssueRepository;
-	private final ModelMapper modelMapper;
+	private final UnitOfIssueMapper unitOfIssueMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -36,50 +37,37 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 		Helpers.inputTitleCase(unitOfIssueRequest);
 		String uoiCode = unitOfIssueRequest.getUoiCode();
 		String uoiName = unitOfIssueRequest.getUoiName();
-		boolean exists = unitOfIssueRepository.existsByUoiCodeOrUoiName(uoiCode, uoiName);
-		if (!exists) {
-
-			UnitOfIssue unitOfIssue = modelMapper.map(unitOfIssueRequest, UnitOfIssue.class);
-			for (Map.Entry<String, Object> entryField : unitOfIssue.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = UnitOfIssue.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			UnitOfIssue savedUnitOfIssue = unitOfIssueRepository.save(unitOfIssue);
-			return mapToUnitOfIssueResponse(savedUnitOfIssue);
+		if (unitOfIssueRepository.existsByUoiCodeOrUoiName(uoiCode, uoiName)) {
+			throw new ResourceFoundException("Unit Of Issue is already exist");
 		}
-		throw new ResourceFoundException("Unit Of Issue is already exist");
+		UnitOfIssue unitOfIssue = unitOfIssueMapper.mapToUnitOfIssue(unitOfIssueRequest);
+		validateDynamicFields(unitOfIssue);
+
+		UnitOfIssue savedUnitOfIssue = unitOfIssueRepository.save(unitOfIssue);
+		return unitOfIssueMapper.mapToUnitOfIssueResponse(savedUnitOfIssue);
 	}
 
 	@Override
-	@Cacheable("uoi")
-	public UnitOfIssueResponse getUOIById(Long id) throws ResourceNotFoundException {
+	public UnitOfIssueResponse getUOIById(@NonNull Long id) throws ResourceNotFoundException {
 		UnitOfIssue unitOfIssue = this.findUOIById(id);
-		return mapToUnitOfIssueResponse(unitOfIssue);
+		return unitOfIssueMapper.mapToUnitOfIssueResponse(unitOfIssue);
 	}
 
 	@Override
-	@Cacheable("uoi")
 	public List<UnitOfIssueResponse> getAllUOI() {
-		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAll();
-		return unitOfIssues.stream().sorted(Comparator.comparing(UnitOfIssue::getId))
-				.map(this::mapToUnitOfIssueResponse).toList();
+		return unitOfIssueRepository.findAll().stream().sorted(Comparator.comparing(UnitOfIssue::getId))
+				.map(unitOfIssueMapper::mapToUnitOfIssueResponse).toList();
 	}
 
 	@Override
-	@Cacheable("uoi")
 	public List<UnitOfIssueResponse> findAllStatusTrue() {
-		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAllByUoiStatusIsTrue();
-		return unitOfIssues.stream().sorted(Comparator.comparing(UnitOfIssue::getId))
-				.map(this::mapToUnitOfIssueResponse).toList();
+		return unitOfIssueRepository.findAllByUoiStatusIsTrue().stream()
+				.sorted(Comparator.comparing(UnitOfIssue::getId)).map(unitOfIssueMapper::mapToUnitOfIssueResponse)
+				.toList();
 	}
 
 	@Override
-	public UnitOfIssueResponse updateUOI(Long id, UnitOfIssueRequest updateUnitOfIssueRequest)
+	public UnitOfIssueResponse updateUOI(@NonNull Long id, UnitOfIssueRequest updateUnitOfIssueRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateUnitOfIssueRequest);
@@ -116,13 +104,13 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 			}
 			existingUnitOfIssue.updateAuditHistory(auditFields); // Update the audit history
 			UnitOfIssue updatedUnitOfIssue = unitOfIssueRepository.save(existingUnitOfIssue);
-			return mapToUnitOfIssueResponse(updatedUnitOfIssue);
+			return unitOfIssueMapper.mapToUnitOfIssueResponse(updatedUnitOfIssue);
 		}
 		throw new ResourceFoundException("Unit Of Issue is already exist");
 	}
 
 	@Override
-	public UnitOfIssueResponse updateUOIStatus(Long id) throws ResourceNotFoundException {
+	public UnitOfIssueResponse updateUOIStatus(@NonNull Long id) throws ResourceNotFoundException {
 		UnitOfIssue existingUnitOfIssue = this.findUOIById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -133,11 +121,11 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 		}
 		existingUnitOfIssue.updateAuditHistory(auditFields); // Update the audit history
 		unitOfIssueRepository.save(existingUnitOfIssue);
-		return this.mapToUnitOfIssueResponse(existingUnitOfIssue);
+		return unitOfIssueMapper.mapToUnitOfIssueResponse(existingUnitOfIssue);
 	}
 
 	@Override
-	public List<UnitOfIssueResponse> updateBatchUOIStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<UnitOfIssueResponse> updateBatchUOIStatus(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<UnitOfIssue> unitOfIssues = this.findAllById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -151,44 +139,53 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 
 		});
 		unitOfIssueRepository.saveAll(unitOfIssues);
-		return unitOfIssues.stream().map(this::mapToUnitOfIssueResponse).toList();
+		return unitOfIssues.stream().map(unitOfIssueMapper::mapToUnitOfIssueResponse).toList();
 	}
 
 	@Override
-	public void deleteUOIId(Long id) throws ResourceNotFoundException {
+	public void deleteUOIId(@NonNull Long id) throws ResourceNotFoundException {
 		UnitOfIssue unitOfIssue = this.findUOIById(id);
-		unitOfIssueRepository.deleteById(unitOfIssue.getId());
+		if (unitOfIssue != null) {
+			unitOfIssueRepository.delete(unitOfIssue);
+		}
 	}
 
 	@Override
-	public void deleteBatchUOI(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllById(ids);
-		unitOfIssueRepository.deleteAllById(ids);
-	}
-
-	private UnitOfIssueResponse mapToUnitOfIssueResponse(UnitOfIssue unitOfIssue) {
-		return modelMapper.map(unitOfIssue, UnitOfIssueResponse.class);
-	}
-
-	private UnitOfIssue findUOIById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<UnitOfIssue> unitOfIssue = unitOfIssueRepository.findById(id);
-		if (unitOfIssue.isEmpty()) {
-			throw new ResourceNotFoundException("No Unit Of Issue found with this Id");
+	public void deleteBatchUOI(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<UnitOfIssue> unitOfIssues = this.findAllById(ids);
+		if (!unitOfIssues.isEmpty()) {
+			unitOfIssueRepository.deleteAll(unitOfIssues);
 		}
-		return unitOfIssue.get();
 	}
 
-	private List<UnitOfIssue> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(UnitOfIssue unitOfIssue) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : unitOfIssue.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = UnitOfIssue.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private UnitOfIssue findUOIById(@NonNull Long id) throws ResourceNotFoundException {
+		return unitOfIssueRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Unit Of Issue found with this Id"));
+	}
+
+	private List<UnitOfIssue> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<UnitOfIssue> unitOfIssues = unitOfIssueRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> unitOfIssues.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		Set<Long> foundIds = unitOfIssues.stream().map(UnitOfIssue::getId).collect(Collectors.toSet());
+
+		List<Long> missingIds = ids.stream().filter(id -> !foundIds.contains(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Unit Of Issue with IDs " + missingIds + " not found");
 		}
+
 		return unitOfIssues;
 	}
 

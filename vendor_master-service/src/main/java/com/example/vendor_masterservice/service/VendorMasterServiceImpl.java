@@ -1,15 +1,14 @@
 package com.example.vendor_masterservice.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.vendor_masterservice.client.DynamicClient;
@@ -18,9 +17,9 @@ import com.example.vendor_masterservice.dto.response.VendorMasterResponse;
 import com.example.vendor_masterservice.entity.AuditFields;
 import com.example.vendor_masterservice.entity.VendorMaster;
 import com.example.vendor_masterservice.exceptions.ResourceNotFoundException;
+import com.example.vendor_masterservice.mapping.VendorMapper;
 import com.example.vendor_masterservice.repository.VendorMasterRepository;
 import com.example.vendor_masterservice.service.interfaces.VendorMasterService;
-import com.example.vendor_masterservice.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,65 +27,53 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class VendorMasterServiceImpl implements VendorMasterService {
 	private final VendorMasterRepository vendorMasterRepository;
-	private final ModelMapper modelMapper;
+	private final VendorMapper vendorMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public VendorMasterResponse saveVm(VendorMasterRequest vendorMasterRequest) throws ResourceNotFoundException {
-//		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "website");
-//		Helpers.inputTitleCase(vendorMasterRequest, fieldsToSkipCapitalization);
-		VendorMaster vendorMaster = modelMapper.map(vendorMasterRequest, VendorMaster.class);
-		for (Map.Entry<String, Object> entryField : vendorMaster.getDynamicFields().entrySet()) {
-			String fieldName = entryField.getKey();
-			String formName = VendorMaster.class.getSimpleName();
-			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-			if (!fieldExists) {
-				throw new ResourceNotFoundException("Field of '" + fieldName
-						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-			}
-		}
+		VendorMaster vendorMaster = vendorMapper.mapToVendorMaster(vendorMasterRequest);
+
+		validateDynamicFields(vendorMaster);
+
 		VendorMaster savedVendorMaster = vendorMasterRepository.save(vendorMaster);
-		return mapToVendorMasterResponse(savedVendorMaster);
+		return vendorMapper.mapToVendorMasterResponse(savedVendorMaster);
 	}
 
 	@Override
 	public List<VendorMasterResponse> saveAllVm(List<VendorMasterRequest> vendorMasterRequests) {
 		List<VendorMaster> vendorList = new ArrayList<>();
 		for (VendorMasterRequest vendorMasterRequest : vendorMasterRequests) {
-			List<String> fieldsToSkipCapitalization = Arrays.asList("email", "website");
-			Helpers.inputTitleCase(vendorMasterRequest, fieldsToSkipCapitalization);
-			VendorMaster vendorMaster = modelMapper.map(vendorMasterRequest, VendorMaster.class);
+			VendorMaster vendorMaster = vendorMapper.mapToVendorMaster(vendorMasterRequest);
 			vendorList.add(vendorMaster);
 		}
 		List<VendorMaster> savedList = vendorMasterRepository.saveAll(vendorList);
-		return savedList.stream().map(this::mapToVendorMasterResponse).toList();
+		return savedList.stream().map(vendorMapper::mapToVendorMasterResponse).toList();
 	}
 
 	@Override
-	public VendorMasterResponse getVmById(Long id) throws ResourceNotFoundException {
+	public VendorMasterResponse getVmById(@NonNull Long id) throws ResourceNotFoundException {
 		VendorMaster vendorMaster = this.findVmById(id);
-		return mapToVendorMasterResponse(vendorMaster);
+		return vendorMapper.mapToVendorMasterResponse(vendorMaster);
 	}
 
 	@Override
 	public List<VendorMasterResponse> getAllVm() {
 		List<VendorMaster> vendorMasters = vendorMasterRepository.findAll();
 		return vendorMasters.stream().sorted(Comparator.comparing(VendorMaster::getId))
-				.map(this::mapToVendorMasterResponse).toList();
+				.map(vendorMapper::mapToVendorMasterResponse).toList();
 	}
 
 	@Override
 	public List<VendorMasterResponse> findAllStatusTrue() {
 		List<VendorMaster> vendorMasters = vendorMasterRepository.findAllByStatusIsTrue();
 		return vendorMasters.stream().sorted(Comparator.comparing(VendorMaster::getId))
-				.map(this::mapToVendorMasterResponse).toList();
+				.map(vendorMapper::mapToVendorMasterResponse).toList();
 	}
 
 	@Override
-	public VendorMasterResponse updateVm(Long id, VendorMasterRequest updateVendorMasterRequest)
+	public VendorMasterResponse updateVm(@NonNull Long id, VendorMasterRequest updateVendorMasterRequest)
 			throws ResourceNotFoundException {
-//		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "website");
-//		Helpers.inputTitleCase(updateVendorMasterRequest, fieldsToSkipCapitalization);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		VendorMaster existingVendor = this.findVmById(id);
@@ -205,11 +192,11 @@ public class VendorMasterServiceImpl implements VendorMasterService {
 		}
 		existingVendor.updateAuditHistory(auditFields);
 		VendorMaster updatedVendor = vendorMasterRepository.save(existingVendor);
-		return mapToVendorMasterResponse(updatedVendor);
+		return vendorMapper.mapToVendorMasterResponse(updatedVendor);
 	}
 
 	@Override
-	public VendorMasterResponse updateVmStatusById(Long id) throws ResourceNotFoundException {
+	public VendorMasterResponse updateVmStatusById(@NonNull Long id) throws ResourceNotFoundException {
 		VendorMaster existingVendorMaster = this.findVmById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -220,11 +207,11 @@ public class VendorMasterServiceImpl implements VendorMasterService {
 		}
 		existingVendorMaster.updateAuditHistory(auditFields);
 		vendorMasterRepository.save(existingVendorMaster);
-		return this.mapToVendorMasterResponse(existingVendorMaster);
+		return vendorMapper.mapToVendorMasterResponse(existingVendorMaster);
 	}
 
 	@Override
-	public List<VendorMasterResponse> updateBulkStatusVmId(List<Long> id) throws ResourceNotFoundException {
+	public List<VendorMasterResponse> updateBulkStatusVmId(@NonNull List<Long> id) throws ResourceNotFoundException {
 		List<VendorMaster> vendorMasters = this.findAllVendorById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -237,44 +224,52 @@ public class VendorMasterServiceImpl implements VendorMasterService {
 			existingVendorMaster.updateAuditHistory(auditFields);
 		});
 		vendorMasterRepository.saveAll(vendorMasters);
-		return vendorMasters.stream().map(this::mapToVendorMasterResponse).toList();
+		return vendorMasters.stream().map(vendorMapper::mapToVendorMasterResponse).toList();
 	}
 
 	@Override
-	public void deleteVmId(Long id) throws ResourceNotFoundException {
+	public void deleteVmId(@NonNull Long id) throws ResourceNotFoundException {
 		VendorMaster vendorMaster = this.findVmById(id);
-		vendorMasterRepository.deleteById(vendorMaster.getId());
-	}
-
-	private VendorMaster findVmById(Long id) throws ResourceNotFoundException {
-		Optional<VendorMaster> vendorMaster = vendorMasterRepository.findById(id);
-		if (vendorMaster.isEmpty()) {
-			throw new ResourceNotFoundException("Vendor Master with this ID Not found");
+		if (vendorMaster != null) {
+			vendorMasterRepository.delete(vendorMaster);
 		}
-		return vendorMaster.get();
 	}
 
-	private VendorMasterResponse mapToVendorMasterResponse(VendorMaster vendorMaster) {
-		return modelMapper.map(vendorMaster, VendorMasterResponse.class);
+	private void validateDynamicFields(VendorMaster vendorMaster) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : vendorMaster.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = VendorMaster.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private VendorMaster findVmById(@NonNull Long id) throws ResourceNotFoundException {
+		return vendorMasterRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Vendor Master with this ID Not found"));
 	}
 
 	@Override
-	public void deleteVmBatchById(List<Long> id) throws ResourceNotFoundException {
+	public void deleteVmBatchById(@NonNull List<Long> id) throws ResourceNotFoundException {
 		List<VendorMaster> vendorMasters = this.findAllVendorById(id);
-		vendorMasterRepository.deleteAll(vendorMasters);
+		if (!vendorMasters.isEmpty()) {
+			vendorMasterRepository.deleteAll(vendorMasters);
+		}
 	}
 
-	private List<VendorMaster> findAllVendorById(List<Long> ids) throws ResourceNotFoundException {
+	private List<VendorMaster> findAllVendorById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		Set<Long> idSet = new HashSet<>(ids);
 		List<VendorMaster> vendorMasters = vendorMasterRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> vendorMasters.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Vendor Master with IDs " + missingIds + " not found.");
 		}
+
 		return vendorMasters;
 	}
 

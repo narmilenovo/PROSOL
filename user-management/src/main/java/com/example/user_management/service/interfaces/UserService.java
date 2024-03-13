@@ -3,6 +3,8 @@ package com.example.user_management.service.interfaces;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.lang.NonNull;
+
 import com.example.user_management.client.UserDepartmentPlantResponse;
 import com.example.user_management.client.UserDepartmentResponse;
 import com.example.user_management.client.UserPlantResponse;
@@ -20,13 +22,14 @@ public interface UserService {
 
 	List<UserResponse> saveAllUser(List<UserRequest> userRequests);
 
-	UserResponse getUserById(Long id, String show) throws ResourceNotFoundException;
+	UserResponse getUserById(@NonNull Long id, String show) throws ResourceNotFoundException;
 
-	UserPlantResponse getUserPlantById(Long id, String show) throws ResourceNotFoundException;
+	UserPlantResponse getUserPlantById(@NonNull Long id, String show) throws ResourceNotFoundException;
 
-	UserDepartmentResponse getUserDepartmentById(Long id, String show) throws ResourceNotFoundException;
+	UserDepartmentResponse getUserDepartmentById(@NonNull Long id, String show) throws ResourceNotFoundException;
 
-	UserDepartmentPlantResponse getUserDepartmentPlantById(Long id, String show) throws ResourceNotFoundException;
+	UserDepartmentPlantResponse getUserDepartmentPlantById(@NonNull Long id, String show)
+			throws ResourceNotFoundException;
 
 	UserResponse findByEmail(String email) throws ResourceNotFoundException;
 
@@ -46,24 +49,26 @@ public interface UserService {
 
 	List<UserPlantResponse> getAllUserPlantsByPlantId(String show, List<Long> plantIds);
 
-	UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException;
+	UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException;
 
-	UserResponse updateStatusUsingId(Long id) throws ResourceNotFoundException;
+	UserResponse updateStatusUsingId(@NonNull Long id) throws ResourceNotFoundException;
 
-	List<UserResponse> updateBulkStatusUsingId(List<Long> id) throws ResourceNotFoundException;
+	List<UserResponse> updateBulkStatusUsingId(@NonNull List<Long> id) throws ResourceNotFoundException;
 
-	UserResponse updatePassword(Long id, UpdatePasswordRequest updatePasswordRequest) throws ResourceNotFoundException;
+	UserResponse updatePassword(@NonNull Long id, UpdatePasswordRequest updatePasswordRequest)
+			throws ResourceNotFoundException;
 
-	void updatePassword(Long id, String newPassword) throws ResourceNotFoundException;
+	void updatePassword(@NonNull Long id, String newPassword) throws ResourceNotFoundException;
 
-	void deleteUserId(Long id) throws ResourceNotFoundException;
+	void deleteUserId(@NonNull Long id) throws ResourceNotFoundException;
 
-	void deleteBatch(List<Long> id) throws ResourceNotFoundException;
+	void deleteBatch(@NonNull List<Long> id) throws ResourceNotFoundException;
 
 	Set<Role> setToRoleId(Long[] roles);
 
-	UserResponse addRolesToUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
+	UserResponse addRolesToUser(@NonNull Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
 
-	UserResponse removeRolesFromUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
+	UserResponse removeRolesFromUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+			throws ResourceNotFoundException;
 
 }

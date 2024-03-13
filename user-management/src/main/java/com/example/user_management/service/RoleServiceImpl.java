@@ -4,14 +4,17 @@ import static com.example.user_management.utils.Constants.NO_ROLE_FOUND_WITH_ID_
 import static com.example.user_management.utils.Constants.ROLE_FOUND_WITH_NAME_MESSAGE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.user_management.client.RolePlantResponse;
@@ -25,6 +28,7 @@ import com.example.user_management.entity.Privilege;
 import com.example.user_management.entity.Role;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
+import com.example.user_management.mapping.RoleMapper;
 import com.example.user_management.repository.PrivilegeRepository;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.service.interfaces.RoleService;
@@ -37,75 +41,72 @@ import lombok.RequiredArgsConstructor;
 public class RoleServiceImpl implements RoleService {
 	private final RoleRepository roleRepository;
 	private final PrivilegeRepository privilegeRepository;
-	private final ModelMapper modelMapper;
+	private final RoleMapper roleMapper;
 	private final PlantServiceClient plantServiceClient;
 
 	@Override
 	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceFoundException, ResourceNotFoundException {
 		Helpers.inputTitleCase(roleRequest);
-		boolean exists = roleRepository.existsByName(roleRequest.getName());
-		if (!exists) {
-			Role role = modelMapper.map(roleRequest, Role.class);
-			role.setId(null);
-			role.setName(roleRequest.getName());
-			role.setPrivileges(setToPrivilegeId(roleRequest.getPrivileges()));
-			Role savedRole = roleRepository.save(role);
-			return mapToRoleResponse(savedRole);
+		String roleName = roleRequest.getName();
+		if (roleRepository.existsByName(roleName)) {
+			throw new ResourceFoundException(ROLE_FOUND_WITH_NAME_MESSAGE);
 		}
-		throw new ResourceFoundException(ROLE_FOUND_WITH_NAME_MESSAGE);
+		Role role = roleMapper.mapToRole(roleRequest);
+		role.setId(null);
+		role.setName(roleName);
+		role.setPrivileges(setToPrivilegeId(roleRequest.getPrivileges()));
+		Role savedRole = roleRepository.save(role);
+		return roleMapper.mapToRoleResponse(savedRole);
 	}
 
 	@Override
-	@Cacheable("roles")
-	public RoleResponse getRoleById(Long id) throws ResourceNotFoundException {
+	public RoleResponse getRoleById(@NonNull Long id) throws ResourceNotFoundException {
 		Role role = this.findRoleById(id);
-		return mapToRoleResponse(role);
+		return roleMapper.mapToRoleResponse(role);
 	}
 
 	@Override
-	public RolePlantResponse getRolePlantById(Long id) throws ResourceNotFoundException {
+	public RolePlantResponse getRolePlantById(@NonNull Long id) throws ResourceNotFoundException {
 		Role role = this.findRoleById(id);
 		return mapToRolePlantResponse(role);
 	}
 
 	@Override
-	@Cacheable("roles")
 	public List<RoleResponse> getAllRoles() {
-		List<Role> list = roleRepository.findAll();
-		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRoleResponse).toList();
+		return roleRepository.findAll().stream().sorted(Comparator.comparing(Role::getId))
+				.map(roleMapper::mapToRoleResponse).toList();
 	}
 
 	@Override
 	public List<RolePlantResponse> getAllRolesPlant() {
-		List<Role> list = roleRepository.findAll();
-		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRolePlantResponse).toList();
+		return roleRepository.findAll().stream().sorted(Comparator.comparing(Role::getId))
+				.map(this::mapToRolePlantResponse).toList();
 	}
 
 	@Override
-	@Cacheable("roles")
 	public List<RoleResponse> findAllStatusTrue() {
-		List<Role> roles = roleRepository.findAllByStatusIsTrue();
-		return roles.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRoleResponse).toList();
+		return roleRepository.findAllByStatusIsTrue().stream().sorted(Comparator.comparing(Role::getId))
+				.map(roleMapper::mapToRoleResponse).toList();
 	}
 
 	@Override
 	public List<RolePlantResponse> findAllRolesPlantStatusTrue() {
-		List<Role> list = roleRepository.findAllByStatusIsTrue();
-		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRolePlantResponse).toList();
+		return roleRepository.findAllByStatusIsTrue().stream().sorted(Comparator.comparing(Role::getId))
+				.map(this::mapToRolePlantResponse).toList();
 	}
 
 	public List<RoleResponse> findAllByPlantId(Long plantId) {
-		List<Role> roles = roleRepository.findByPlantId(plantId);
-		return roles.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRoleResponse).toList();
+		return roleRepository.findByPlantId(plantId).stream().sorted(Comparator.comparing(Role::getId))
+				.map(roleMapper::mapToRoleResponse).toList();
 	}
 
 	public List<RolePlantResponse> findAllRolesPlantByPlantId(Long plantId) {
-		List<Role> list = roleRepository.findByPlantId(plantId);
-		return list.stream().sorted(Comparator.comparing(Role::getId)).map(this::mapToRolePlantResponse).toList();
+		return roleRepository.findByPlantId(plantId).stream().sorted(Comparator.comparing(Role::getId))
+				.map(this::mapToRolePlantResponse).toList();
 	}
 
 	@Override
-	public RoleResponse updateRole(Long id, RoleRequest updateRoleRequest)
+	public RoleResponse updateRole(@NonNull Long id, RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.inputTitleCase(updateRoleRequest);
 		Role existingRole = this.findRoleById(id);
@@ -139,15 +140,14 @@ public class RoleServiceImpl implements RoleService {
 			}
 			existingRole.updateAuditHistory(auditFields);
 			Role updatedRole = roleRepository.save(existingRole);
-			return mapToRoleResponse(updatedRole);
+			return roleMapper.mapToRoleResponse(updatedRole);
 		}
 		throw new ResourceFoundException(ROLE_FOUND_WITH_NAME_MESSAGE);
 	}
 
 	@Override
-	public List<RoleResponse> updateBulkStatusRoleId(List<Long> ids) throws ResourceNotFoundException {
+	public List<RoleResponse> updateBulkStatusRoleId(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<Role> existingRoles = this.findAllRolesById(ids);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		existingRoles.forEach(existingRole -> {
 			if (existingRole.getStatus() != null) {
@@ -157,11 +157,11 @@ public class RoleServiceImpl implements RoleService {
 			existingRole.updateAuditHistory(auditFields);
 		});
 		roleRepository.saveAll(existingRoles);
-		return existingRoles.stream().map(this::mapToRoleResponse).toList();
+		return existingRoles.stream().map(roleMapper::mapToRoleResponse).toList();
 	}
 
 	@Override
-	public RoleResponse updateStatusUsingRoleId(Long id) throws ResourceNotFoundException {
+	public RoleResponse updateStatusUsingRoleId(@NonNull Long id) throws ResourceNotFoundException {
 		Role existingRole = this.findRoleById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -171,37 +171,34 @@ public class RoleServiceImpl implements RoleService {
 		}
 		existingRole.updateAuditHistory(auditFields);
 		Role updateRole = roleRepository.save(existingRole);
-		return mapToRoleResponse(updateRole);
+		return roleMapper.mapToRoleResponse(updateRole);
 	}
 
 	@Override
-	public void deleteRoleId(Long id) throws ResourceNotFoundException {
+	public void deleteRoleId(@NonNull Long id) throws ResourceNotFoundException {
 		Role role = this.findRoleById(id);
-		roleRepository.deleteById(role.getId());
+		if (role != null) {
+			roleRepository.delete(role);
+		}
 	}
 
 	@Override
-	public void deleteBatchRole(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllRolesById(ids);
-		roleRepository.deleteAllByIdInBatch(ids);
+	public void deleteBatchRole(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<Role> privileges = this.findAllRolesById(ids);
+		if (privileges != null) {
+			roleRepository.deleteAll(privileges);
+		}
 
 	}
 
 	public Set<Privilege> setToPrivilegeId(Long[] privileges) {
-		Set<Privilege> rolesPrivileges = new HashSet<>();
-		for (Long privilegeId : privileges) {
-			Optional<Privilege> fetchedPrivilege = privilegeRepository.findById(privilegeId);
-			fetchedPrivilege.ifPresent(rolesPrivileges::add);
-		}
-		return rolesPrivileges;
-	}
-
-	private RoleResponse mapToRoleResponse(Role role) {
-		return modelMapper.map(role, RoleResponse.class);
+		Set<Long> privilegeIds = new HashSet<>(Arrays.asList(privileges));
+		List<Privilege> fetchedPrivileges = privilegeRepository.findAllById(privilegeIds);
+		return new HashSet<>(fetchedPrivileges);
 	}
 
 	private RolePlantResponse mapToRolePlantResponse(Role role) {
-		RolePlantResponse response = modelMapper.map(role, RolePlantResponse.class);
+		RolePlantResponse response = roleMapper.mapToRolePlantResponse(role);
 		if (plantServiceClient == null) {
 			throw new IllegalStateException("Plant service is not initiated");
 		}
@@ -210,7 +207,7 @@ public class RoleServiceImpl implements RoleService {
 		return response;
 	}
 
-	private Role findRoleById(Long id) throws ResourceNotFoundException {
+	private Role findRoleById(@NonNull Long id) throws ResourceNotFoundException {
 		Optional<Role> role = roleRepository.findById(id);
 		if (role.isEmpty()) {
 			throw new ResourceNotFoundException(NO_ROLE_FOUND_WITH_ID_MESSAGE);
@@ -218,48 +215,52 @@ public class RoleServiceImpl implements RoleService {
 		return role.get();
 	}
 
-	private List<Role> findAllRolesById(List<Long> ids) throws ResourceNotFoundException {
+	private List<Role> findAllRolesById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<Role> roles = roleRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> roles.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.toList();
+
+		Map<Long, Role> roleMap = roles.stream().collect(Collectors.toMap(Role::getId, Function.identity()));
+
+		List<Long> missingIds = ids.stream().filter(id -> !roleMap.containsKey(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Role with IDs " + missingIds + " not found");
 		}
-		return roles;
+
+		return ids.stream().map(roleMap::get).toList();
 	}
 
 	@Override
-	public RoleResponse removePrivilegesFromRole(Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
+	public RoleResponse removePrivilegesFromRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException {
 		return modifyPrivileges(roleId, rolePrivilegeRequest, "remove");
 	}
 
 	@Override
 
-	public RoleResponse addPrivilegesToRole(Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
+	public RoleResponse addPrivilegesToRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException {
 		return modifyPrivileges(roleId, rolePrivilegeRequest, "add");
 	}
 
-	private RoleResponse modifyPrivileges(Long roleId, RolePrivilegeRequest rolePrivilegeRequest, String operation)
-			throws ResourceNotFoundException {
+	private RoleResponse modifyPrivileges(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest,
+			String operation) throws ResourceNotFoundException {
 		Role role = this.findRoleById(roleId);
 		Set<Privilege> existingPrivileges = role.getPrivileges();
 		for (Long privilegeId : rolePrivilegeRequest.getPrivileges()) {
-			Optional<Privilege> privilege = privilegeRepository.findById(privilegeId);
-			privilege.ifPresent(p -> {
-				if (operation.equals("remove")) {
-					existingPrivileges.remove(p);
-				} else {
-					existingPrivileges.add(p);
-				}
-			});
+			if (privilegeId != null) {
+				Optional<Privilege> privilege = privilegeRepository.findById(privilegeId);
+				privilege.ifPresent(p -> {
+					if (operation.equals("remove")) {
+						existingPrivileges.remove(p);
+					} else {
+						existingPrivileges.add(p);
+					}
+				});
+			}
 		}
 		role.setPrivileges(existingPrivileges);
 		Role updatedRole = roleRepository.save(role);
-		return mapToRoleResponse(updatedRole);
+		return roleMapper.mapToRoleResponse(updatedRole);
 	}
 
 }

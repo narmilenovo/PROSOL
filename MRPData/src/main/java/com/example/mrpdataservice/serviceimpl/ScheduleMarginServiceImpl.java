@@ -3,12 +3,11 @@ package com.example.mrpdataservice.serviceimpl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +17,7 @@ import com.example.mrpdataservice.entity.ScheduleMargin;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
+import com.example.mrpdataservice.mapping.ScheduleMarginMapper;
 import com.example.mrpdataservice.repository.ScheduleMarginRepo;
 import com.example.mrpdataservice.request.ScheduleMarginRequest;
 import com.example.mrpdataservice.response.ScheduleMarginResponse;
@@ -34,7 +34,7 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 
 	private final ScheduleMarginRepo scheduleMarginRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final ScheduleMarginMapper scheduleMarginMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -44,18 +44,10 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 		boolean exists = scheduleMarginRepo.existsByScheduleMarginCodeAndScheduleMarginName(
 				scheduleMarginRequest.getScheduleMarginCode(), scheduleMarginRequest.getScheduleMarginName());
 		if (!exists) {
-			ScheduleMargin scheduleMargin = modelMapper.map(scheduleMarginRequest, ScheduleMargin.class);
-			for (Map.Entry<String, Object> entryField : scheduleMargin.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ScheduleMargin.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
+			ScheduleMargin scheduleMargin = scheduleMarginMapper.mapToScheduleMargin(scheduleMarginRequest);
+			validateDynamicFields(scheduleMargin);
 			scheduleMarginRepo.save(scheduleMargin);
-			return mapToScheduleMarginResponse(scheduleMargin);
+			return scheduleMarginMapper.mapToScheduleMarginResponse(scheduleMargin);
 		} else {
 			throw new AlreadyExistsException("ScheduleMargin with this name already exists");
 		}
@@ -64,13 +56,13 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	@Override
 	public ScheduleMarginResponse getScheduleMarginById(Long id) throws ResourceNotFoundException {
 		ScheduleMargin scheduleMargin = this.findScheduleMarginById(id);
-		return mapToScheduleMarginResponse(scheduleMargin);
+		return scheduleMarginMapper.mapToScheduleMarginResponse(scheduleMargin);
 	}
 
 	@Override
 	public List<ScheduleMarginResponse> getAllScheduleMargin() {
-		List<ScheduleMargin> scheduleMargin = scheduleMarginRepo.findAllByOrderByIdAsc();
-		return scheduleMargin.stream().map(this::mapToScheduleMarginResponse).toList();
+		return scheduleMarginRepo.findAllByOrderByIdAsc().stream()
+				.map(scheduleMarginMapper::mapToScheduleMarginResponse).toList();
 	}
 
 	@Override
@@ -81,7 +73,6 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	@Override
 	public ScheduleMarginResponse updateScheduleMargin(Long id, ScheduleMarginRequest scheduleMarginRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(scheduleMarginRequest);
 
 		String existName = scheduleMarginRequest.getScheduleMarginName();
@@ -122,7 +113,7 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 			}
 			existingScheduleMargin.updateAuditHistory(auditFields);
 			scheduleMarginRepo.save(existingScheduleMargin);
-			return mapToScheduleMarginResponse(existingScheduleMargin);
+			return scheduleMarginMapper.mapToScheduleMarginResponse(existingScheduleMargin);
 		} else {
 			throw new AlreadyExistsException("ScheduleMargin with this name already exists");
 		}
@@ -145,7 +136,7 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 
 		});
 		scheduleMarginRepo.saveAll(existingScheduleMargins);
-		return existingScheduleMargins.stream().map(this::mapToScheduleMarginResponse).toList();
+		return existingScheduleMargins.stream().map(scheduleMarginMapper::mapToScheduleMarginResponse).toList();
 	}
 
 	@Override
@@ -161,19 +152,23 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 		}
 		existingScheduleMargin.updateAuditHistory(auditFields);
 		scheduleMarginRepo.save(existingScheduleMargin);
-		return mapToScheduleMarginResponse(existingScheduleMargin);
+		return scheduleMarginMapper.mapToScheduleMarginResponse(existingScheduleMargin);
 	}
 
 	@Override
 	public void deleteScheduleMargin(Long id) throws ResourceNotFoundException {
 		ScheduleMargin scheduleMargin = this.findScheduleMarginById(id);
-		scheduleMarginRepo.deleteById(scheduleMargin.getId());
+		if (scheduleMargin != null) {
+			scheduleMarginRepo.delete(scheduleMargin);
+		}
 	}
 
 	@Override
 	public void deleteBatchScheduleMargin(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllScheMargById(ids);
-		scheduleMarginRepo.deleteAllByIdInBatch(ids);
+		List<ScheduleMargin> scheduleMargins = this.findAllScheMargById(ids);
+		if (!scheduleMargins.isEmpty()) {
+			scheduleMarginRepo.deleteAll(scheduleMargins);
+		}
 	}
 
 	@Override
@@ -225,32 +220,35 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 		return scheduleMargin;
 	}
 
-	private ScheduleMarginResponse mapToScheduleMarginResponse(ScheduleMargin scheduleMargin) {
-		return modelMapper.map(scheduleMargin, ScheduleMarginResponse.class);
+	private void validateDynamicFields(ScheduleMargin scheduleMargin) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : scheduleMargin.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ScheduleMargin.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private ScheduleMargin findScheduleMarginById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ScheduleMargin> scheduleMargin = scheduleMarginRepo.findById(id);
-		if (scheduleMargin.isEmpty()) {
-			throw new ResourceNotFoundException("ScheduleMargin with ID " + id + " not found");
-		}
-		return scheduleMargin.get();
+		return scheduleMarginRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("ScheduleMargin with ID " + id + " not found"));
 	}
 
 	private List<ScheduleMargin> findAllScheMargById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<ScheduleMargin> margins = scheduleMarginRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> margins.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<ScheduleMargin> foundMargins = margins.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Schedule Margin with IDs " + missingIds + " not found.");
 		}
-		return margins;
+		return foundMargins;
 	}
 
 }

@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class FormRequest {
 
 	private String formName;
-
+	private String formDescription;
 }

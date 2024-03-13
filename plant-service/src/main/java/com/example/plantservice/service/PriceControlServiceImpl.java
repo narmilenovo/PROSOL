@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +19,7 @@ import com.example.plantservice.entity.PriceControl;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.PriceControlMapper;
 import com.example.plantservice.repository.PriceControlRepo;
 import com.example.plantservice.service.interfaces.PriceControlService;
 import com.example.plantservice.util.ExcelFileHelper;
@@ -34,43 +34,34 @@ public class PriceControlServiceImpl implements PriceControlService {
 
 	private final PriceControlRepo priceControlRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final PriceControlMapper priceControlMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public PriceControlResponse savePriceControl(PriceControlRequest priceControlRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(priceControlRequest);
-		boolean exists = priceControlRepo.existsByPriceControlCodeAndPriceControlName(
-				priceControlRequest.getPriceControlCode(), priceControlRequest.getPriceControlName());
-		if (!exists) {
-			PriceControl priceControl = modelMapper.map(priceControlRequest, PriceControl.class);
-			for (Map.Entry<String, Object> entryField : priceControl.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PriceControl.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			priceControlRepo.save(priceControl);
-			return mapToPriceControlResponse(priceControl);
-		} else {
+		String priceControlCode = priceControlRequest.getPriceControlCode();
+		String priceControlName = priceControlRequest.getPriceControlName();
+		if (priceControlRepo.existsByPriceControlCodeAndPriceControlName(priceControlCode, priceControlName)) {
 			throw new AlreadyExistsException("PriceControl with this name already exists");
 		}
+		PriceControl priceControl = priceControlMapper.mapToPriceControl(priceControlRequest);
+		validateDynamicFields(priceControl);
+		priceControlRepo.save(priceControl);
+		return priceControlMapper.mapToPriceControlResponse(priceControl);
 	}
 
 	@Override
 	public PriceControlResponse getPriceControlById(Long id) throws ResourceNotFoundException {
 		PriceControl pricecontrol = this.findPriceControlById(id);
-		return mapToPriceControlResponse(pricecontrol);
+		return priceControlMapper.mapToPriceControlResponse(pricecontrol);
 	}
 
 	@Override
 	public List<PriceControlResponse> getAllPriceControl() {
-		List<PriceControl> priceControl = priceControlRepo.findAllByOrderByIdAsc();
-		return priceControl.stream().map(this::mapToPriceControlResponse).toList();
+		return priceControlRepo.findAllByOrderByIdAsc().stream().map(priceControlMapper::mapToPriceControlResponse)
+				.toList();
 	}
 
 	@Override
@@ -118,7 +109,7 @@ public class PriceControlServiceImpl implements PriceControlService {
 			}
 			existingPriceControl.updateAuditHistory(auditFields);
 			priceControlRepo.save(existingPriceControl);
-			return mapToPriceControlResponse(existingPriceControl);
+			return priceControlMapper.mapToPriceControlResponse(existingPriceControl);
 		} else {
 			throw new AlreadyExistsException("PriceControl with this name already exists");
 		}
@@ -138,7 +129,7 @@ public class PriceControlServiceImpl implements PriceControlService {
 			existingPriceControl.updateAuditHistory(auditFields);
 		});
 		priceControlRepo.saveAll(existingPriceControls);
-		return existingPriceControls.stream().map(this::mapToPriceControlResponse).toList();
+		return existingPriceControls.stream().map(priceControlMapper::mapToPriceControlResponse).toList();
 	}
 
 	@Override
@@ -153,19 +144,23 @@ public class PriceControlServiceImpl implements PriceControlService {
 		}
 		existingPriceControl.updateAuditHistory(auditFields);
 		priceControlRepo.save(existingPriceControl);
-		return mapToPriceControlResponse(existingPriceControl);
+		return priceControlMapper.mapToPriceControlResponse(existingPriceControl);
 	}
 
 	@Override
 	public void deletePriceControl(Long id) throws ResourceNotFoundException {
 		PriceControl pricecontrol = this.findPriceControlById(id);
-		priceControlRepo.deleteById(pricecontrol.getId());
+		if (pricecontrol != null) {
+			priceControlRepo.delete(pricecontrol);
+		}
 	}
 
 	@Override
 	public void deleteBatchPriceControl(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllPcById(ids);
-		priceControlRepo.deleteAllByIdInBatch(ids);
+		List<PriceControl> priceControls = this.findAllPcById(ids);
+		if (!priceControls.isEmpty()) {
+			priceControlRepo.deleteAll(priceControls);
+		}
 	}
 
 	@Override
@@ -218,32 +213,36 @@ public class PriceControlServiceImpl implements PriceControlService {
 		return prices;
 	}
 
-	private PriceControlResponse mapToPriceControlResponse(PriceControl pricecontrol) {
-		return modelMapper.map(pricecontrol, PriceControlResponse.class);
+	private void validateDynamicFields(PriceControl priceControl) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : priceControl.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = PriceControl.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private PriceControl findPriceControlById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<PriceControl> priceControl = priceControlRepo.findById(id);
-		if (priceControl.isEmpty()) {
-			throw new ResourceNotFoundException("Price Control with ID " + id + " not found");
-		}
-		return priceControl.get();
+		return priceControlRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Price Control with ID " + id + " not found"));
 	}
 
 	private List<PriceControl> findAllPcById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<PriceControl> priceControls = priceControlRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> priceControls.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<PriceControl> foundPriceControls = priceControls.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Price Control with IDs " + missingIds + " not found.");
 		}
-		return priceControls;
+		return foundPriceControls;
 	}
 
 }

@@ -5,11 +5,12 @@ import static com.example.user_management.utils.Constants.PRIVILEGE_FOUND_WITH_N
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Privilege;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
+import com.example.user_management.mapping.PrivilegeMapper;
 import com.example.user_management.repository.PrivilegeRepository;
 import com.example.user_management.service.interfaces.PrivilegeService;
 import com.example.user_management.utils.Helpers;
@@ -29,51 +31,47 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PrivilegeServiceImpl implements PrivilegeService {
 	private final PrivilegeRepository privilegeRepository;
-	private final ModelMapper modelMapper;
+	private final PrivilegeMapper privilegeMapper;
 
 	@Override
 	public PrivilegeResponse savePrivilege(PrivilegeRequest privilegeRequest) throws ResourceFoundException {
 		Helpers.inputTitleCase(privilegeRequest);
-		boolean exists = privilegeRepository.existsByName(privilegeRequest.getName());
-		if (!exists) {
-			Privilege privilege = modelMapper.map(privilegeRequest, Privilege.class);
-			privilege.setName(privilegeRequest.getName());
-			Privilege savedPrivilege = privilegeRepository.save(privilege);
-			return mapToPrivilegeResponse(savedPrivilege);
+		String privilegeName = privilegeRequest.getName();
+		if (privilegeRepository.existsByName(privilegeName)) {
+			throw new ResourceFoundException(PRIVILEGE_FOUND_WITH_NAME_MESSAGE);
 		}
-		throw new ResourceFoundException(PRIVILEGE_FOUND_WITH_NAME_MESSAGE);
+		Privilege privilege = privilegeMapper.mapToPrivilege(privilegeRequest);
+		privilege.setName(privilegeName);
+		Privilege savedPrivilege = privilegeRepository.save(privilege);
+		return privilegeMapper.mapToPrivilegeResponse(savedPrivilege);
 	}
 
 	@Override
-	@Cacheable("privileges")
-	public PrivilegeResponse getPrivilegeById(Long id) throws ResourceNotFoundException {
+	public PrivilegeResponse getPrivilegeById(@NonNull Long id) throws ResourceNotFoundException {
 		Privilege privilege = this.findPrivilegeById(id);
-		return mapToPrivilegeResponse(privilege);
+		return privilegeMapper.mapToPrivilegeResponse(privilege);
 	}
 
 	@Override
-	@Cacheable("privileges")
 	public List<PrivilegeResponse> getAllPrivileges() {
-		List<Privilege> privileges = privilegeRepository.findAll();
-		return privileges.stream().sorted(Comparator.comparing(Privilege::getId)).map(this::mapToPrivilegeResponse)
-				.toList();
+		return privilegeRepository.findAll().stream().sorted(Comparator.comparing(Privilege::getId))
+				.map(privilegeMapper::mapToPrivilegeResponse).toList();
 	}
 
 	@Override
 	@Transactional
-	public PrivilegeResponse updatePrivilege(Long id, PrivilegeRequest updatePrivilegeRequest)
+	public PrivilegeResponse updatePrivilege(@NonNull Long id, PrivilegeRequest updatePrivilegeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.inputTitleCase(updatePrivilegeRequest);
+		String privilegeName = updatePrivilegeRequest.getName();
 
 		Privilege existingPrivilege = this.findPrivilegeById(id);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
-		boolean exists = privilegeRepository.existsByNameAndIdNot(updatePrivilegeRequest.getName(), id);
+		boolean exists = privilegeRepository.existsByNameAndIdNot(privilegeName, id);
 		if (!exists) {
-			if (!existingPrivilege.getName().equals(updatePrivilegeRequest.getName())) {
-				auditFields.add(
-						new AuditFields(null, "Name", existingPrivilege.getName(), updatePrivilegeRequest.getName()));
-				existingPrivilege.setName(updatePrivilegeRequest.getName());
+			if (!existingPrivilege.getName().equals(privilegeName)) {
+				auditFields.add(new AuditFields(null, "Name", existingPrivilege.getName(), privilegeName));
+				existingPrivilege.setName(privilegeName);
 			}
 			if (!existingPrivilege.getStatus().equals(updatePrivilegeRequest.getStatus())) {
 				auditFields.add(new AuditFields(null, "Status", existingPrivilege.getStatus(),
@@ -82,13 +80,13 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 			}
 			existingPrivilege.updateAuditHistory(auditFields);
 			Privilege updatedPrivilege = privilegeRepository.save(existingPrivilege);
-			return mapToPrivilegeResponse(updatedPrivilege);
+			return privilegeMapper.mapToPrivilegeResponse(updatedPrivilege);
 		}
 		throw new ResourceFoundException(PRIVILEGE_FOUND_WITH_NAME_MESSAGE);
 	}
 
 	@Override
-	public PrivilegeResponse updateStatusUsingPrivilegeById(Long id) throws ResourceNotFoundException {
+	public PrivilegeResponse updateStatusUsingPrivilegeById(@NonNull Long id) throws ResourceNotFoundException {
 		Privilege existingPrivilege = this.findPrivilegeById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -99,11 +97,12 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 		}
 		existingPrivilege.updateAuditHistory(auditFields);
 		Privilege updatedPrivilege = privilegeRepository.save(existingPrivilege);
-		return mapToPrivilegeResponse(updatedPrivilege);
+		return privilegeMapper.mapToPrivilegeResponse(updatedPrivilege);
 	}
 
 	@Override
-	public List<PrivilegeResponse> updateBulkStatusPrivilegeById(List<Long> ids) throws ResourceNotFoundException {
+	public List<PrivilegeResponse> updateBulkStatusPrivilegeById(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<Privilege> existingPrivileges = this.findAllPrivilegeById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -116,42 +115,37 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 			existingPrivilege.updateAuditHistory(auditFields);
 		});
 		privilegeRepository.saveAll(existingPrivileges);
-		return existingPrivileges.stream().map(this::mapToPrivilegeResponse).toList();
+		return existingPrivileges.stream().map(privilegeMapper::mapToPrivilegeResponse).toList();
 	}
 
 	@Override
-	public void deletePrivilege(Long id) throws ResourceNotFoundException {
+	public void deletePrivilege(@NonNull Long id) throws ResourceNotFoundException {
 		Privilege privilege = this.findPrivilegeById(id);
-		privilegeRepository.deleteById(privilege.getId());
+		if (privilege != null) {
+			privilegeRepository.delete(privilege);
+		}
 	}
 
 	@Override
-	public void deleteBatchPrivilege(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllPrivilegeById(ids);
-		privilegeRepository.deleteAllByIdInBatch(ids);
+	public void deleteBatchPrivilege(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<Privilege> privileges = this.findAllPrivilegeById(ids);
+		privilegeRepository.deleteAll(privileges);
 	}
 
-	private PrivilegeResponse mapToPrivilegeResponse(Privilege privilege) {
-		return modelMapper.map(privilege, PrivilegeResponse.class);
+	private Privilege findPrivilegeById(@NonNull Long id) throws ResourceNotFoundException {
+		return privilegeRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE));
+
 	}
 
-	private Privilege findPrivilegeById(Long id) throws ResourceNotFoundException {
-		Optional<Privilege> privilege = privilegeRepository.findById(id);
-		if (privilege.isEmpty()) {
-			throw new ResourceNotFoundException(NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE);
-		}
-		return privilege.get();
-	}
-
-	private List<Privilege> findAllPrivilegeById(List<Long> ids) throws ResourceNotFoundException {
+	@NonNull
+	private List<Privilege> findAllPrivilegeById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		Set<Long> idSet = new HashSet<>(ids);
 		List<Privilege> privileges = privilegeRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> privileges.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
 
-		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Privilege with IDs " + missingIds + " not found.");
+		idSet.removeAll(privileges.stream().map(Privilege::getId).collect(Collectors.toSet()));
+		if (!idSet.isEmpty()) {
+			throw new ResourceNotFoundException("Privilege with IDs " + idSet + " not found.");
 		}
 		return privileges;
 	}

@@ -16,6 +16,11 @@ spring:
     username: postgres
     url: jdbc:postgresql://localhost:5432/value?rewriteBatchedStatements=true
     password: imu123
+    
+  
+  output:
+    ansi:
+      enabled: always
 
   jpa:
     hibernate:
@@ -24,10 +29,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
-          batch_size: 1000
-        order_inserts: true
+          '[batch_size]': 1000
+        '[order_inserts]': true
         #        generate_statistics: true
-        format_sql: true
+        '[format_sql]': true
     show-sql: true
   
   servlet:

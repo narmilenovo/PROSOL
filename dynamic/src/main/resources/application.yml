@@ -11,6 +11,7 @@ spring:
   application:
     name: dynamic-service # The server application name
 
+  
   # Db Configuration
   datasource:
     username: postgres
@@ -23,9 +24,12 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        show_sql: true
+        '[format_sql]': true
+        '[show_sql]': true
 
+  output:
+    ansi:
+      enabled: always
 # Eureka Server configuration
 eureka:
   instance:

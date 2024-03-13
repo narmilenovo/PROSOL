@@ -4,16 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.ReferenceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
+import com.example.generalsettings.mapping.ReferenceTypeMapper;
 import com.example.generalsettings.repo.ReferenceTypeRepo;
 import com.example.generalsettings.request.ReferenceTypeRequest;
 import com.example.generalsettings.response.ReferenceTypeResponse;
@@ -27,33 +25,32 @@ import lombok.RequiredArgsConstructor;
 public class ReferenceTypeImpl implements ReferenceTypeService {
 	private final ReferenceTypeRepo referenceTypeRepo;
 
-	private final ModelMapper modelMapper;
+	private final ReferenceTypeMapper referenceTypeMapper;
 
 	@Override
 	public ReferenceTypeResponse saveReferenceType(ReferenceTypeRequest referenceTypeRequest)
 			throws AlreadyExistsException {
 		Helpers.inputTitleCase(referenceTypeRequest);
-		boolean exists = referenceTypeRepo.existsByReferenceTypeCodeAndReferenceTypeName(
-				referenceTypeRequest.getReferenceTypeCode(), referenceTypeRequest.getReferenceTypeName());
-		if (!exists) {
-			ReferenceType referenceType = modelMapper.map(referenceTypeRequest, ReferenceType.class);
-			referenceTypeRepo.save(referenceType);
-			return mapToReferenceTypeResponse(referenceType);
-		} else {
+		String refrenceTypeCode = referenceTypeRequest.getReferenceTypeCode();
+		String refrenceTypeName = referenceTypeRequest.getReferenceTypeName();
+		if (referenceTypeRepo.existsByReferenceTypeCodeAndReferenceTypeName(refrenceTypeCode, refrenceTypeName)) {
 			throw new AlreadyExistsException("ReferenceType with this name already exists");
 		}
+		ReferenceType referenceType = referenceTypeMapper.mapToReferenceType(referenceTypeRequest);
+		referenceTypeRepo.save(referenceType);
+		return referenceTypeMapper.mapToReferenceTypeResponse(referenceType);
 	}
 
 	@Override
 	public ReferenceTypeResponse getReferenceTypeById(Long id) throws ResourceNotFoundException {
 		ReferenceType referenceType = this.findReferenceTypeById(id);
-		return mapToReferenceTypeResponse(referenceType);
+		return referenceTypeMapper.mapToReferenceTypeResponse(referenceType);
 	}
 
 	@Override
 	public List<ReferenceTypeResponse> getAllReferenceType() {
 		List<ReferenceType> referenceType = referenceTypeRepo.findAllByOrderByIdAsc();
-		return referenceType.stream().map(this::mapToReferenceTypeResponse).toList();
+		return referenceType.stream().map(referenceTypeMapper::mapToReferenceTypeResponse).toList();
 	}
 
 	@Override
@@ -95,7 +92,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 			}
 			existingReferenceType.updateAuditHistory(auditFields);
 			referenceTypeRepo.save(existingReferenceType);
-			return mapToReferenceTypeResponse(existingReferenceType);
+			return referenceTypeMapper.mapToReferenceTypeResponse(existingReferenceType);
 		} else {
 			throw new AlreadyExistsException("ReferenceType with this name already exists");
 		}
@@ -116,7 +113,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 			existingReferenceType.updateAuditHistory(auditFields);
 		});
 		referenceTypeRepo.saveAll(existingReferenceTypeList);
-		return existingReferenceTypeList.stream().map(this::mapToReferenceTypeResponse).toList();
+		return existingReferenceTypeList.stream().map(referenceTypeMapper::mapToReferenceTypeResponse).toList();
 	}
 
 	@Override
@@ -131,7 +128,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		}
 		existingReferenceType.updateAuditHistory(auditFields);
 		referenceTypeRepo.save(existingReferenceType);
-		return mapToReferenceTypeResponse(existingReferenceType);
+		return referenceTypeMapper.mapToReferenceTypeResponse(existingReferenceType);
 	}
 
 	@Override
@@ -139,7 +136,7 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		ReferenceType existingReferenceType = this.findReferenceTypeById(id);
 		existingReferenceType.setDuplicateCheck(!existingReferenceType.getDuplicateCheck());
 		referenceTypeRepo.save(existingReferenceType);
-		return mapToReferenceTypeResponse(existingReferenceType);
+		return referenceTypeMapper.mapToReferenceTypeResponse(existingReferenceType);
 	}
 
 	@Override
@@ -150,19 +147,23 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 			referenceType.setDuplicateCheck(!referenceType.getDuplicateCheck());
 		}
 		referenceTypeRepo.saveAll(existingReferenceType);
-		return existingReferenceType.stream().map(this::mapToReferenceTypeResponse).toList();
+		return existingReferenceType.stream().map(referenceTypeMapper::mapToReferenceTypeResponse).toList();
 	}
 
 	@Override
 	public void deleteReferenceType(Long id) throws ResourceNotFoundException {
 		ReferenceType referenceType = this.findReferenceTypeById(id);
-		referenceTypeRepo.deleteById(referenceType.getId());
+		if (referenceType != null) {
+			referenceTypeRepo.delete(referenceType);
+		}
 	}
 
 	@Override
 	public void deleteBatchReferenceType(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllRefTypeById(ids);
-		referenceTypeRepo.deleteAllByIdInBatch(ids);
+		List<ReferenceType> referenceTypes = this.findAllRefTypeById(ids);
+		if (!referenceTypes.isEmpty()) {
+			referenceTypeRepo.deleteAll(referenceTypes);
+		}
 	}
 
 	@Override
@@ -179,28 +180,18 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 		return dataList;
 	}
 
-	private ReferenceTypeResponse mapToReferenceTypeResponse(ReferenceType referenceType) {
-		return modelMapper.map(referenceType, ReferenceTypeResponse.class);
-	}
-
 	private ReferenceType findReferenceTypeById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ReferenceType> referenceType = referenceTypeRepo.findById(id);
-		if (referenceType.isEmpty()) {
-			throw new ResourceNotFoundException("ReferenceType with ID " + id + " not found");
-		}
-		return referenceType.get();
+		return referenceTypeRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("ReferenceType with ID " + id + " not found"));
 	}
 
 	private List<ReferenceType> findAllRefTypeById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
 		List<ReferenceType> types = referenceTypeRepo.findAllById(ids);
-		// Check for missing IDs
 		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+				.toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Refrence Tyoe with IDs " + missingIds + " not found.");
 		}
 		return types;

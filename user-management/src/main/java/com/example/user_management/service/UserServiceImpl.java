@@ -11,8 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,7 @@ import com.example.user_management.entity.Role;
 import com.example.user_management.entity.User;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
+import com.example.user_management.mapping.UserMapper;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
@@ -44,7 +46,7 @@ import lombok.RequiredArgsConstructor;
 public class UserServiceImpl implements UserService {
 	private final UserRepository userRepository;
 	private final RoleRepository roleRepository;
-	private final ModelMapper modelMapper;
+	private final UserMapper userMapper;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final PlantServiceClient plantService;
 
@@ -52,61 +54,61 @@ public class UserServiceImpl implements UserService {
 	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException {
 		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
 		Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
-		boolean exists = userRepository.existsByEmail(userRequest.getEmail());
-		if (!exists) {
-			User user = modelMapper.map(userRequest, User.class);
-			user.setId(null);
-			user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-			user.setRoles(setToRoleId(userRequest.getRoles()));
-			user.setDepartmentId(userRequest.getDepartmentId());
-			User savedUser = userRepository.save(user);
-			return mapToUserResponse(savedUser);
+		String email = userRequest.getEmail();
+		if (userRepository.existsByEmail(email)) {
+			throw new ResourceFoundException(USER_FOUND_WITH_EMAIL_MESSAGE);
 		}
+		User user = userMapper.mapToUser(userRequest);
+		user.setId(null);
+		user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+		user.setRoles(setToRoleId(userRequest.getRoles()));
+		user.setDepartmentId(userRequest.getDepartmentId());
+		User savedUser = userRepository.save(user);
+		return userMapper.mapToUserResponse(savedUser);
 
-		throw new ResourceFoundException(USER_FOUND_WITH_EMAIL_MESSAGE);
 	}
 
 	@Override
 	public List<UserResponse> saveAllUser(List<UserRequest> userRequests) {
-		List<User> userList = new ArrayList<>();
-		for (UserRequest userRequest : userRequests) {
-			List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
-			Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
-			boolean exists = userRepository.existsByEmail(userRequest.getEmail());
-			if (!exists) {
-				User user = modelMapper.map(userRequest, User.class);
-				user.setId(null);
-				user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-				user.setStatus(false);
-				user.setDepartmentId(userRequest.getDepartmentId());
-				user.setRoles(setToRoleId(userRequest.getRoles()));
-				userList.add(user);
-			}
-		}
+		List<User> userList = userRequests.stream()
+				.filter(userRequest -> !userRepository.existsByEmail(userRequest.getEmail())).map(userRequest -> {
+					List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword",
+							"phone");
+					Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
+					User user = userMapper.mapToUser(userRequest);
+					user.setId(null);
+					user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+					user.setStatus(false);
+					user.setDepartmentId(userRequest.getDepartmentId());
+					user.setRoles(setToRoleId(userRequest.getRoles()));
+					return user;
+				}).toList();
+
 		List<User> savedList = userRepository.saveAll(userList);
-		return savedList.stream().map(this::mapToUserResponse).toList();
+		return savedList.stream().map(userMapper::mapToUserResponse).collect(Collectors.toList());
 	}
 
 	@Override
-	public UserResponse getUserById(Long id, String show) throws ResourceNotFoundException {
+	public UserResponse getUserById(@NonNull Long id, String show) throws ResourceNotFoundException {
 		User user = findUserById(id);
-		return mapToUserResponse(user);
+		return userMapper.mapToUserResponse(user);
 	}
 
 	@Override
-	public UserPlantResponse getUserPlantById(Long id, String show) throws ResourceNotFoundException {
+	public UserPlantResponse getUserPlantById(@NonNull Long id, String show) throws ResourceNotFoundException {
 		User user = findUserById(id);
 		return mapToUserPlantResponse(user);
 	}
 
 	@Override
-	public UserDepartmentResponse getUserDepartmentById(Long id, String show) throws ResourceNotFoundException {
+	public UserDepartmentResponse getUserDepartmentById(@NonNull Long id, String show)
+			throws ResourceNotFoundException {
 		User user = findUserById(id);
 		return mapToUserDepartmentResponse(user);
 	}
 
 	@Override
-	public UserDepartmentPlantResponse getUserDepartmentPlantById(Long id, String show)
+	public UserDepartmentPlantResponse getUserDepartmentPlantById(@NonNull Long id, String show)
 			throws ResourceNotFoundException {
 		User user = findUserById(id);
 		return mapToUserDepartmentPlantResponse(user);
@@ -114,56 +116,55 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<UserResponse> getAllUsers(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserResponse).toList();
+		return userRepository.findAll().stream().sorted(Comparator.comparing(User::getId))
+				.map(userMapper::mapToUserResponse).toList();
 	}
 
 	@Override
 	public List<UserPlantResponse> getAllUserPlants(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserPlantResponse).toList();
+		return userRepository.findAll().stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserPlantResponse).toList();
 	}
 
 	@Override
 	public List<UserDepartmentResponse> getAllUserDepartment(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentResponse).toList();
+		return userRepository.findAll().stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserDepartmentResponse).toList();
 	}
 
 	@Override
 	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlants(String show) {
-		List<User> users = userRepository.findAll();
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
-				.toList();
+		return userRepository.findAll().stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserDepartmentPlantResponse).toList();
 	}
 
 	@Override
 	public List<UserResponse> getAllUsersByPlantId(String show, List<Long> plantIds) {
-		List<User> users = userRepository.findByPlantId(plantIds);
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserResponse).toList();
+		return userRepository.findByPlantId(plantIds).stream().sorted(Comparator.comparing(User::getId))
+				.map(userMapper::mapToUserResponse).toList();
 	}
 
 	@Override
 	public List<UserPlantResponse> getAllUserPlantsByPlantId(String show, List<Long> plantIds) {
-		List<User> users = userRepository.findByPlantId(plantIds);
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserPlantResponse).toList();
+		return userRepository.findByPlantId(plantIds).stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserPlantResponse).toList();
 	}
 
 	@Override
 	public List<UserDepartmentResponse> getAllUserDepartmentByPlantId(String show, List<Long> plantIds) {
-		List<User> users = userRepository.findByPlantId(plantIds);
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentResponse).toList();
+		return userRepository.findByPlantId(plantIds).stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserDepartmentResponse).toList();
 	}
 
 	@Override
 	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlantsByPlantId(String show, List<Long> plantIds) {
-		List<User> users = userRepository.findByPlantId(plantIds);
-		return users.stream().sorted(Comparator.comparing(User::getId)).map(this::mapToUserDepartmentPlantResponse)
-				.toList();
+		return userRepository.findByPlantId(plantIds).stream().sorted(Comparator.comparing(User::getId))
+				.map(this::mapToUserDepartmentPlantResponse).toList();
 	}
 
 	@Override
-	public UserResponse updateUser(Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException {
+	public UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest)
+			throws ResourceNotFoundException {
 		User existingUser = this.findUserById(id);
 		List<String> fieldsToSkipCapitalization = Arrays.asList("phone");
 		Helpers.inputTitleCase(updateUserRequest, fieldsToSkipCapitalization);
@@ -212,13 +213,12 @@ public class UserServiceImpl implements UserService {
 
 		User updateUser = userRepository.save(existingUser);
 
-		return mapToUserResponse(updateUser);
+		return userMapper.mapToUserResponse(updateUser);
 	}
 
 	@Override
-	public UserResponse updateStatusUsingId(Long id) throws ResourceNotFoundException {
+	public UserResponse updateStatusUsingId(@NonNull Long id) throws ResourceNotFoundException {
 		User existingUser = this.findUserById(id);
-		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
 		if (existingUser.getStatus() != null) {
 			auditFields.add(new AuditFields(null, "Status", existingUser.getStatus(), !existingUser.getStatus()));
@@ -226,11 +226,11 @@ public class UserServiceImpl implements UserService {
 		}
 		existingUser.updateAuditHistory(auditFields);
 		User updateUser = userRepository.save(existingUser);
-		return mapToUserResponse(updateUser);
+		return userMapper.mapToUserResponse(updateUser);
 	}
 
 	@Override
-	public List<UserResponse> updateBulkStatusUsingId(List<Long> ids) throws ResourceNotFoundException {
+	public List<UserResponse> updateBulkStatusUsingId(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<User> existingUsers = this.findAllUsersById(ids);
 		List<AuditFields> auditFields = new ArrayList<>();
 		existingUsers.forEach(existingUser -> {
@@ -241,23 +241,23 @@ public class UserServiceImpl implements UserService {
 			existingUser.updateAuditHistory(auditFields);
 		});
 		userRepository.saveAll(existingUsers);
-		return existingUsers.stream().map(this::mapToUserResponse).toList();
+		return existingUsers.stream().map(userMapper::mapToUserResponse).toList();
 	}
 
 	@Override
-	public UserResponse updatePassword(Long id, UpdatePasswordRequest updatePasswordRequest)
+	public UserResponse updatePassword(@NonNull Long id, UpdatePasswordRequest updatePasswordRequest)
 			throws ResourceNotFoundException {
 		User user = findUserById(id);
 		if (passwordEncoder.matches(updatePasswordRequest.getCurrentPassword(), user.getPassword())) {
 			user.setPassword(passwordEncoder.encode(updatePasswordRequest.getNewPassword()));
 			User updatedUser = userRepository.save(user);
-			return mapToUserResponse(updatedUser);
+			return userMapper.mapToUserResponse(updatedUser);
 		}
 		return null;
 	}
 
 	@Override
-	public void updatePassword(Long id, String newPassword) throws ResourceNotFoundException {
+	public void updatePassword(@NonNull Long id, String newPassword) throws ResourceNotFoundException {
 		User user = this.findUserById(id);
 		user.setPassword(passwordEncoder.encode(newPassword));
 		userRepository.save(user);
@@ -270,53 +270,55 @@ public class UserServiceImpl implements UserService {
 
 			throw new ResourceNotFoundException(NO_USER_FOUND_WITH_EMAIL_MESSAGE);
 		}
-		return mapToUserResponse(user.get());
+		return userMapper.mapToUserResponse(user.get());
 	}
 
 	@Override
-	public void deleteUserId(Long id) throws ResourceNotFoundException {
+	public void deleteUserId(@NonNull Long id) throws ResourceNotFoundException {
 		User user = this.findUserById(id);
-		userRepository.deleteById(user.getId());
+		if (user != null) {
+			userRepository.delete(user);
+		}
 	}
 
 	@Override
-	public void deleteBatch(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllUsersById(ids);
-		userRepository.deleteAllByIdInBatch(ids);
+	public void deleteBatch(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<User> users = this.findAllUsersById(ids);
+		userRepository.deleteAllInBatch(users);
 	}
 
 	public Set<Role> setToRoleId(Long[] roles) {
 		Set<Role> userRoles = new HashSet<>();
 		for (Long roleId : roles) {
-			Optional<Role> fetchedPrivilege = roleRepository.findById(roleId);
-			fetchedPrivilege.ifPresent(userRoles::add);
+			if (roleId != null) {
+				Optional<Role> fetchedPrivilege = roleRepository.findById(roleId);
+				fetchedPrivilege.ifPresent(userRoles::add);
+			}
 		}
 		return userRoles;
 	}
 
 	@Override
-	public UserResponse addRolesToUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException {
+	public UserResponse addRolesToUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+			throws ResourceNotFoundException {
 		return modifyRole(id, userRoleRequest, "add");
 	}
 
 	@Override
-	public UserResponse removeRolesFromUser(Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException {
+	public UserResponse removeRolesFromUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+			throws ResourceNotFoundException {
 		return modifyRole(id, userRoleRequest, "remove");
 	}
 
-	private UserResponse mapToUserResponse(User user) {
-		return modelMapper.map(user, UserResponse.class);
-	}
-
 	private UserDepartmentResponse mapToUserDepartmentResponse(User user) {
-		UserDepartmentResponse userDepartmentResponse = modelMapper.map(user, UserDepartmentResponse.class);
+		UserDepartmentResponse userDepartmentResponse = userMapper.mapToUserDepartmentResponse(user);
 		DepartmentResponse department = plantService.getDepartmentById(user.getDepartmentId());
 		userDepartmentResponse.setDepartment(department);
 		return userDepartmentResponse;
 	}
 
 	private UserPlantResponse mapToUserPlantResponse(User user) {
-		UserPlantResponse userPlantResponse = modelMapper.map(user, UserPlantResponse.class);
+		UserPlantResponse userPlantResponse = userMapper.mapToUserPlantResponse(user);
 		List<PlantResponse> plants = new ArrayList<>();
 		for (Long plantId : user.getPlantId()) {
 			PlantResponse plant = plantService.getPlantById(plantId);
@@ -328,8 +330,7 @@ public class UserServiceImpl implements UserService {
 
 	private UserDepartmentPlantResponse mapToUserDepartmentPlantResponse(User user) {
 
-		UserDepartmentPlantResponse userDepartmentPlantResponse = modelMapper.map(user,
-				UserDepartmentPlantResponse.class);
+		UserDepartmentPlantResponse userDepartmentPlantResponse = userMapper.mapToUserDepartmentPlantResponse(user);
 		DepartmentResponse department = plantService.getDepartmentById(user.getDepartmentId());
 		userDepartmentPlantResponse.setDepartment(department);
 		List<PlantResponse> plants = new ArrayList<>();
@@ -341,7 +342,7 @@ public class UserServiceImpl implements UserService {
 		return userDepartmentPlantResponse;
 	}
 
-	private User findUserById(Long id) throws ResourceNotFoundException {
+	private User findUserById(@NonNull Long id) throws ResourceNotFoundException {
 		Optional<User> user = userRepository.findById(id);
 		if (user.isEmpty()) {
 			throw new ResourceNotFoundException(NO_USER_FOUND_WITH_ID_MESSAGE);
@@ -349,35 +350,35 @@ public class UserServiceImpl implements UserService {
 		return user.get();
 	}
 
-	private List<User> findAllUsersById(List<Long> ids) throws ResourceNotFoundException {
+	private List<User> findAllUsersById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<User> users = userRepository.findAllById(ids);
-		// Check for missing IDs
 		List<Long> missingIds = ids.stream().filter(id -> users.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("User's with IDs " + missingIds + " not found.");
 		}
 		return users;
 	}
 
-	private UserResponse modifyRole(Long userId, UserRoleRequest userRoleRequest, String operation)
+	private UserResponse modifyRole(@NonNull Long userId, UserRoleRequest userRoleRequest, String operation)
 			throws ResourceNotFoundException {
 		User user = this.findUserById(userId);
 		Set<Role> existingRoles = user.getRoles();
 		for (Long roleId : userRoleRequest.getRoles()) {
-			Optional<Role> role = roleRepository.findById(roleId);
-			role.ifPresent(p -> {
-				if (operation.equals("remove")) {
-					existingRoles.remove(p);
-				} else {
-					existingRoles.add(p);
-				}
-			});
+			if (roleId != null) {
+				Optional<Role> role = roleRepository.findById(roleId);
+				role.ifPresent(p -> {
+					if (operation.equals("remove")) {
+						existingRoles.remove(p);
+					} else {
+						existingRoles.add(p);
+					}
+				});
+			}
 		}
 		user.setRoles(existingRoles);
 		User updatedUser = userRepository.save(user);
-		return mapToUserResponse(updatedUser);
+		return userMapper.mapToUserResponse(updatedUser);
 	}
 }

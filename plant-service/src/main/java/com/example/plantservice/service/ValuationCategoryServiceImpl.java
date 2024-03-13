@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +19,7 @@ import com.example.plantservice.entity.ValuationCategory;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.ValuationCategoryMapper;
 import com.example.plantservice.repository.ValuationCategoryRepo;
 import com.example.plantservice.service.interfaces.ValuationCategoryService;
 import com.example.plantservice.util.ExcelFileHelper;
@@ -34,44 +34,37 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 
 	private final ValuationCategoryRepo valuationCategoryRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final ValuationCategoryMapper valuationCategoryMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public ValuationCategoryResponse saveValuationCategory(ValuationCategoryRequest valuationCategoryRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(valuationCategoryRequest);
-		boolean exists = valuationCategoryRepo.existsByValuationCategoryCodeAndValuationCategoryName(
-				valuationCategoryRequest.getValuationCategoryCode(),
-				valuationCategoryRequest.getValuationCategoryName());
-		if (!exists) {
-			ValuationCategory valuationCategory = modelMapper.map(valuationCategoryRequest, ValuationCategory.class);
-			for (Map.Entry<String, Object> entryField : valuationCategory.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = ValuationCategory.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			valuationCategoryRepo.save(valuationCategory);
-			return mapToValuationCategoryResponse(valuationCategory);
-		} else {
+		String valucationCategoryCode = valuationCategoryRequest.getValuationCategoryCode();
+		String valucationCategoryName = valuationCategoryRequest.getValuationCategoryName();
+		if (valuationCategoryRepo.existsByValuationCategoryCodeAndValuationCategoryName(valucationCategoryCode,
+				valucationCategoryName)) {
 			throw new AlreadyExistsException("ValuationCategory with this name already exists");
 		}
+		ValuationCategory valuationCategory = valuationCategoryMapper.mapToValuationCategory(valuationCategoryRequest);
+
+		validateDynamicFields(valuationCategory);
+
+		valuationCategoryRepo.save(valuationCategory);
+		return valuationCategoryMapper.mapToValuationCategoryResponse(valuationCategory);
 	}
 
 	@Override
 	public ValuationCategoryResponse getValuationCategoryById(Long id) throws ResourceNotFoundException {
 		ValuationCategory valuationCategory = this.findValuationCategoryById(id);
-		return mapToValuationCategoryResponse(valuationCategory);
+		return valuationCategoryMapper.mapToValuationCategoryResponse(valuationCategory);
 	}
 
 	@Override
 	public List<ValuationCategoryResponse> getAllValuationCategory() {
-		List<ValuationCategory> valuationCategory = valuationCategoryRepo.findAllByOrderByIdAsc();
-		return valuationCategory.stream().map(this::mapToValuationCategoryResponse).toList();
+		return valuationCategoryRepo.findAllByOrderByIdAsc().stream()
+				.map(valuationCategoryMapper::mapToValuationCategoryResponse).toList();
 	}
 
 	@Override
@@ -123,7 +116,7 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 				}
 			}
 			valuationCategoryRepo.save(existingValuationCategory);
-			return mapToValuationCategoryResponse(existingValuationCategory);
+			return valuationCategoryMapper.mapToValuationCategoryResponse(existingValuationCategory);
 		} else {
 			throw new AlreadyExistsException("ValuationCategory with this name already exists");
 		}
@@ -146,7 +139,8 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 			existingValuationCategory.updateAuditHistory(auditFields);
 		});
 		valuationCategoryRepo.saveAll(existingValuationCategories);
-		return existingValuationCategories.stream().map(this::mapToValuationCategoryResponse).toList();
+		return existingValuationCategories.stream().map(valuationCategoryMapper::mapToValuationCategoryResponse)
+				.toList();
 	}
 
 	@Override
@@ -163,18 +157,22 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 		}
 		existingValuationCategory.updateAuditHistory(auditFields);
 		valuationCategoryRepo.save(existingValuationCategory);
-		return mapToValuationCategoryResponse(existingValuationCategory);
+		return valuationCategoryMapper.mapToValuationCategoryResponse(existingValuationCategory);
 	}
 
 	public void deleteValuationCategory(Long id) throws ResourceNotFoundException {
 		ValuationCategory valuationCategory = this.findValuationCategoryById(id);
-		valuationCategoryRepo.deleteById(valuationCategory.getId());
+		if (valuationCategory != null) {
+			valuationCategoryRepo.delete(valuationCategory);
+		}
 	}
 
 	@Override
 	public void deleteBatchValuationCategory(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllValCatById(ids);
-		valuationCategoryRepo.deleteAllByIdInBatch(ids);
+		List<ValuationCategory> valuationCategories = this.findAllValCatById(ids);
+		if (!valuationCategories.isEmpty()) {
+			valuationCategoryRepo.deleteAll(valuationCategories);
+		}
 	}
 
 	@Override
@@ -228,32 +226,37 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 		return data;
 	}
 
-	private ValuationCategoryResponse mapToValuationCategoryResponse(ValuationCategory valuationCategory) {
-		return modelMapper.map(valuationCategory, ValuationCategoryResponse.class);
+	private void validateDynamicFields(ValuationCategory valuationCategory) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : valuationCategory.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = ValuationCategory.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private ValuationCategory findValuationCategoryById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<ValuationCategory> valuationCategory = valuationCategoryRepo.findById(id);
-		if (valuationCategory.isEmpty()) {
-			throw new ResourceNotFoundException("ValuationCategory with ID " + id + " not found");
-		}
-		return valuationCategory.get();
+		return valuationCategoryRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("ValuationCategory with ID " + id + " not found"));
 	}
 
 	private List<ValuationCategory> findAllValCatById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
 		List<ValuationCategory> categories = valuationCategoryRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> categories.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		Set<Long> idSet = new HashSet<>(ids);
+		List<ValuationCategory> foundCategories = categories.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+			throw new ResourceNotFoundException("Valuation Category with IDs " + missingIds + " not found.");
 		}
-		return categories;
+		return foundCategories;
 	}
 
 }

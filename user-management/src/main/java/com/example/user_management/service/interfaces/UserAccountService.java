@@ -1,21 +1,23 @@
 package com.example.user_management.service.interfaces;
 
+import java.util.List;
+
+import org.springframework.lang.NonNull;
+
 import com.example.user_management.dto.request.UserAccountRequest;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 
-import java.util.List;
-
 public interface UserAccountService {
-    void save(UserResponse user, String token);
+	void save(UserResponse user, String token);
 
-    List<UserAccountRequest> findAll();
+	List<UserAccountRequest> findAll();
 
-    void delete(Long id);
+	void delete(@NonNull Long id);
 
-    UserAccountRequest findByToken(String token) throws ResourceNotFoundException;
+	UserAccountRequest findByToken(String token) throws ResourceNotFoundException;
 
-    UserAccountRequest findById(Long id) throws ResourceNotFoundException;
+	UserAccountRequest findById(@NonNull Long id) throws ResourceNotFoundException;
 
-    List<UserAccountRequest> findExpiredTokens(long currentTimestamp);
+	List<UserAccountRequest> findExpiredTokens(long currentTimestamp);
 }

@@ -17,6 +17,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/plant
     password: imu123
 
+  
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,11 +25,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
-          batch_size: 1000
-        order_inserts: true
+          '[batch_size]': 1000
+        '[order_inserts]': true
         # generate_statistics: true
-        format_sql: true
+        '[format_sql]': true
     show-sql: true
+
+  output:
+    ansi:
+      enabled: always
 
 # Eureka Server configuration
 eureka:

@@ -2,12 +2,12 @@ package com.example.generalservice.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +17,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.SalesUnit;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.SalesUnitMapper;
 import com.example.generalservice.repository.SalesUnitRepository;
 import com.example.generalservice.service.interfaces.SalesUnitService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SalesUnitServiceImpl implements SalesUnitService {
 	private final SalesUnitRepository salesUnitRepository;
-	private final ModelMapper modelMapper;
+	private final SalesUnitMapper salesUnitMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -36,49 +37,35 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 		Helpers.inputTitleCase(salesUnitRequest);
 		String salesCode = salesUnitRequest.getSalesCode();
 		String salesName = salesUnitRequest.getSalesName();
-		boolean exists = salesUnitRepository.existsBySalesCodeOrSalesName(salesCode, salesName);
-		if (!exists) {
-			SalesUnit salesUnit = modelMapper.map(salesUnitRequest, SalesUnit.class);
-			for (Map.Entry<String, Object> entryField : salesUnit.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = SalesUnit.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			SalesUnit savedSalesUnit = salesUnitRepository.save(salesUnit);
-			return mapToSalesUnitResponse(savedSalesUnit);
+		if (salesUnitRepository.existsBySalesCodeOrSalesName(salesCode, salesName)) {
+			throw new ResourceFoundException("Sales Unit already exists");
 		}
-		throw new ResourceFoundException("Sales Unit already exists");
+		SalesUnit salesUnit = salesUnitMapper.mapToSalesUnit(salesUnitRequest);
+		validateDynamicFields(salesUnit);
+		SalesUnit savedSalesUnit = salesUnitRepository.save(salesUnit);
+		return salesUnitMapper.mapToSalesUnitResponse(savedSalesUnit);
 	}
 
 	@Override
-	@Cacheable("salesUnit")
-	public SalesUnitResponse getSalesUnitById(Long id) throws ResourceNotFoundException {
+	public SalesUnitResponse getSalesUnitById(@NonNull Long id) throws ResourceNotFoundException {
 		SalesUnit salesUnit = this.findSalesUnitById(id);
-		return mapToSalesUnitResponse(salesUnit);
+		return salesUnitMapper.mapToSalesUnitResponse(salesUnit);
 	}
 
 	@Override
-	@Cacheable("salesUnit")
 	public List<SalesUnitResponse> getAllSalesUnit() {
-		List<SalesUnit> salesUnitList = salesUnitRepository.findAll();
-		return salesUnitList.stream().sorted(Comparator.comparing(SalesUnit::getId)).map(this::mapToSalesUnitResponse)
-				.toList();
+		return salesUnitRepository.findAll().stream().sorted(Comparator.comparing(SalesUnit::getId))
+				.map(salesUnitMapper::mapToSalesUnitResponse).toList();
 	}
 
 	@Override
-	@Cacheable("salesUnit")
 	public List<SalesUnitResponse> findAllStatusTrue() {
-		List<SalesUnit> salesUnits = salesUnitRepository.findAllBySalesStatusIsTrue();
-		return salesUnits.stream().sorted(Comparator.comparing(SalesUnit::getId)).map(this::mapToSalesUnitResponse)
-				.toList();
+		return salesUnitRepository.findAllBySalesStatusIsTrue().stream().sorted(Comparator.comparing(SalesUnit::getId))
+				.map(salesUnitMapper::mapToSalesUnitResponse).toList();
 	}
 
 	@Override
-	public SalesUnitResponse updateSalesUnit(Long id, SalesUnitRequest updateSalesUnitRequest)
+	public SalesUnitResponse updateSalesUnit(@NonNull Long id, SalesUnitRequest updateSalesUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateSalesUnitRequest);
@@ -115,13 +102,13 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 			}
 			existingSalesUnit.updateAuditHistory(auditFields); // Update the audit history
 			SalesUnit updatedSalesUnit = salesUnitRepository.save(existingSalesUnit);
-			return mapToSalesUnitResponse(updatedSalesUnit);
+			return salesUnitMapper.mapToSalesUnitResponse(updatedSalesUnit);
 		}
 		throw new ResourceFoundException("Sales Unit already exists");
 	}
 
 	@Override
-	public SalesUnitResponse updateSalesUnitStatus(Long id) throws ResourceNotFoundException {
+	public SalesUnitResponse updateSalesUnitStatus(@NonNull Long id) throws ResourceNotFoundException {
 		SalesUnit existingSalesUnit = this.findSalesUnitById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -132,11 +119,11 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 		}
 		existingSalesUnit.updateAuditHistory(auditFields);
 		salesUnitRepository.save(existingSalesUnit);
-		return mapToSalesUnitResponse(existingSalesUnit);
+		return salesUnitMapper.mapToSalesUnitResponse(existingSalesUnit);
 	}
 
 	@Override
-	public List<SalesUnitResponse> updateBatchSalesUnitStatus(List<Long> ids) {
+	public List<SalesUnitResponse> updateBatchSalesUnitStatus(@NonNull List<Long> ids) {
 		List<SalesUnit> salesUnits = salesUnitRepository.findAllById(ids);
 		List<AuditFields> auditFields = new ArrayList<>();
 		salesUnits.forEach(existingSalesUnit -> {
@@ -148,45 +135,56 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 			existingSalesUnit.updateAuditHistory(auditFields);
 		});
 		salesUnitRepository.saveAll(salesUnits);
-		return salesUnits.stream().sorted(Comparator.comparing(SalesUnit::getId)).map(this::mapToSalesUnitResponse)
-				.toList();
+		return salesUnits.stream().sorted(Comparator.comparing(SalesUnit::getId))
+				.map(salesUnitMapper::mapToSalesUnitResponse).toList();
 	}
 
 	@Override
-	public void deleteSalesUnitId(Long id) throws ResourceNotFoundException {
+	public void deleteSalesUnitId(@NonNull Long id) throws ResourceNotFoundException {
 		SalesUnit salesUnit = this.findSalesUnitById(id);
-		salesUnitRepository.deleteById(salesUnit.getId());
+		if (salesUnit != null) {
+			salesUnitRepository.delete(salesUnit);
+		}
 	}
 
 	@Override
 	public void deleteBatchSalesUnit(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllById(ids);
-		salesUnitRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private SalesUnitResponse mapToSalesUnitResponse(SalesUnit salesUnit) {
-		return modelMapper.map(salesUnit, SalesUnitResponse.class);
-	}
-
-	private SalesUnit findSalesUnitById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<SalesUnit> salesUnit = salesUnitRepository.findById(id);
-		if (salesUnit.isEmpty()) {
-			throw new ResourceNotFoundException("No Sales Unit found with this Id");
+		List<SalesUnit> salesUnits = this.findAllById(ids);
+		if (!salesUnits.isEmpty()) {
+			salesUnitRepository.deleteAll(salesUnits);
 		}
-		return salesUnit.get();
+	}
+
+	private void validateDynamicFields(SalesUnit salesUnit) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : salesUnit.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = SalesUnit.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private SalesUnit findSalesUnitById(@NonNull Long id) throws ResourceNotFoundException {
+		return salesUnitRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Sales Unit found with this Id"));
 	}
 
 	private List<SalesUnit> findAllById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
-		List<SalesUnit> salesUnits = salesUnitRepository.findAllById(ids);
+
+		Set<Long> idSet = new HashSet<>(ids);
+		List<SalesUnit> salesUnits = salesUnitRepository.findAllById(idSet);
+
 		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> salesUnits.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Sales Unit with IDs " + missingIds + " not found");
 		}
+
 		return salesUnits;
 	}
 

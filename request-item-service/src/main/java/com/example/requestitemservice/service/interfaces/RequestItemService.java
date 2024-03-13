@@ -2,6 +2,7 @@ package com.example.requestitemservice.service.interfaces;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.requestitemservice.client.MaterialItem;
@@ -12,18 +13,18 @@ public interface RequestItemService {
 
 	RequestItemResponse save(RequestItemRequest item, MultipartFile file);
 
-	RequestItemResponse getRequestItem(Long id);
+	RequestItemResponse getRequestItem(@NonNull Long id);
 
 	List<RequestItemResponse> getAllRequestItem();
 
-	RequestItemResponse update(Long id, RequestItemRequest updatedItem, MultipartFile file);
+	RequestItemResponse update(@NonNull Long id, RequestItemRequest updatedItem, MultipartFile file);
 
-	void delete(Long id);
+	void delete(@NonNull Long id);
 
-	MaterialItem getMaterialItem(Long id);
+	MaterialItem getMaterialItem(@NonNull Long id);
 
 	List<MaterialItem> getAllMaterialItem();
 
-	void deleteBatchRequest(List<Long> ids);
+	void deleteBatchRequest(@NonNull List<Long> ids);
 
 }

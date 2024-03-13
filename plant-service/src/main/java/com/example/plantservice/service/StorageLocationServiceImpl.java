@@ -4,12 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +23,7 @@ import com.example.plantservice.entity.StorageLocation;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.StorageLocationMapper;
 import com.example.plantservice.repository.PlantRepo;
 import com.example.plantservice.repository.StorageLocationRepo;
 import com.example.plantservice.service.interfaces.StorageLocationService;
@@ -42,59 +42,52 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	private final PlantRepo plantRepo;
 	private final DynamicClient dynamicClient;
 
-	private final ModelMapper modelMapper = new ModelMapper();
+	private final StorageLocationMapper storageLocationMapper;
 
 	@Override
 	public StorageLocationResponse saveStorageLocation(StorageLocationRequest storageLocationRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(storageLocationRequest);
-		boolean exists = storageLocationRepo.existsByStorageLocationCodeAndStorageLocationName(
-				storageLocationRequest.getStorageLocationCode(), storageLocationRequest.getStorageLocationName());
-		if (!exists) {
-			StorageLocation storageLocation = modelMapper.map(storageLocationRequest, StorageLocation.class);
-			for (Map.Entry<String, Object> entryField : storageLocation.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = StorageLocation.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			storageLocation.setId(null);
-			Plant plant = this.getPlantById(storageLocationRequest.getPlantId());
-			storageLocation.setPlant(plant);
-			StorageLocation savedLocation = storageLocationRepo.save(storageLocation);
-			return mapToStorageLocationResponse(savedLocation);
-		} else {
+		String storageLocationCode = storageLocationRequest.getStorageLocationCode();
+		String storageLocationName = storageLocationRequest.getStorageLocationName();
+		if (storageLocationRepo.existsByStorageLocationCodeAndStorageLocationName(storageLocationCode,
+				storageLocationName)) {
 			throw new AlreadyExistsException("StorageLocation with this name already exists");
 		}
+		StorageLocation storageLocation = storageLocationMapper.mapToStorageLocation(storageLocationRequest);
+
+		validateDynamicFields(storageLocation);
+
+		storageLocation.setId(null);
+		Plant plant = this.getPlantById(storageLocationRequest.getPlantId());
+		storageLocation.setPlant(plant);
+		StorageLocation savedLocation = storageLocationRepo.save(storageLocation);
+		return storageLocationMapper.mapToStorageLocationResponse(savedLocation);
 	}
 
 	@Override
 	public StorageLocationResponse getStorageLocationById(Long id) throws ResourceNotFoundException {
 		StorageLocation storageLocation = this.findStorageLocationById(id);
-		return mapToStorageLocationResponse(storageLocation);
+		return storageLocationMapper.mapToStorageLocationResponse(storageLocation);
 	}
 
 	@Override
 	public List<StorageLocationResponse> getAllByPlantByName(String name) {
-		List<StorageLocation> storageLocations = storageLocationRepo.findByPlant_PlantName(name);
-		return storageLocations.stream().sorted(Comparator.comparing(StorageLocation::getId))
-				.map(this::mapToStorageLocationResponse).toList();
+		return storageLocationRepo.findByPlant_PlantName(name).stream()
+				.sorted(Comparator.comparing(StorageLocation::getId))
+				.map(storageLocationMapper::mapToStorageLocationResponse).toList();
 	}
 
 	@Override
 	public List<StorageLocationResponse> getAllByPlantById(Long id) {
-		List<StorageLocation> storageLocations = storageLocationRepo.findByPlant_Id(id);
-		return storageLocations.stream().sorted(Comparator.comparing(StorageLocation::getId))
-				.map(this::mapToStorageLocationResponse).toList();
+		return storageLocationRepo.findByPlant_Id(id).stream().sorted(Comparator.comparing(StorageLocation::getId))
+				.map(storageLocationMapper::mapToStorageLocationResponse).toList();
 	}
 
 	@Override
 	public List<StorageLocationResponse> getAllStorageLocation() {
-		List<StorageLocation> storageLocation = storageLocationRepo.findAllByOrderByIdAsc();
-		return storageLocation.stream().map(this::mapToStorageLocationResponse).toList();
+		return storageLocationRepo.findAllByOrderByIdAsc().stream()
+				.map(storageLocationMapper::mapToStorageLocationResponse).toList();
 	}
 
 	@Override
@@ -153,7 +146,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 			}
 			existingStorageLocation.updateAuditHistory(auditFields);
 			storageLocationRepo.save(existingStorageLocation);
-			return mapToStorageLocationResponse(existingStorageLocation);
+			return storageLocationMapper.mapToStorageLocationResponse(existingStorageLocation);
 		} else {
 			throw new AlreadyExistsException("StorageLocation with this name already exists");
 		}
@@ -175,7 +168,7 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 			existingStorageLocation.updateAuditHistory(auditFields);
 		});
 		storageLocationRepo.saveAll(existingStorageLocations);
-		return existingStorageLocations.stream().map(this::mapToStorageLocationResponse).toList();
+		return existingStorageLocations.stream().map(storageLocationMapper::mapToStorageLocationResponse).toList();
 	}
 
 	@Override
@@ -191,19 +184,23 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 		}
 		existingStorageLocation.updateAuditHistory(auditFields);
 		storageLocationRepo.save(existingStorageLocation);
-		return mapToStorageLocationResponse(existingStorageLocation);
+		return storageLocationMapper.mapToStorageLocationResponse(existingStorageLocation);
 	}
 
 	@Override
 	public void deleteStorageLocation(Long id) throws ResourceNotFoundException {
 		StorageLocation storageLocation = this.findStorageLocationById(id);
-		storageLocationRepo.deleteById(storageLocation.getId());
+		if (storageLocation != null) {
+			storageLocationRepo.delete(storageLocation);
+		}
 	}
 
 	@Override
 	public void deleteBatchStorageLocation(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllStorLocById(ids);
-		storageLocationRepo.deleteAllByIdInBatch(ids);
+		List<StorageLocation> storageLocations = this.findAllStorLocById(ids);
+		if (!storageLocations.isEmpty()) {
+			storageLocationRepo.deleteAll(storageLocations);
+		}
 	}
 
 	@Override
@@ -256,38 +253,41 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 		return data;
 	}
 
+	private void validateDynamicFields(StorageLocation storageLocation) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : storageLocation.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = StorageLocation.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
 	private Plant getPlantById(Long plantId) throws ResourceNotFoundException {
-		Optional<Plant> fetchplantOptional = plantRepo.findById(plantId);
-		return fetchplantOptional
+		return plantRepo.findById(plantId)
 				.orElseThrow(() -> new ResourceNotFoundException("Plant is not found with this id: " + plantId));
 	}
 
-	private StorageLocationResponse mapToStorageLocationResponse(StorageLocation storageLocation) {
-		return modelMapper.map(storageLocation, StorageLocationResponse.class);
-	}
-
 	private StorageLocation findStorageLocationById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<StorageLocation> storageLocation = storageLocationRepo.findById(id);
-		if (storageLocation.isEmpty()) {
-			throw new ResourceNotFoundException("StorageLocation with ID " + id + " not found");
-		}
-		return storageLocation.get();
+		return storageLocationRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("StorageLocation with ID " + id + " not found"));
 	}
 
 	private List<StorageLocation> findAllStorLocById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<StorageLocation> locations = storageLocationRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> locations.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		Set<Long> idSet = new HashSet<>(ids);
+		List<StorageLocation> foundLocations = locations.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
-			throw new ResourceNotFoundException("Alternate Uom with IDs " + missingIds + " not found.");
+			throw new ResourceNotFoundException("Storage Location with IDs " + missingIds + " not found.");
 		}
-		return locations;
+		return foundLocations;
 	}
 
 }

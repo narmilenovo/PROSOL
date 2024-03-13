@@ -3,12 +3,11 @@ package com.example.mrpdataservice.serviceimpl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +17,7 @@ import com.example.mrpdataservice.entity.PlanningStrategyGrp;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
+import com.example.mrpdataservice.mapping.PlanningStrgyGrpMapper;
 import com.example.mrpdataservice.repository.PlanningStrgyGrpRepo;
 import com.example.mrpdataservice.request.PlanningStrgyGrpRequest;
 import com.example.mrpdataservice.response.PlanningStrgyGrpResponse;
@@ -34,44 +34,36 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 
 	private final PlanningStrgyGrpRepo planningStrgyGrpRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final PlanningStrgyGrpMapper planningStrgyGrpMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public PlanningStrgyGrpResponse savePlanningStrgyGrp(PlanningStrgyGrpRequest planningStrgyGrpRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(planningStrgyGrpRequest);
-		boolean exists = planningStrgyGrpRepo.existsByPlanningStrgGrpCodeAndPlanningStrgGrpName(
-				planningStrgyGrpRequest.getPlanningStrgGrpCode(), planningStrgyGrpRequest.getPlanningStrgGrpName());
-		if (!exists) {
-			PlanningStrategyGrp planningStrategyGrp = modelMapper.map(planningStrgyGrpRequest,
-					PlanningStrategyGrp.class);
-			for (Map.Entry<String, Object> entryField : planningStrategyGrp.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PlanningStrategyGrp.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			planningStrgyGrpRepo.save(planningStrategyGrp);
-			return mapToPlanningStrgyGrpResponse(planningStrategyGrp);
-		} else {
+		String planningStrgGrpCode = planningStrgyGrpRequest.getPlanningStrgGrpCode();
+		String planningStrgGrpName = planningStrgyGrpRequest.getPlanningStrgGrpName();
+		if (planningStrgyGrpRepo.existsByPlanningStrgGrpCodeAndPlanningStrgGrpName(planningStrgGrpCode,
+				planningStrgGrpName)) {
 			throw new AlreadyExistsException("PlanningStrategyGrp with this name already exists");
 		}
+		PlanningStrategyGrp planningStrategyGrp = planningStrgyGrpMapper
+				.mapToPlanningStrategyGrp(planningStrgyGrpRequest);
+		validateDynamicFields(planningStrategyGrp);
+		planningStrgyGrpRepo.save(planningStrategyGrp);
+		return planningStrgyGrpMapper.mapToPlanningStrgyGrpResponse(planningStrategyGrp);
 	}
 
 	@Override
 	public PlanningStrgyGrpResponse getPlanningStrgyGrpById(Long id) throws ResourceNotFoundException {
 		PlanningStrategyGrp planningStrategyGrp = this.findPlanningStrategyGrpById(id);
-		return mapToPlanningStrgyGrpResponse(planningStrategyGrp);
+		return planningStrgyGrpMapper.mapToPlanningStrgyGrpResponse(planningStrategyGrp);
 	}
 
 	@Override
 	public List<PlanningStrgyGrpResponse> getAllPlanningStrgyGrp() {
-		List<PlanningStrategyGrp> planningStrategyGrp = planningStrgyGrpRepo.findAllByOrderByIdAsc();
-		return planningStrategyGrp.stream().map(this::mapToPlanningStrgyGrpResponse).toList();
+		return planningStrgyGrpRepo.findAllByOrderByIdAsc().stream()
+				.map(planningStrgyGrpMapper::mapToPlanningStrgyGrpResponse).toList();
 	}
 
 	@Override
@@ -82,7 +74,6 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 	@Override
 	public PlanningStrgyGrpResponse updatePlanningStrgyGrp(Long id, PlanningStrgyGrpRequest planningStrgyGrpRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(planningStrgyGrpRequest);
 		String existName = planningStrgyGrpRequest.getPlanningStrgGrpName();
 		String existCode = planningStrgyGrpRequest.getPlanningStrgGrpCode();
@@ -124,7 +115,7 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 			}
 			existingPlanningStrategyGrp.updateAuditHistory(auditFields);
 			planningStrgyGrpRepo.save(existingPlanningStrategyGrp);
-			return mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
+			return planningStrgyGrpMapper.mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
 		} else {
 			throw new AlreadyExistsException("PlanningStrategyGrp with this name already exists");
 		}
@@ -147,7 +138,8 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 			existingPlanningStrategyGrp.updateAuditHistory(auditFields);
 		});
 		planningStrgyGrpRepo.saveAll(existingPlanningStrategyGrps);
-		return existingPlanningStrategyGrps.stream().map(this::mapToPlanningStrgyGrpResponse).toList();
+		return existingPlanningStrategyGrps.stream().map(planningStrgyGrpMapper::mapToPlanningStrgyGrpResponse)
+				.toList();
 	}
 
 	@Override
@@ -164,19 +156,23 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 		}
 		existingPlanningStrategyGrp.updateAuditHistory(auditFields);
 		planningStrgyGrpRepo.save(existingPlanningStrategyGrp);
-		return mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
+		return planningStrgyGrpMapper.mapToPlanningStrgyGrpResponse(existingPlanningStrategyGrp);
 	}
 
 	@Override
 	public void deletePlanningStrgyGrp(Long id) throws ResourceNotFoundException {
 		PlanningStrategyGrp planningStrategyGrp = this.findPlanningStrategyGrpById(id);
-		planningStrgyGrpRepo.deleteById(planningStrategyGrp.getId());
+		if (planningStrategyGrp != null) {
+			planningStrgyGrpRepo.delete(planningStrategyGrp);
+		}
 	}
 
 	@Override
 	public void deleteBatchPlanningStrgyGrp(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllStrgGrpById(ids);
-		planningStrgyGrpRepo.deleteAllByIdInBatch(ids);
+		List<PlanningStrategyGrp> planningStrategyGrps = this.findAllStrgGrpById(ids);
+		if (!planningStrategyGrps.isEmpty()) {
+			planningStrgyGrpRepo.deleteAll(planningStrategyGrps);
+		}
 	}
 
 	@Override
@@ -230,32 +226,36 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 		return planningStrategyGrp;
 	}
 
-	private PlanningStrgyGrpResponse mapToPlanningStrgyGrpResponse(PlanningStrategyGrp planningStrategyGrp) {
-		return modelMapper.map(planningStrategyGrp, PlanningStrgyGrpResponse.class);
+	private void validateDynamicFields(PlanningStrategyGrp planningStrategyGrp) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : planningStrategyGrp.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = PlanningStrategyGrp.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private PlanningStrategyGrp findPlanningStrategyGrpById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<PlanningStrategyGrp> planningStrategyGrp = planningStrgyGrpRepo.findById(id);
-		if (planningStrategyGrp.isEmpty()) {
-			throw new ResourceNotFoundException("Planning Strategy Group with ID " + id + " not found.");
-		}
-		return planningStrategyGrp.get();
+		return planningStrgyGrpRepo.findById(id).orElseThrow(
+				() -> new ResourceNotFoundException("Planning Strategy Group with ID " + id + " not found."));
 	}
 
 	private List<PlanningStrategyGrp> findAllStrgGrpById(List<Long> ids) throws ResourceNotFoundException {
 		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids);
 		List<PlanningStrategyGrp> strgGrps = planningStrgyGrpRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> strgGrps.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+		List<PlanningStrategyGrp> foundStrgGrps = strgGrps.stream().filter(entity -> idSet.contains(entity.getId()))
+				.toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Planning Strategy Group with IDs " + missingIds + " not found.");
 		}
-		return strgGrps;
+		return foundStrgGrps;
 	}
 
 }

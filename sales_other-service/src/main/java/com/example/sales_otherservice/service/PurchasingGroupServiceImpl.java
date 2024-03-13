@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -16,6 +17,7 @@ import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.PurchasingGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.PurchasingGroupMapper;
 import com.example.sales_otherservice.repository.PurchasingGroupRepository;
 import com.example.sales_otherservice.service.interfaces.PurchasingGroupService;
 import com.example.sales_otherservice.utils.Helpers;
@@ -26,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	private final PurchasingGroupRepository purchasingGroupRepository;
-	private final ModelMapper modelMapper;
+	private final PurchasingGroupMapper purchasingGroupMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -35,48 +37,40 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 		Helpers.inputTitleCase(purchasingGroupRequest);
 		String pgCode = purchasingGroupRequest.getPgCode();
 		String pgName = purchasingGroupRequest.getPgName();
-		boolean exists = purchasingGroupRepository.existsByPgCodeOrPgName(pgCode, pgName);
-		if (!exists) {
-
-			PurchasingGroup purchasingGroup = modelMapper.map(purchasingGroupRequest, PurchasingGroup.class);
-			for (Map.Entry<String, Object> entryField : purchasingGroup.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = PurchasingGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			PurchasingGroup savedPurchasingGroup = purchasingGroupRepository.save(purchasingGroup);
-			return mapToPurchasingGroupResponse(savedPurchasingGroup);
+		if (purchasingGroupRepository.existsByPgCodeOrPgName(pgCode, pgName)) {
+			throw new ResourceFoundException("Purchasing Group Already exist");
 		}
-		throw new ResourceFoundException("Purchasing Group Already exist");
+
+		PurchasingGroup purchasingGroup = purchasingGroupMapper.mapToPurchasingGroup(purchasingGroupRequest);
+
+		validateDynamicFields(purchasingGroup);
+
+		PurchasingGroup savedPurchasingGroup = purchasingGroupRepository.save(purchasingGroup);
+		return purchasingGroupMapper.mapToPurchasingGroupResponse(savedPurchasingGroup);
 	}
 
 	@Override
-	public PurchasingGroupResponse getPgById(Long id) throws ResourceNotFoundException {
+	public PurchasingGroupResponse getPgById(@NonNull Long id) throws ResourceNotFoundException {
 		PurchasingGroup purchasingGroup = this.findPgById(id);
-		return mapToPurchasingGroupResponse(purchasingGroup);
+		return purchasingGroupMapper.mapToPurchasingGroupResponse(purchasingGroup);
 	}
 
 	@Override
 	public List<PurchasingGroupResponse> getAllPg() {
-		List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAll();
-		return purchasingGroups.stream().sorted(Comparator.comparing(PurchasingGroup::getId))
-				.map(this::mapToPurchasingGroupResponse).toList();
+		return purchasingGroupRepository.findAll().stream().sorted(Comparator.comparing(PurchasingGroup::getId))
+				.map(purchasingGroupMapper::mapToPurchasingGroupResponse).toList();
 
 	}
 
 	@Override
 	public List<PurchasingGroupResponse> findAllStatusTrue() {
-		List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAllByPgStatusIsTrue();
-		return purchasingGroups.stream().sorted(Comparator.comparing(PurchasingGroup::getId))
-				.map(this::mapToPurchasingGroupResponse).toList();
+		return purchasingGroupRepository.findAllByPgStatusIsTrue().stream()
+				.sorted(Comparator.comparing(PurchasingGroup::getId))
+				.map(purchasingGroupMapper::mapToPurchasingGroupResponse).toList();
 	}
 
 	@Override
-	public PurchasingGroupResponse updatePg(Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
+	public PurchasingGroupResponse updatePg(@NonNull Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updatePurchasingGroupRequest);
@@ -113,13 +107,13 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 			}
 			existingPurchasingGroup.updateAuditHistory(auditFields);
 			PurchasingGroup updatedPurchasingGroup = purchasingGroupRepository.save(existingPurchasingGroup);
-			return mapToPurchasingGroupResponse(updatedPurchasingGroup);
+			return purchasingGroupMapper.mapToPurchasingGroupResponse(updatedPurchasingGroup);
 		}
 		throw new ResourceFoundException("Purchasing Group Already exist");
 	}
 
 	@Override
-	public PurchasingGroupResponse updatePgStatus(Long id) throws ResourceNotFoundException {
+	public PurchasingGroupResponse updatePgStatus(@NonNull Long id) throws ResourceNotFoundException {
 		PurchasingGroup existingPurchasingGroup = this.findPgById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -130,11 +124,11 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 		}
 		existingPurchasingGroup.updateAuditHistory(auditFields);
 		purchasingGroupRepository.save(existingPurchasingGroup);
-		return mapToPurchasingGroupResponse(existingPurchasingGroup);
+		return purchasingGroupMapper.mapToPurchasingGroupResponse(existingPurchasingGroup);
 	}
 
 	@Override
-	public List<PurchasingGroupResponse> updateBatchPgStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<PurchasingGroupResponse> updateBatchPgStatus(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<PurchasingGroup> purchasingGroups = this.findAllPdById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -147,44 +141,54 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 			existingPurchasingGroup.updateAuditHistory(auditFields);
 		});
 		purchasingGroupRepository.saveAll(purchasingGroups);
-		return purchasingGroups.stream().map(this::mapToPurchasingGroupResponse).toList();
+		return purchasingGroups.stream().map(purchasingGroupMapper::mapToPurchasingGroupResponse).toList();
 	}
 
 	@Override
-	public void deletePgById(Long id) throws ResourceNotFoundException {
+	public void deletePgById(@NonNull Long id) throws ResourceNotFoundException {
 		PurchasingGroup purchasingGroup = this.findPgById(id);
-		purchasingGroupRepository.deleteById(purchasingGroup.getId());
+		if (purchasingGroup != null) {
+			purchasingGroupRepository.delete(purchasingGroup);
+		}
 	}
 
 	@Override
-	public void deleteBatchPg(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllPdById(ids);
-		purchasingGroupRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private PurchasingGroupResponse mapToPurchasingGroupResponse(PurchasingGroup purchasingGroup) {
-		return modelMapper.map(purchasingGroup, PurchasingGroupResponse.class);
-	}
-
-	private PurchasingGroup findPgById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<PurchasingGroup> purchasingGroup = purchasingGroupRepository.findById(id);
-		if (purchasingGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Purchasing Group not found with this Id");
+	public void deleteBatchPg(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<PurchasingGroup> purchasingGroups = this.findAllPdById(ids);
+		if (!purchasingGroups.isEmpty()) {
+			purchasingGroupRepository.deleteAll(purchasingGroups);
 		}
-		return purchasingGroup.get();
 	}
 
-	private List<PurchasingGroup> findAllPdById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(PurchasingGroup purchasingGroup) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : purchasingGroup.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = PurchasingGroup.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private PurchasingGroup findPgById(@NonNull Long id) throws ResourceNotFoundException {
+		return purchasingGroupRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Purchasing Group not found with this Id"));
+	}
+
+	private List<PurchasingGroup> findAllPdById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<PurchasingGroup> purchasingGroups = purchasingGroupRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> purchasingGroups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+
+		Map<Long, PurchasingGroup> purchasingGroupMap = purchasingGroups.stream()
+				.collect(Collectors.toMap(PurchasingGroup::getId, Function.identity()));
+
+		List<Long> missingIds = ids.stream().filter(id -> !purchasingGroupMap.containsKey(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Purchasing Group with IDs " + missingIds + " not found");
 		}
+
 		return purchasingGroups;
 	}
 

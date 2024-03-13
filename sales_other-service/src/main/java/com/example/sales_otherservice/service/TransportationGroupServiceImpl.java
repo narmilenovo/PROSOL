@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.sales_otherservice.clients.Dynamic.DynamicClient;
@@ -16,6 +17,7 @@ import com.example.sales_otherservice.entity.AuditFields;
 import com.example.sales_otherservice.entity.TransportationGroup;
 import com.example.sales_otherservice.exceptions.ResourceFoundException;
 import com.example.sales_otherservice.exceptions.ResourceNotFoundException;
+import com.example.sales_otherservice.mapping.TransportationGroupMapper;
 import com.example.sales_otherservice.repository.TransportationGroupRepository;
 import com.example.sales_otherservice.service.interfaces.TransportationGroupService;
 import com.example.sales_otherservice.utils.Helpers;
@@ -26,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TransportationGroupServiceImpl implements TransportationGroupService {
 	private final TransportationGroupRepository transportationGroupRepository;
-	private final ModelMapper modelMapper;
+	private final TransportationGroupMapper transportationGroupMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -37,45 +39,38 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 		String tgName = transportationGroupRequest.getTgName();
 		boolean exists = transportationGroupRepository.existsByTgCodeOrTgName(tgCode, tgName);
 		if (!exists) {
+			TransportationGroup group = transportationGroupMapper.mapToTransportationGroup(transportationGroupRequest);
 
-			TransportationGroup group = modelMapper.map(transportationGroupRequest, TransportationGroup.class);
-			for (Map.Entry<String, Object> entryField : group.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = TransportationGroup.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
+			validateDynamicFields(group);
+
 			TransportationGroup savedGroup = transportationGroupRepository.save(group);
-			return mapToTransportationGroupResponse(savedGroup);
+			return transportationGroupMapper.mapToTransportationGroupResponse(savedGroup);
 		}
 		throw new ResourceFoundException("Transportation Group Already Exists");
 	}
 
 	@Override
 	public List<TransportationGroupResponse> getAllTg() {
-		List<TransportationGroup> transportationGroups = transportationGroupRepository.findAll();
-		return transportationGroups.stream().sorted(Comparator.comparing(TransportationGroup::getId))
-				.map(this::mapToTransportationGroupResponse).toList();
+		return transportationGroupRepository.findAll().stream().sorted(Comparator.comparing(TransportationGroup::getId))
+				.map(transportationGroupMapper::mapToTransportationGroupResponse).toList();
 	}
 
 	@Override
-	public TransportationGroupResponse getTgById(Long id) throws ResourceNotFoundException {
+	public TransportationGroupResponse getTgById(@NonNull Long id) throws ResourceNotFoundException {
 		TransportationGroup transportationGroup = this.findTgById(id);
-		return mapToTransportationGroupResponse(transportationGroup);
+		return transportationGroupMapper.mapToTransportationGroupResponse(transportationGroup);
 	}
 
 	@Override
 	public List<TransportationGroupResponse> findAllStatusTrue() {
 		List<TransportationGroup> transportationGroups = transportationGroupRepository.findAllByTgStatusIsTrue();
 		return transportationGroups.stream().sorted(Comparator.comparing(TransportationGroup::getId))
-				.map(this::mapToTransportationGroupResponse).toList();
+				.map(transportationGroupMapper::mapToTransportationGroupResponse).toList();
 	}
 
 	@Override
-	public TransportationGroupResponse updateTg(Long id, TransportationGroupRequest updateTransportationGroupRequest)
+	public TransportationGroupResponse updateTg(@NonNull Long id,
+			TransportationGroupRequest updateTransportationGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateTransportationGroupRequest);
@@ -113,13 +108,13 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 			}
 			existingTransportationGroup.updateAuditHistory(auditFields);
 			TransportationGroup updatedGroup = transportationGroupRepository.save(existingTransportationGroup);
-			return mapToTransportationGroupResponse(updatedGroup);
+			return transportationGroupMapper.mapToTransportationGroupResponse(updatedGroup);
 		}
 		throw new ResourceFoundException("Transportation Group Already Exists");
 	}
 
 	@Override
-	public TransportationGroupResponse updateTgStatus(Long id) throws ResourceNotFoundException {
+	public TransportationGroupResponse updateTgStatus(@NonNull Long id) throws ResourceNotFoundException {
 		TransportationGroup existingTransportationGroup = this.findTgById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -130,11 +125,12 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 		}
 		existingTransportationGroup.updateAuditHistory(auditFields);
 		transportationGroupRepository.save(existingTransportationGroup);
-		return mapToTransportationGroupResponse(existingTransportationGroup);
+		return transportationGroupMapper.mapToTransportationGroupResponse(existingTransportationGroup);
 	}
 
 	@Override
-	public List<TransportationGroupResponse> updateBatchTgStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<TransportationGroupResponse> updateBatchTgStatus(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<TransportationGroup> groups = this.findAllTgById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -148,44 +144,55 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 
 		});
 		transportationGroupRepository.saveAll(groups);
-		return groups.stream().map(this::mapToTransportationGroupResponse).toList();
+		return groups.stream().map(transportationGroupMapper::mapToTransportationGroupResponse).toList();
 	}
 
 	@Override
-	public void deleteTgById(Long id) throws ResourceNotFoundException {
+	public void deleteTgById(@NonNull Long id) throws ResourceNotFoundException {
 		TransportationGroup transportationGroup = this.findTgById(id);
-		transportationGroupRepository.deleteById(transportationGroup.getId());
+		if (transportationGroup != null) {
+			transportationGroupRepository.delete(transportationGroup);
+		}
 	}
 
 	@Override
-	public void deleteBatchTg(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllTgById(ids);
-		transportationGroupRepository.deleteAllByIdInBatch(ids);
-	}
-
-	private TransportationGroupResponse mapToTransportationGroupResponse(TransportationGroup taxClassificationType) {
-		return modelMapper.map(taxClassificationType, TransportationGroupResponse.class);
-	}
-
-	private TransportationGroup findTgById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<TransportationGroup> transportationGroup = transportationGroupRepository.findById(id);
-		if (transportationGroup.isEmpty()) {
-			throw new ResourceNotFoundException("Transportation Group not found with this Id");
+	public void deleteBatchTg(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<TransportationGroup> transportationGroups = this.findAllTgById(ids);
+		if (!transportationGroups.isEmpty()) {
+			transportationGroupRepository.deleteAll(transportationGroups);
 		}
-		return transportationGroup.get();
 	}
 
-	private List<TransportationGroup> findAllTgById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(TransportationGroup group) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : group.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = TransportationGroup.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private TransportationGroup findTgById(@NonNull Long id) throws ResourceNotFoundException {
+		return transportationGroupRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Transportation Group not found with this Id"));
+	}
+
+	private List<TransportationGroup> findAllTgById(@NonNull List<Long> ids) throws ResourceNotFoundException {
+
 		List<TransportationGroup> groups = transportationGroupRepository.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> groups.stream().noneMatch(entity -> entity.getId().equals(id))).toList();
+		// Create a map for faster lookup
+		Map<Long, TransportationGroup> groupMap = groups.stream()
+				.collect(Collectors.toMap(TransportationGroup::getId, Function.identity()));
+
+		List<Long> missingIds = ids.stream().filter(id -> !groupMap.containsKey(id)).toList();
+
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Transportation Group with IDs " + missingIds + " not found");
 		}
+
 		return groups;
 	}
 

@@ -3,12 +3,11 @@ package com.example.mrpdataservice.serviceimpl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +19,7 @@ import com.example.mrpdataservice.entity.MrpControl;
 import com.example.mrpdataservice.exception.AlreadyExistsException;
 import com.example.mrpdataservice.exception.ExcelFileException;
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
+import com.example.mrpdataservice.mapping.MrpControlMapper;
 import com.example.mrpdataservice.repository.MrpControlRepo;
 import com.example.mrpdataservice.request.MrpControlRequest;
 import com.example.mrpdataservice.response.MrpControlResponse;
@@ -36,7 +36,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 
 	private final MrpControlRepo mrpControlRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final MrpControlMapper mrpControlMapper;
 	private final PlantServiceClient mrpPlantClient;
 	private final DynamicClient dynamicClient;
 
@@ -44,43 +44,34 @@ public class MrpControlServiceImpl implements MrpControlService {
 	public MrpControlResponse saveMrpControl(MrpControlRequest mrpControlRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(mrpControlRequest);
-		boolean exists = mrpControlRepo.existsByMrpControlCodeAndMrpControlName(mrpControlRequest.getMrpControlCode(),
-				mrpControlRequest.getMrpControlName());
-		if (!exists) {
-			MrpControl mrpControl = modelMapper.map(mrpControlRequest, MrpControl.class);
-			for (Map.Entry<String, Object> entryField : mrpControl.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = MrpControl.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			mrpControl.setId(null);
-			mrpControlRepo.save(mrpControl);
-			return mapToMrpControlResponse1(mrpControl);
-		} else {
+		String mrpControlCode = mrpControlRequest.getMrpControlCode();
+		String mrpControlName = mrpControlRequest.getMrpControlName();
+		if (mrpControlRepo.existsByMrpControlCodeAndMrpControlName(mrpControlCode, mrpControlName)) {
 			throw new AlreadyExistsException("MrpControl with this name already exists");
 		}
+		MrpControl mrpControl = mrpControlMapper.mapToMrpControl(mrpControlRequest);
+		validateDynamicFields(mrpControl);
+		mrpControl.setId(null);
+		mrpControlRepo.save(mrpControl);
+		return mrpControlMapper.mapToMrpControlResponse(mrpControl);
 	}
 
 	@Override
 	public MrpControlResponse getMrpControlById(Long id) throws ResourceNotFoundException {
 		MrpControl mrpControl = this.findMrpControlById(id);
-		return mapToMrpControlResponse(mrpControl);
+		return mrpControlMapper.mapToMrpControlResponse(mrpControl);
 	}
 
 	@Override
 	public MrpControlResponse getMrpControlByName(String name) throws ResourceNotFoundException {
 		MrpControl mrpControl = this.findMrpControlByName(name);
-		return mapToMrpControlResponse(mrpControl);
+		return mrpControlMapper.mapToMrpControlResponse(mrpControl);
 	}
 
 	@Override
 	public List<MrpControlResponse> getAllMrpControl() {
 		List<MrpControl> mrpControl = mrpControlRepo.findAllByOrderByIdAsc();
-		return mrpControl.stream().map(this::mapToMrpControlResponse).toList();
+		return mrpControl.stream().map(mrpControlMapper::mapToMrpControlResponse).toList();
 	}
 
 	@Override
@@ -144,7 +135,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 			}
 			existingMrpControl.updateAuditHistory(auditFields);
 			MrpControl mrp = mrpControlRepo.save(existingMrpControl);
-			return mapToMrpControlResponse(mrp);
+			return mrpControlMapper.mapToMrpControlResponse(mrp);
 		} else {
 			throw new AlreadyExistsException("MrpControl with this name already exists");
 		}
@@ -164,7 +155,7 @@ public class MrpControlServiceImpl implements MrpControlService {
 			existingMrpControl.updateAuditHistory(auditFields);
 		});
 		mrpControlRepo.saveAll(existingMrpControls);
-		return existingMrpControls.stream().map(this::mapToMrpControlResponse).toList();
+		return existingMrpControls.stream().map(mrpControlMapper::mapToMrpControlResponse).toList();
 	}
 
 	@Override
@@ -179,19 +170,23 @@ public class MrpControlServiceImpl implements MrpControlService {
 		}
 		existingMrpControl.updateAuditHistory(auditFields);
 		mrpControlRepo.save(existingMrpControl);
-		return mapToMrpControlResponse(existingMrpControl);
+		return mrpControlMapper.mapToMrpControlResponse(existingMrpControl);
 	}
 
 	@Override
 	public void deleteMrpControl(Long id) throws ResourceNotFoundException {
 		MrpControl mrpControl = this.findMrpControlById(id);
-		mrpControlRepo.deleteById(mrpControl.getId());
+		if (mrpControl != null) {
+			mrpControlRepo.delete(mrpControl);
+		}
 	}
 
 	@Override
 	public void deleteBatchMrpControl(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllMrpControlById(ids);
-		mrpControlRepo.deleteAllByIdInBatch(ids);
+		List<MrpControl> mrpControls = this.findAllMrpControlById(ids);
+		if (!mrpControls.isEmpty()) {
+			mrpControlRepo.deleteAll(mrpControls);
+		}
 	}
 
 	@Override
@@ -243,51 +238,46 @@ public class MrpControlServiceImpl implements MrpControlService {
 		return mrpControl;
 	}
 
-	private MrpControlResponse mapToMrpControlResponse(MrpControl mrpControl) {
-		return modelMapper.map(mrpControl, MrpControlResponse.class);
-	}
-
-	private MrpControlResponse mapToMrpControlResponse1(MrpControl mrpControl) {
-		return modelMapper.map(mrpControl, MrpControlResponse.class);
+	private void validateDynamicFields(MrpControl mrpControl) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : mrpControl.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = MrpControl.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private MrpControl findMrpControlById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<MrpControl> mrpControl = mrpControlRepo.findById(id);
-		if (mrpControl.isEmpty()) {
-			throw new ResourceNotFoundException("Mrp Control with ID " + id + " not found.");
-		}
-		return mrpControl.get();
+		return mrpControlRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Mrp Control with ID " + id + " not found."));
 	}
 
 	private MrpControl findMrpControlByName(String name) throws ResourceNotFoundException {
-		Optional<MrpControl> mrpControl = mrpControlRepo.findByMrpControlName(name);
-		if (mrpControl.isEmpty()) {
-			throw new ResourceNotFoundException("Mrp Control with Name " + name + " not found.");
-		}
-		return mrpControl.get();
+		return mrpControlRepo.findByMrpControlName(name)
+				.orElseThrow(() -> new ResourceNotFoundException("Mrp Control with Name " + name + " not found."));
 	}
 
 	private List<MrpControl> findAllMrpControlById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<MrpControl> controls = mrpControlRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream()
-				.filter(id -> controls.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		Set<Long> idSet = new HashSet<>(ids);
+
+		List<MrpControl> foundControls = controls.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Mrp Control with IDs " + missingIds + " not found.");
 		}
-		return controls;
+
+		return foundControls;
 	}
 
 	private MrpPlantResponse mapToMrpPlantResponse(MrpControl mrpControl) throws ResourceNotFoundException {
-		MrpPlantResponse mrpPlantResponse = modelMapper.map(mrpControl, MrpPlantResponse.class);
-		if (mrpPlantClient == null) {
-			throw new IllegalStateException("Plant Service is not initiated");
-		}
+		MrpPlantResponse mrpPlantResponse = mrpControlMapper.mapToMrpPlantResponse(mrpControl);
 		mrpPlantResponse.setPlant(mrpPlantClient.getPlantById(mrpControl.getPlantId()));
 		return mrpPlantResponse;
 	}

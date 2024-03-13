@@ -16,6 +16,7 @@ spring:
     username: postgres
     url: jdbc:postgresql://localhost:5432/request
     password: imu123
+    
 
   jpa:
     hibernate:
@@ -23,9 +24,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        show_sql: true
+        '[format_sql]': true
+        '[show_sql]': true
 
+  output:
+    ansi:
+      enabled: always
+      
 # Eureka Server configuration
 eureka:
   instance:

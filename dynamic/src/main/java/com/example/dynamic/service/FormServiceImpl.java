@@ -2,18 +2,17 @@ package com.example.dynamic.service;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
-import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.dynamic.dto.request.FormRequest;
 import com.example.dynamic.dto.response.FormResponse;
 import com.example.dynamic.entity.Form;
 import com.example.dynamic.exceptions.ResourceNotFoundException;
+import com.example.dynamic.mapping.FormMapper;
 import com.example.dynamic.repository.FormRepository;
 import com.example.dynamic.service.interfaces.FormService;
-import com.example.dynamic.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,74 +21,47 @@ import lombok.RequiredArgsConstructor;
 public class FormServiceImpl implements FormService {
 
 	private final FormRepository formRepository;
-	private final ModelMapper modelMapper;
+	private final FormMapper formMapper;
 
 	@Override
 	public FormResponse createForm(FormRequest formRequest) {
-		Form form = modelMapper.map(formRequest, Form.class);
+		Form form = formMapper.mapToForm(formRequest);
 		Form savedForm = formRepository.save(form);
-		return this.mapToFormResponse(savedForm);
+		return formMapper.mapToFormResponse(savedForm);
 	}
 
 	@Override
-	public FormResponse getFormById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
+	public FormResponse getFormById(@NonNull Long id) throws ResourceNotFoundException {
 		Form form = getById(id);
-		return this.mapToFormResponse(form);
+		return formMapper.mapToFormResponse(form);
 	}
 
 	@Override
 	public FormResponse getFormByName(String formName) throws ResourceNotFoundException {
 		Form form = getByName(formName);
-		return this.mapToFormResponse(form);
+		return formMapper.mapToFormResponse(form);
 	}
 
-	private FormResponse mapToFormResponse(Form form) {
-		return modelMapper.map(form, FormResponse.class);
-	}
-
-	private Form getById(Long id) throws ResourceNotFoundException {
-		// Implement the code to retrieve the form by id from the form repository
-		Helpers.validateId(id);
-		Optional<Form> optionalForm = formRepository.findById(id);
-
-		// Throw an exception if the form is not found
-		if (!optionalForm.isPresent()) {
-			throw new ResourceNotFoundException("Form not found");
-		}
-
-		// Return the form
-		return optionalForm.get();
+	private Form getById(@NonNull Long id) throws ResourceNotFoundException {
+		return formRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Form not found"));
 	}
 
 	private Form getByName(String formName) throws ResourceNotFoundException {
-		// Implement the code to retrieve the form by id from the form repository
-		Optional<Form> optionalForm = formRepository.findByFormName(formName);
-
-		// Throw an exception if the form is not found
-		if (!optionalForm.isPresent()) {
-			throw new ResourceNotFoundException("Form not found");
-		}
-
-		// Return the form
-		return optionalForm.get();
+		return formRepository.findByFormName(formName)
+				.orElseThrow(() -> new ResourceNotFoundException("Form not found"));
 	}
 
 	@Override
 	public List<FormResponse> getAllForm() {
-		List<Form> forms = formRepository.findAll();
-		return forms
-				.stream()
-				.sorted(Comparator.comparing(Form::getId))
-				.map(this::mapToFormResponse)
-				.toList();
+		return formRepository.findAll().stream().sorted(Comparator.comparing(Form::getId))
+				.map(formMapper::mapToFormResponse).toList();
 	}
 
 	@Override
-	public void deleteFormById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
+	public void deleteFormById(@NonNull Long id) throws ResourceNotFoundException {
 		Form form = getById(id);
-		formRepository.delete(form);
+		if (form != null) {
+			formRepository.delete(form);
+		}
 	}
-
 }

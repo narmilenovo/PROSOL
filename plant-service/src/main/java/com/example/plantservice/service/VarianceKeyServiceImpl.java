@@ -3,12 +3,11 @@ package com.example.plantservice.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +19,7 @@ import com.example.plantservice.entity.VarianceKey;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
+import com.example.plantservice.mapping.VarianceKeyMapper;
 import com.example.plantservice.repository.VarianceKeyRepo;
 import com.example.plantservice.service.interfaces.VarianceKeyService;
 import com.example.plantservice.util.ExcelFileHelper;
@@ -34,37 +34,30 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 
 	private final VarianceKeyRepo varianceKeyRepo;
 	private final ExcelFileHelper excelFileHelper;
-	private final ModelMapper modelMapper;
+	private final VarianceKeyMapper varianceKeyMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
 	public VarianceKeyResponse saveVarianceKey(VarianceKeyRequest valuationCategoryRequest)
 			throws AlreadyExistsException, ResourceNotFoundException {
 		Helpers.inputTitleCase(valuationCategoryRequest);
-		boolean exists = varianceKeyRepo.existsByVarianceKeyCodeAndVarianceKeyName(
-				valuationCategoryRequest.getVarianceKeyCode(), valuationCategoryRequest.getVarianceKeyName());
-		if (!exists) {
-			VarianceKey valuationCategory = modelMapper.map(valuationCategoryRequest, VarianceKey.class);
-			for (Map.Entry<String, Object> entryField : valuationCategory.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = VarianceKey.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			varianceKeyRepo.save(valuationCategory);
-			return mapToVarianceKeyResponse(valuationCategory);
-		} else {
+		String varianceKeyCode = valuationCategoryRequest.getVarianceKeyCode();
+		String varianceKeyName = valuationCategoryRequest.getVarianceKeyName();
+		if (varianceKeyRepo.existsByVarianceKeyCodeAndVarianceKeyName(varianceKeyCode, varianceKeyName)) {
 			throw new AlreadyExistsException("VarianceKey with this name already exists");
 		}
+		VarianceKey valuationCategory = varianceKeyMapper.mapToVarianceKey(valuationCategoryRequest);
+
+		validateDynamicFields(valuationCategory);
+
+		varianceKeyRepo.save(valuationCategory);
+		return varianceKeyMapper.mapToVarianceKeyResponse(valuationCategory);
 	}
 
 	@Override
 	public VarianceKeyResponse getVarianceKeyById(Long id) throws ResourceNotFoundException {
 		VarianceKey valuationCategory = this.findVarianceKeyById(id);
-		return mapToVarianceKeyResponse(valuationCategory);
+		return varianceKeyMapper.mapToVarianceKeyResponse(valuationCategory);
 	}
 
 	@Override
@@ -74,8 +67,8 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 
 	@Override
 	public List<VarianceKeyResponse> getAllVarianceKey() {
-		List<VarianceKey> valuationCategory = varianceKeyRepo.findAllByOrderByIdAsc();
-		return valuationCategory.stream().map(this::mapToVarianceKeyResponse).toList();
+		return varianceKeyRepo.findAllByOrderByIdAsc().stream().map(varianceKeyMapper::mapToVarianceKeyResponse)
+				.toList();
 	}
 
 	@Override
@@ -117,7 +110,7 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 				}
 			}
 			varianceKeyRepo.save(existingVarianceKey);
-			return mapToVarianceKeyResponse(existingVarianceKey);
+			return varianceKeyMapper.mapToVarianceKeyResponse(existingVarianceKey);
 		} else {
 			throw new AlreadyExistsException("VarianceKey with this name already exists");
 		}
@@ -137,7 +130,7 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 			existingVarianceKey.updateAuditHistory(auditFields);
 		});
 		varianceKeyRepo.saveAll(existingVarianceKeys);
-		return existingVarianceKeys.stream().map(this::mapToVarianceKeyResponse).toList();
+		return existingVarianceKeys.stream().map(varianceKeyMapper::mapToVarianceKeyResponse).toList();
 	}
 
 	@Override
@@ -152,18 +145,22 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 		}
 		existingVarianceKey.updateAuditHistory(auditFields);
 		varianceKeyRepo.save(existingVarianceKey);
-		return mapToVarianceKeyResponse(existingVarianceKey);
+		return varianceKeyMapper.mapToVarianceKeyResponse(existingVarianceKey);
 	}
 
 	public void deleteVarianceKey(Long id) throws ResourceNotFoundException {
-		VarianceKey valuationCategory = this.findVarianceKeyById(id);
-		varianceKeyRepo.deleteById(valuationCategory.getId());
+		VarianceKey varianceKey = this.findVarianceKeyById(id);
+		if (varianceKey != null) {
+			varianceKeyRepo.delete(varianceKey);
+		}
 	}
 
 	@Override
 	public void deleteBatchVarianceKey(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllKeysById(ids);
-		varianceKeyRepo.deleteAllByIdInBatch(ids);
+		List<VarianceKey> varianceKeys = this.findAllKeysById(ids);
+		if (!varianceKeys.isEmpty()) {
+			varianceKeyRepo.deleteAll(varianceKeys);
+		}
 	}
 
 	@Override
@@ -216,31 +213,35 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 		return data;
 	}
 
-	private VarianceKeyResponse mapToVarianceKeyResponse(VarianceKey valuationCategory) {
-		return modelMapper.map(valuationCategory, VarianceKeyResponse.class);
+	private void validateDynamicFields(VarianceKey valuationCategory) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : valuationCategory.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = VarianceKey.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
 	}
 
 	private VarianceKey findVarianceKeyById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<VarianceKey> valuationCategory = varianceKeyRepo.findById(id);
-		if (valuationCategory.isEmpty()) {
-			throw new ResourceNotFoundException("VarianceKey with ID " + id + " not found");
-		}
-		return valuationCategory.get();
+		return varianceKeyRepo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("VarianceKey with ID " + id + " not found"));
 	}
 
 	private List<VarianceKey> findAllKeysById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+		Set<Long> idSet = new HashSet<>(ids); // Convert ids to a set for faster lookup
 		List<VarianceKey> keys = varianceKeyRepo.findAllById(ids);
-		// Check for missing IDs
-		List<Long> missingIds = ids.stream().filter(id -> keys.stream().noneMatch(entity -> entity.getId().equals(id)))
-				.collect(Collectors.toList());
+
+		List<VarianceKey> foundKeys = keys.stream().filter(entity -> idSet.contains(entity.getId())).toList();
+
+		List<Long> missingIds = ids.stream().filter(id -> !idSet.contains(id)).toList();
 
 		if (!missingIds.isEmpty()) {
-			// Handle missing IDs, you can log a message or throw an exception
 			throw new ResourceNotFoundException("Variance Key with IDs " + missingIds + " not found.");
 		}
-		return keys;
+		return foundKeys;
 	}
 
 }

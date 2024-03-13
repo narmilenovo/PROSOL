@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.generalservice.client.DynamicClient;
@@ -17,6 +15,7 @@ import com.example.generalservice.entity.AuditFields;
 import com.example.generalservice.entity.InspectionType;
 import com.example.generalservice.exceptions.ResourceFoundException;
 import com.example.generalservice.exceptions.ResourceNotFoundException;
+import com.example.generalservice.mapping.InspectionTypeMapper;
 import com.example.generalservice.repository.InspectionTypeRepository;
 import com.example.generalservice.service.interfaces.InspectionTypeService;
 import com.example.generalservice.utils.Helpers;
@@ -27,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InspectionTypeServiceImpl implements InspectionTypeService {
 	private final InspectionTypeRepository inspectionTypeRepository;
-	private final ModelMapper modelMapper;
+	private final InspectionTypeMapper inspectionTypeMapper;
 	private final DynamicClient dynamicClient;
 
 	@Override
@@ -36,51 +35,38 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 		Helpers.inputTitleCase(inspectionTypeRequest);
 		String inTypeCode = inspectionTypeRequest.getInTypeCode();
 		String inTypeName = inspectionTypeRequest.getInTypeName();
-		boolean exists = inspectionTypeRepository.existsByInTypeCodeOrInTypeName(inTypeCode, inTypeName);
-		if (!exists) {
-
-			InspectionType inspectionType = modelMapper.map(inspectionTypeRequest, InspectionType.class);
-			for (Map.Entry<String, Object> entryField : inspectionType.getDynamicFields().entrySet()) {
-				String fieldName = entryField.getKey();
-				String formName = InspectionType.class.getSimpleName();
-				boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
-				if (!fieldExists) {
-					throw new ResourceNotFoundException("Field of '" + fieldName
-							+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
-				}
-			}
-			InspectionType savedInspectionType = inspectionTypeRepository.save(inspectionType);
-			return mapToInspectionTypeResponse(savedInspectionType);
+		if (inspectionTypeRepository.existsByInTypeCodeOrInTypeName(inTypeCode, inTypeName)) {
+			throw new ResourceFoundException("Inspection type Already exist");
 		}
-		throw new ResourceFoundException("Inspection type Already exist");
+		InspectionType inspectionType = inspectionTypeMapper.mapToInspectionType(inspectionTypeRequest);
+		validateDynamicFields(inspectionType);
+
+		InspectionType savedInspectionType = inspectionTypeRepository.save(inspectionType);
+		return inspectionTypeMapper.mapToInspectionTypeResponse(savedInspectionType);
 
 	}
 
 	@Override
-	@Cacheable("inType")
-	public InspectionTypeResponse getInTypeById(Long id) throws ResourceNotFoundException {
+	public InspectionTypeResponse getInTypeById(@NonNull Long id) throws ResourceNotFoundException {
 		InspectionType inspectionType = this.findInTypeById(id);
-		return mapToInspectionTypeResponse(inspectionType);
+		return inspectionTypeMapper.mapToInspectionTypeResponse(inspectionType);
 	}
 
 	@Override
-	@Cacheable("inType")
 	public List<InspectionTypeResponse> getAllInType() {
-		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAll();
-		return inspectionTypes.stream().sorted(Comparator.comparing(InspectionType::getId))
-				.map(this::mapToInspectionTypeResponse).toList();
+		return inspectionTypeRepository.findAll().stream().sorted(Comparator.comparing(InspectionType::getId))
+				.map(inspectionTypeMapper::mapToInspectionTypeResponse).toList();
 	}
 
 	@Override
-	@Cacheable("inType")
 	public List<InspectionTypeResponse> findAllStatusTrue() {
-		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAllByInTypeStatusIsTrue();
-		return inspectionTypes.stream().sorted(Comparator.comparing(InspectionType::getId))
-				.map(this::mapToInspectionTypeResponse).toList();
+		return inspectionTypeRepository.findAllByInTypeStatusIsTrue().stream()
+				.sorted(Comparator.comparing(InspectionType::getId))
+				.map(inspectionTypeMapper::mapToInspectionTypeResponse).toList();
 	}
 
 	@Override
-	public InspectionTypeResponse updateInType(Long id, InspectionTypeRequest updateInspectionTypeRequest)
+	public InspectionTypeResponse updateInType(@NonNull Long id, InspectionTypeRequest updateInspectionTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateInspectionTypeRequest);
@@ -120,13 +106,13 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 			}
 			existingInspectionType.updateAuditHistory(auditFields);
 			InspectionType updatedInspectionType = inspectionTypeRepository.save(existingInspectionType);
-			return mapToInspectionTypeResponse(updatedInspectionType);
+			return inspectionTypeMapper.mapToInspectionTypeResponse(updatedInspectionType);
 		}
 		throw new ResourceFoundException("Inspection type Already exist");
 	}
 
 	@Override
-	public InspectionTypeResponse updateInTypeStatus(Long id) throws ResourceNotFoundException {
+	public InspectionTypeResponse updateInTypeStatus(@NonNull Long id) throws ResourceNotFoundException {
 		InspectionType existingInspectionType = this.findInTypeById(id);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -137,11 +123,12 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 		}
 		existingInspectionType.updateAuditHistory(auditFields);
 		inspectionTypeRepository.save(existingInspectionType);
-		return this.mapToInspectionTypeResponse(existingInspectionType);
+		return inspectionTypeMapper.mapToInspectionTypeResponse(existingInspectionType);
 	}
 
 	@Override
-	public List<InspectionTypeResponse> updateBatchInTypeStatus(List<Long> ids) throws ResourceNotFoundException {
+	public List<InspectionTypeResponse> updateBatchInTypeStatus(@NonNull List<Long> ids)
+			throws ResourceNotFoundException {
 		List<InspectionType> inspectionTypes = this.findAllById(ids);
 		// Find properties that have changed
 		List<AuditFields> auditFields = new ArrayList<>();
@@ -155,36 +142,43 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 
 		});
 		inspectionTypeRepository.saveAll(inspectionTypes);
-		return inspectionTypes.stream().map(this::mapToInspectionTypeResponse).toList();
+		return inspectionTypes.stream().map(inspectionTypeMapper::mapToInspectionTypeResponse).toList();
 	}
 
 	@Override
-	public void deleteInTypeId(Long id) throws ResourceNotFoundException {
+	public void deleteInTypeId(@NonNull Long id) throws ResourceNotFoundException {
 		InspectionType inspectionType = this.findInTypeById(id);
-		inspectionTypeRepository.deleteById(inspectionType.getId());
+		if (inspectionType != null) {
+			inspectionTypeRepository.delete(inspectionType);
+		}
 	}
 
 	@Override
-	public void deleteBatchInType(List<Long> ids) throws ResourceNotFoundException {
-		this.findAllById(ids);
-		inspectionTypeRepository.deleteAllById(ids);
-	}
-
-	private InspectionTypeResponse mapToInspectionTypeResponse(InspectionType inspectionType) {
-		return modelMapper.map(inspectionType, InspectionTypeResponse.class);
-	}
-
-	private InspectionType findInTypeById(Long id) throws ResourceNotFoundException {
-		Helpers.validateId(id);
-		Optional<InspectionType> inspectionType = inspectionTypeRepository.findById(id);
-		if (inspectionType.isEmpty()) {
-			throw new ResourceNotFoundException("No Inspection found with this Id");
+	public void deleteBatchInType(@NonNull List<Long> ids) throws ResourceNotFoundException {
+		List<InspectionType> inspectionTypes = this.findAllById(ids);
+		if (!inspectionTypes.isEmpty()) {
+			inspectionTypeRepository.deleteAll(inspectionTypes);
 		}
-		return inspectionType.get();
 	}
 
-	private List<InspectionType> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
+	private void validateDynamicFields(InspectionType inspectionType) throws ResourceNotFoundException {
+		for (Map.Entry<String, Object> entryField : inspectionType.getDynamicFields().entrySet()) {
+			String fieldName = entryField.getKey();
+			String formName = InspectionType.class.getSimpleName();
+			boolean fieldExists = dynamicClient.checkFieldNameInForm(fieldName, formName);
+			if (!fieldExists) {
+				throw new ResourceNotFoundException("Field of '" + fieldName
+						+ "' not exist in Dynamic Field creation for form '" + formName + "' !!");
+			}
+		}
+	}
+
+	private InspectionType findInTypeById(@NonNull Long id) throws ResourceNotFoundException {
+		return inspectionTypeRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("No Inspection found with this Id"));
+	}
+
+	private List<InspectionType> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<InspectionType> inspectionTypes = inspectionTypeRepository.findAllById(ids);
 		// Check for missing IDs
 		List<Long> missingIds = ids.stream()
