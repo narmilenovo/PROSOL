@@ -71,7 +71,6 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 	@Override
 	public AvailCheckResponse updateAvailCheck(Long id, AvailCheckRequest availCheckRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(availCheckRequest);
 		String existName = availCheckRequest.getAvailCheckName();
 		String existCode = availCheckRequest.getAvailCheckCode();
@@ -230,8 +229,6 @@ public class AvailCheckServiceImpl implements AvailCheckService {
 	}
 
 	private List<AvailCheck> findAllAvailCheckById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-
 		List<AvailCheck> availChecks = availCheckRepo.findAllById(ids);
 		Set<Long> idSet = new HashSet<>(ids);
 

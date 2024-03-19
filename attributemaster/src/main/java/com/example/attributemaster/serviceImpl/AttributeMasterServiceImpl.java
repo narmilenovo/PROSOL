@@ -77,7 +77,6 @@ public class AttributeMasterServiceImpl implements AttributeMasterService {
 	@Override
 	public AttributeMasterResponse updateAttributeMaster(Long id, AttributeMasterRequest attributeMasterRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		String attributeName = Helpers.capitalize(attributeMasterRequest.getAttributeName());
 		boolean exists = attributeMasterRepo.existsByAttributeNameAndIdNot(attributeName, id);
 		// Find properties that have changed

@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -85,7 +84,7 @@ public class UserServiceImpl implements UserService {
 				}).toList();
 
 		List<User> savedList = userRepository.saveAll(userList);
-		return savedList.stream().map(userMapper::mapToUserResponse).collect(Collectors.toList());
+		return savedList.stream().map(userMapper::mapToUserResponse).toList();
 	}
 
 	@Override

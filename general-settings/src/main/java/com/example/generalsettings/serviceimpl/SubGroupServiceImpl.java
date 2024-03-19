@@ -79,7 +79,6 @@ public class SubGroupServiceImpl implements SubGroupService {
 	@Override
 	public SubGroupCodesResponse updateSubMainGroup(Long id, SubGroupCodesRequest subGroupCodesRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(subGroupCodesRequest);
 		String name = subGroupCodesRequest.getSubGroupName();
 		String code = subGroupCodesRequest.getSubGroupCode();

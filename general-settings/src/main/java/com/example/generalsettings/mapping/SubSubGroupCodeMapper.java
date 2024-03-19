@@ -10,12 +10,12 @@ import com.example.generalsettings.response.SubSubGroupResponse;
 @Mapper(componentModel = "spring")
 public interface SubSubGroupCodeMapper {
 
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
-	@Mapping(target = "mainGroupCodesId", ignore = true)
-	@Mapping(target = "subGroupCodesId", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
+	@Mapping(target = "mainGroupCodesId.id", source = "mainGroupCodesId")
+	@Mapping(target = "subGroupCodesId.id", source = "subGroupId")
 	SubSubGroup mapToSubSubGroup(SubSubGroupRequest subSubGroupRequest);
 
 	SubSubGroupResponse mapToSubChildGroupResponse(SubSubGroup subChildGroup);

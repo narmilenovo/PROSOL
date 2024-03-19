@@ -50,6 +50,7 @@ public class SecurityConfig {
 	private static final List<String> REQUEST = List.of("/request/v3/api-docs");
 	private static final List<String> DYNAMIC = List.of("/dynamic/v3/api-docs");
 	private static final List<String> USER_SETTINGS = List.of("/userSettings/v3/api-docs");
+	private static final List<String> BATCH_SERVICE = List.of("/batch/v3/api-docs");
 
 	static {
 		PERMIT_ALL_URLS.addAll(SWAGGER);
@@ -66,6 +67,7 @@ public class SecurityConfig {
 		PERMIT_ALL_URLS.addAll(REQUEST);
 		PERMIT_ALL_URLS.addAll(DYNAMIC);
 		PERMIT_ALL_URLS.addAll(USER_SETTINGS);
+		PERMIT_ALL_URLS.addAll(BATCH_SERVICE);
 	}
 
 	private final AuthenticationManager authenticationManager;

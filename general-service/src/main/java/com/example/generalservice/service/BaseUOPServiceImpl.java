@@ -67,7 +67,6 @@ public class BaseUOPServiceImpl implements BaseUOPService {
 	@Override
 	public BaseUOPResponse updateUop(@NonNull Long id, BaseUOPRequest updateBaseUOPRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateBaseUOPRequest);
 		String uopCode = updateBaseUOPRequest.getUopCode();
 		String uopName = updateBaseUOPRequest.getUopName();

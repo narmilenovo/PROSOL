@@ -69,7 +69,6 @@ public class LoadingGroupServiceImpl implements LoadingGroupService {
 	@Override
 	public LoadingGroupResponse updateLg(@NonNull Long id, LoadingGroupRequest updateLoadingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateLoadingGroupRequest);
 		String lgCode = updateLoadingGroupRequest.getLgCode();
 		String lgName = updateLoadingGroupRequest.getLgName();

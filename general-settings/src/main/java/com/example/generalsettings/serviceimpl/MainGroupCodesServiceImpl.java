@@ -64,7 +64,6 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 	@Override
 	public MainGroupCodesResponse updateMainGroupCodes(Long id, MainGroupCodesRequest mainGroupCodesRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(mainGroupCodesRequest);
 		String name = mainGroupCodesRequest.getMainGroupName();
 		String code = mainGroupCodesRequest.getMainGroupCode();

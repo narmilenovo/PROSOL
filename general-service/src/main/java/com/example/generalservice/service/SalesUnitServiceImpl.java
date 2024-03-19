@@ -67,7 +67,6 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	@Override
 	public SalesUnitResponse updateSalesUnit(@NonNull Long id, SalesUnitRequest updateSalesUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateSalesUnitRequest);
 		String salesCode = updateSalesUnitRequest.getSalesCode();
 		String salesName = updateSalesUnitRequest.getSalesName();
@@ -173,8 +172,6 @@ public class SalesUnitServiceImpl implements SalesUnitService {
 	}
 
 	private List<SalesUnit> findAllById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
-
 		Set<Long> idSet = new HashSet<>(ids);
 		List<SalesUnit> salesUnits = salesUnitRepository.findAllById(idSet);
 

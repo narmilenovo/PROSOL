@@ -23,8 +23,8 @@ public class DictionaryAllResponse {
 	private Type type;
 	private String similarSearchItems;
 	private List<NmUomResponse> nmUoms;
-	private List<DictionaryAttributeAllResponse> attributes;
 	private String image;
+	private List<DictionaryAttributeAllResponse> attributes;
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

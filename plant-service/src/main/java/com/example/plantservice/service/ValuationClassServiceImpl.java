@@ -90,7 +90,6 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	@Override
 	public ValuationClassResponse updateValuationClass(Long id, ValuationClassRequest valuationClassRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(valuationClassRequest);
 		String existName = valuationClassRequest.getValuationClassName();
 		String existCode = valuationClassRequest.getValuationClassCode();
@@ -271,7 +270,6 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 	}
 
 	private List<ValuationClass> findAllValuationClassById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<ValuationClass> classes = valuationClassRepo.findAllById(ids);
 
 		Set<Long> idSet = new HashSet<>(ids);
@@ -289,7 +287,8 @@ public class ValuationClassServiceImpl implements ValuationClassService {
 			throws ResourceNotFoundException {
 		ValuationMaterialResponse valuationMaterialResponse = valuationClassMapper
 				.mapToValuationMaterialResponse(valuationClass);
-		valuationMaterialResponse.setMaterial(materialTypeClient.getMaterialById(valuationClass.getMaterialTypeId()));
+		valuationMaterialResponse
+				.setMaterialType(materialTypeClient.getMaterialById(valuationClass.getMaterialTypeId()));
 		return valuationMaterialResponse;
 	}
 

@@ -122,10 +122,9 @@ public class UserController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
 	@PostMapping("/saveAllUser")
-	public ResponseEntity<Object> bulkSave(@Valid @RequestBody List<UserRequest> userRequests) {
-		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/bulkSave").toUriString());
+	public ResponseEntity<Object> bulkSave(@RequestBody List<UserRequest> userRequests) {
 		List<UserResponse> users = userService.saveAllUser(userRequests);
-		return ResponseEntity.created(uri).body(users);
+		return ResponseEntity.ok(users);
 	}
 
 	@Operation(summary = SWG_USER_ITEM_OPERATION, responses = {
@@ -280,11 +279,11 @@ public class UserController {
 			@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) throws ResourceNotFoundException {
 		UserAccountRequest userAccount = userAccountService.findByToken(token);
 		if (userAccount.isExpired()) {
-			userAccountService.delete(userAccount.getId());
+			userAccountService.deleteById(userAccount.getId());
 			return ResponseEntity.badRequest().body(TOKEN_EXPIRED_MESSAGE);
 		}
 		userService.updatePassword(userAccount.getUser().getId(), resetPasswordRequest.getPassword());
-		userAccountService.delete(userAccount.getId());
+		userAccountService.deleteById(userAccount.getId());
 		return ResponseEntity.ok().body(RESET_PASSWORD_SUCCESS_MESSAGE);
 	}
 

@@ -71,7 +71,6 @@ public class AccAssignmentServiceImpl implements AccAssignmentService {
 	@Override
 	public AccAssignmentResponse updateAcc(@NonNull Long id, AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateAccAssignmentRequest);
 		AccAssignment existingAssignment = this.findAccById(id);
 		String accCode = updateAccAssignmentRequest.getAccCode();

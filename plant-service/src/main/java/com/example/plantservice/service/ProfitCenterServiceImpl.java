@@ -82,7 +82,6 @@ public class ProfitCenterServiceImpl implements ProfitCenterService {
 	@Transactional
 	public ProfitCenterResponse updateProfitCenter(Long id, ProfitCenterRequest profitCenterRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(profitCenterRequest);
 		String existName = profitCenterRequest.getProfitCenterName();
 		String existCode = profitCenterRequest.getProfitCenterCode();

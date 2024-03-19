@@ -75,7 +75,6 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 	@Override
 	public ValuationCategoryResponse updateValuationCategory(Long id, ValuationCategoryRequest valuationCategoryRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(valuationCategoryRequest);
 		String existName = valuationCategoryRequest.getValuationCategoryName();
 		String existCode = valuationCategoryRequest.getValuationCategoryCode();
@@ -244,7 +243,6 @@ public class ValuationCategoryServiceImpl implements ValuationCategoryService {
 	}
 
 	private List<ValuationCategory> findAllValCatById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<ValuationCategory> categories = valuationCategoryRepo.findAllById(ids);
 
 		Set<Long> idSet = new HashSet<>(ids);

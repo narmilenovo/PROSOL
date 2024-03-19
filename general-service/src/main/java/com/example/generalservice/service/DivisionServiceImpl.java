@@ -68,7 +68,6 @@ public class DivisionServiceImpl implements DivisionService {
 	@Override
 	public DivisionResponse updateDivision(@NonNull Long id, DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDivisionRequest);
 		String divCode = updateDivisionRequest.getDivCode();
 		String divName = updateDivisionRequest.getDivName();

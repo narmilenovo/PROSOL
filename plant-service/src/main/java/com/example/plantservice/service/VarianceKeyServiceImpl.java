@@ -74,7 +74,6 @@ public class VarianceKeyServiceImpl implements VarianceKeyService {
 	@Override
 	public VarianceKeyResponse updateVarianceKey(Long id, VarianceKeyRequest varianceKeyRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(varianceKeyRequest);
 		String existName = varianceKeyRequest.getVarianceKeyName();
 		String existCode = varianceKeyRequest.getVarianceKeyCode();

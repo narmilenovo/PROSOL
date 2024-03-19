@@ -13,18 +13,18 @@ import com.example.valueservice.entity.ValueMaster;
 @Mapper(componentModel = "spring")
 public interface ValueMapper {
 
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
 	ValueMaster mapToValueMaster(ValueMasterRequest valueMasterRequest);
 
 	List<ValueMaster> mapToValueMasterList(List<ValueMasterRequest> valueMasterRequests);
 
 	ValueMasterResponse mapToValueMasterResponse(ValueMaster valueMaster);
 
-	@Mapping(target = "abbreviationUnit", source = "equivalentUnit", ignore = true)
-	@Mapping(target = "equivalentUnit", source = "equivalentUnit", ignore = true)
+	@Mapping(target = "abbreviationUnit.id", source = "abbreviationUnit")
+	@Mapping(target = "equivalentUnit.id", source = "equivalentUnit")
 	ValueAttributeUom mapToValueAttributeUom(ValueMaster valueMaster);
 
 }

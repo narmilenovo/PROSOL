@@ -72,7 +72,6 @@ public class SalesOrganizationServiceImpl implements SalesOrganizationService {
 	@Override
 	public SalesOrganizationResponse updateSo(@NonNull Long id, SalesOrganizationRequest updateSalesOrganizationRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateSalesOrganizationRequest);
 		String soCode = updateSalesOrganizationRequest.getSoCode();
 		String soName = updateSalesOrganizationRequest.getSoName();

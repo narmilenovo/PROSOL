@@ -107,10 +107,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			token.setRevoked(true);
 		});
 		tokenRepository.saveAll(validUserTokens);
-		var nonValidUserTokens = tokenRepository.findAllNonValidTokenByUser(userResponse.getId());
-		if (nonValidUserTokens != null) {
-			tokenRepository.deleteAll(nonValidUserTokens);
-		}
+//		var nonValidUserTokens = tokenRepository.findAllNonValidTokenByUser(userResponse.getId());
+//		if (nonValidUserTokens != null) {
+//			tokenRepository.deleteAll(nonValidUserTokens);
+//		}
 
 	}
 

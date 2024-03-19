@@ -93,7 +93,6 @@ public class MrpControlServiceImpl implements MrpControlService {
 	@Override
 	public MrpControlResponse updateMrpControl(Long id, MrpControlRequest mrpControlRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(mrpControlRequest);
 		String existName = mrpControlRequest.getMrpControlName();
 		String existCode = mrpControlRequest.getMrpControlCode();

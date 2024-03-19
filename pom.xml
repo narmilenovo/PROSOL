@@ -31,6 +31,7 @@
         <module>request-item-service</module>
         <module>user-settings</module>
         <module>dynamic</module>
+        <module>batch-service</module>
     </modules>
 
 </project>

@@ -40,13 +40,10 @@ public class UserAccountServiceImpl implements UserAccountService {
 		userAccountRequest.setToken(token);
 		userAccountRequest.setExpireAt(c.getTime().getTime());
 
-		// Create a new UserAccount entity and save it
 		UserAccount userAccount = userMapper.mapToUserAccount(userAccountRequest);
 		if (userAccount != null) {
 			userAccount = userAccountRepository.save(userAccount);
-
 		}
-		// Map the saved UserAccount entity back to UserAccountRequest
 		userMapper.mapToUserAccountRequest(userAccount);
 	}
 
@@ -58,7 +55,7 @@ public class UserAccountServiceImpl implements UserAccountService {
 	}
 
 	@Override
-	public void delete(@NonNull Long id) {
+	public void deleteById(@NonNull Long id) {
 		userAccountRepository.deleteById(id);
 	}
 

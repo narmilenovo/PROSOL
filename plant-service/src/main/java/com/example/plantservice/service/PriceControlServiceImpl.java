@@ -72,7 +72,6 @@ public class PriceControlServiceImpl implements PriceControlService {
 	@Override
 	public PriceControlResponse updatePriceControl(Long id, PriceControlRequest priceControlRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(priceControlRequest);
 		String existName = priceControlRequest.getPriceControlName();
 		String existCode = priceControlRequest.getPriceControlCode();
@@ -231,7 +230,6 @@ public class PriceControlServiceImpl implements PriceControlService {
 	}
 
 	private List<PriceControl> findAllPcById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		Set<Long> idSet = new HashSet<>(ids);
 		List<PriceControl> priceControls = priceControlRepo.findAllById(ids);
 		List<PriceControl> foundPriceControls = priceControls.stream().filter(entity -> idSet.contains(entity.getId()))

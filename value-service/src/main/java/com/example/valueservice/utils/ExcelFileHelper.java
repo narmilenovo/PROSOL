@@ -168,8 +168,7 @@ public class ExcelFileHelper extends AbstractExporter {
 		int headerCellCount = headerRow.getLastCellNum();
 
 		// Exclude dynamicFields from the header count
-		long dynamicFieldsCount = fields.stream()
-				.filter(field -> "dynamicFields".equalsIgnoreCase(field.getName()))
+		long dynamicFieldsCount = fields.stream().filter(field -> "dynamicFields".equalsIgnoreCase(field.getName()))
 				.count();
 
 		// Check if there are extra columns
@@ -180,7 +179,7 @@ public class ExcelFileHelper extends AbstractExporter {
 		// Check if the header is different from class fields
 		for (int i = 0; i < headerCellCount; i++) {
 			String fieldName = getFieldNameFromHeader(i);
-			if (!fields.stream().anyMatch(f -> f.getName().equalsIgnoreCase(fieldName))) {
+			if (fields.stream().noneMatch(f -> f.getName().equalsIgnoreCase(fieldName))) {
 				throw new ExcelFileException("Excel file header is different from class fields.");
 			}
 		}

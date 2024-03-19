@@ -69,7 +69,6 @@ public class UnitOfIssueServiceImpl implements UnitOfIssueService {
 	@Override
 	public UnitOfIssueResponse updateUOI(@NonNull Long id, UnitOfIssueRequest updateUnitOfIssueRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateUnitOfIssueRequest);
 		String uoiCode = updateUnitOfIssueRequest.getUoiCode();
 		String uoiName = updateUnitOfIssueRequest.getUoiName();

@@ -99,7 +99,6 @@ public class StorageLocationServiceImpl implements StorageLocationService {
 	@Transactional
 	public StorageLocationResponse updateStorageLocation(Long id, StorageLocationRequest storageLocationRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(storageLocationRequest);
 
 		String existCode = storageLocationRequest.getStorageLocationCode();

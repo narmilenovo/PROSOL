@@ -72,7 +72,6 @@ public class PurchasingGroupServiceImpl implements PurchasingGroupService {
 	@Override
 	public PurchasingGroupResponse updatePg(@NonNull Long id, PurchasingGroupRequest updatePurchasingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updatePurchasingGroupRequest);
 		String pgCode = updatePurchasingGroupRequest.getPgCode();
 		String pgName = updatePurchasingGroupRequest.getPgName();

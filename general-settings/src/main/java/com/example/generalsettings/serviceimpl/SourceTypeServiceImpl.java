@@ -61,7 +61,6 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 	@Override
 	public SourceTypeResponse updateSourceType(Long id, SourceTypeRequest sourceTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(sourceTypeRequest);
 		String name = sourceTypeRequest.getSourceTypeName();
 		String code = sourceTypeRequest.getSourceTypeCode();
@@ -160,7 +159,6 @@ public class SourceTypeServiceImpl implements SourceTypeService {
 	}
 
 	private List<SourceType> findAllSrcTypeById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 
 		List<SourceType> sourceTypes = sourceTypeRepo.findAllById(ids);
 

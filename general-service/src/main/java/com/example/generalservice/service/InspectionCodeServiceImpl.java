@@ -69,7 +69,6 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	@Override
 	public InspectionCodeResponse updateInCode(@NonNull Long id, InspectionCodeRequest updateInspectionCodeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateInspectionCodeRequest);
 		String inCodeCode = updateInspectionCodeRequest.getInCodeCode();
 		String inCodeName = updateInspectionCodeRequest.getInCodeName();
@@ -183,7 +182,7 @@ public class InspectionCodeServiceImpl implements InspectionCodeService {
 	private List<InspectionCode> findAllById(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<InspectionCode> inspectionCodes = inspectionCodeRepository.findAllById(ids);
 		Set<Long> foundIds = inspectionCodes.stream().map(InspectionCode::getId).collect(Collectors.toSet());
-		List<Long> missingIds = ids.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
+		List<Long> missingIds = ids.stream().filter(id -> !foundIds.contains(id)).toList();
 		if (!missingIds.isEmpty()) {
 			throw new ResourceNotFoundException("Inspection Code with IDs " + missingIds + " not found");
 		}

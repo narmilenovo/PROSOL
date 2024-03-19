@@ -238,7 +238,6 @@ public class ScheduleMarginServiceImpl implements ScheduleMarginService {
 	}
 
 	private List<ScheduleMargin> findAllScheMargById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		Set<Long> idSet = new HashSet<>(ids);
 		List<ScheduleMargin> margins = scheduleMarginRepo.findAllById(ids);
 		List<ScheduleMargin> foundMargins = margins.stream().filter(entity -> idSet.contains(entity.getId())).toList();

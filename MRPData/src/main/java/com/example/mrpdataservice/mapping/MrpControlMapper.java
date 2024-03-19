@@ -10,14 +10,15 @@ import com.example.mrpdataservice.response.MrpControlResponse;
 
 @Mapper(componentModel = "spring")
 public interface MrpControlMapper {
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
+
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
 	MrpControl mapToMrpControl(MrpControlRequest mrpControlRequest);
 
 	MrpControlResponse mapToMrpControlResponse(MrpControl mrpControl);
 
-	@Mapping(target = "plant", ignore = true)
+	@Mapping(target = "plant.id", source = "plantId")
 	MrpPlantResponse mapToMrpPlantResponse(MrpControl mrpControl);
 }

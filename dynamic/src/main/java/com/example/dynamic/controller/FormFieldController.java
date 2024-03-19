@@ -59,9 +59,9 @@ public class FormFieldController {
 	}
 
 	@PutMapping("/updateDynamicFieldById/{id}")
-	public ResponseEntity<Object> updateDynamicFieldById(@PathVariable @NonNull Long id,
+	public ResponseEntity<Object> updateDynamicFieldById(@RequestParam String formName, @PathVariable @NonNull Long id,
 			@RequestBody FormFieldRequest updateFieldRequest) throws ResourceNotFoundException, ResourceFoundException {
-		FormFieldResponse field = fieldService.updateDynamicFieldById(id, updateFieldRequest);
+		FormFieldResponse field = fieldService.updateDynamicFieldById(formName, id, updateFieldRequest);
 		return ResponseEntity.ok(field);
 	}
 

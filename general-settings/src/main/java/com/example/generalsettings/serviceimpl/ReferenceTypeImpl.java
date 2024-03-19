@@ -61,7 +61,6 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 	@Override
 	public ReferenceTypeResponse updateReferenceType(Long id, ReferenceTypeRequest referenceTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(referenceTypeRequest);
 		String name = referenceTypeRequest.getReferenceTypeName();
 		String code = referenceTypeRequest.getReferenceTypeCode();
@@ -186,7 +185,6 @@ public class ReferenceTypeImpl implements ReferenceTypeService {
 	}
 
 	private List<ReferenceType> findAllRefTypeById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<ReferenceType> types = referenceTypeRepo.findAllById(ids);
 		List<Long> missingIds = ids.stream().filter(id -> types.stream().noneMatch(entity -> entity.getId().equals(id)))
 				.toList();

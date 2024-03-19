@@ -88,7 +88,6 @@ public class DeliveringPlantServiceImpl implements DeliveringPlantService {
 	@Override
 	public DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDeliveringPlantRequest);
 		String dpCode = updateDeliveringPlantRequest.getDpCode();
 		String dpName = updateDeliveringPlantRequest.getDpName();

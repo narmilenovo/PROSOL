@@ -135,6 +135,14 @@ spring:
             - Path=/userSettings/**
           filters:
             - RewritePath=/userSettings/(?<path>.*), /$\{path}
+        
+        # Batch Service
+        - id: batch-service
+          uri: lb://BATCH-SERVICE
+          predicates:
+            - Path=/batch/**
+          filters:
+            - RewritePath=/batch/(?<path>.*), /$\{path}
 
         # Common OpenApi
         - id: openapi
@@ -259,6 +267,10 @@ springdoc:
       - name: user-settings
         url: /v3/api-docs/userSettings
         display-name: User Settings
+
+      - name: batch-service
+        url: /v3/api-docs/batch
+        display-name: Batch Service
 
   cache:
     disabled: false

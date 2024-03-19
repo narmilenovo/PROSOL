@@ -1,12 +1,17 @@
 package com.example.user_management.entity;
 
-import jakarta.persistence.*;
+import java.util.Set;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import java.util.Set;
 
 @Entity
 @Data
@@ -15,14 +20,13 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true, exclude = "roles")
 @Table(name = "privileges")
 public class Privilege extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String name;
-    //    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
-    private Boolean status;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String name;
+	// @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
+	private Boolean status;
 
-    //    @JsonIgnore
-    @ManyToMany(mappedBy = "privileges")
-    private Set<Role> roles;
+	@ManyToMany(mappedBy = "privileges")
+	private Set<Role> roles;
 }

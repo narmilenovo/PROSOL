@@ -73,7 +73,6 @@ public class ProcurementTypeServiceImpl implements ProcurementTypeService {
 	@Override
 	public ProcurementTypeResponse updateProcurementType(Long id, ProcurementTypeRequest procurementTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(procurementTypeRequest);
 		String existName = procurementTypeRequest.getProcurementTypeName();
 		String existCode = procurementTypeRequest.getProcurementTypeCode();

@@ -11,14 +11,14 @@ import com.example.sales_otherservice.entity.DeliveringPlant;
 @Mapper(componentModel = "spring")
 public interface DeliveringPlantMapper {
 
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
 	DeliveringPlant mapToDeliveringPlant(DeliveringPlantRequest deliveringPlantRequest);
 
 	DeliveringPlantResponse mapToDeliveringPlantResponse(DeliveringPlant deliveringPlant);
 
-	@Mapping(target = "plant", ignore = true)
+	@Mapping(target = "plant.id", source = "plantId")
 	DpPlant mapToDpPlant(DeliveringPlant deliveringPlant);
 }

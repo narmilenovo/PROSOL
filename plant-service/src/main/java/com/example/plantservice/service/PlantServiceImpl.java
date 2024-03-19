@@ -76,7 +76,6 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public PlantResponse updatePlant(Long id, PlantRequest plantRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(plantRequest);
 		String plantName = plantRequest.getPlantName();
 		String plantCode = plantRequest.getPlantCode();

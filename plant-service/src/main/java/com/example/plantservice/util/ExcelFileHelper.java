@@ -214,7 +214,7 @@ public class ExcelFileHelper extends AbstractExporter {
 		// Check if the header is different from class fields
 		for (int i = 0; i < headerCellCount; i++) {
 			String fieldName = getFieldNameFromHeader(i);
-			if (!fields.stream().anyMatch(f -> f.getName().equalsIgnoreCase(fieldName))) {
+			if (fields.stream().noneMatch(f -> f.getName().equalsIgnoreCase(fieldName))) {
 				throw new ExcelFileException("Excel file header is different from class fields.");
 			}
 		}

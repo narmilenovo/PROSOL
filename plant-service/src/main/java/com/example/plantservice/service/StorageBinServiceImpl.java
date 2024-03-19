@@ -84,7 +84,6 @@ public class StorageBinServiceImpl implements StorageBinService {
 	@Override
 	public StorageBinResponse updateStorageBin(Long id, StorageBinRequest storageBinRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(storageBinRequest);
 		String existName = storageBinRequest.getStorageBinName();
 		String existCode = storageBinRequest.getStorageBinCode();

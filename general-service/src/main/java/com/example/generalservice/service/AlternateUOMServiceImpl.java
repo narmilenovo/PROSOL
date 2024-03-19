@@ -79,7 +79,6 @@ public class AlternateUOMServiceImpl implements AlternateUOMService {
 	@Override
 	public AlternateUOMResponse updateUom(@NonNull Long id, AlternateUOMRequest updateAlternateUOMRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateAlternateUOMRequest);
 		String uomCode = updateAlternateUOMRequest.getUomCode();
 		String uomName = updateAlternateUOMRequest.getUomName();

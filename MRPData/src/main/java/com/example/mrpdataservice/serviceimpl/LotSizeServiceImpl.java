@@ -71,7 +71,6 @@ public class LotSizeServiceImpl implements LotSizeService {
 	@Override
 	public LotSizeResponse updateLotSize(Long id, LotSizeRequest lotSizeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(lotSizeRequest);
 		String existName = lotSizeRequest.getLotSizeName();
 		String existCode = lotSizeRequest.getLotSizeCode();

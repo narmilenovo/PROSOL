@@ -18,26 +18,25 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AttributeMasterRequest {
-    @Schema(description = "Attribute Name")
-    private String attributeName;
+	@Schema(description = "Attribute Name")
+	private String attributeName;
 
-    @Schema(description = "Field Type")
-    // @Enumerated(EnumType.STRING)
-    private FieldType fieldType;
+	@Schema(description = "Field Type")
+	private FieldType fieldType;
 
-    @Schema(description = " Select Uom")
-    private List<Long> listUom;
+	@Schema(description = " Select Uom")
+	private List<Long> listUom;
 
-    @JsonIgnore
-    private Map<String, Object> dynamicFields = new HashMap<>(); // Changed the value type to String
+	@JsonIgnore
+	private Map<String, Object> dynamicFields = new HashMap<>(); // Changed the value type to String
 
-    @JsonAnyGetter
-    public Map<String, Object> getDynamicFields() {
-        return dynamicFields;
-    }
+	@JsonAnyGetter
+	public Map<String, Object> getDynamicFields() {
+		return dynamicFields;
+	}
 
-    @JsonAnySetter
-    public void setDynamicFields(String key, Object value) {
-        this.dynamicFields.put(key, value);
-    }
+	@JsonAnySetter
+	public void setDynamicFields(String key, Object value) {
+		this.dynamicFields.put(key, value);
+	}
 }

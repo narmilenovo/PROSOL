@@ -3,7 +3,6 @@ package com.example.createtemplateservice.jpa.entity;
 import java.util.List;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -24,7 +23,6 @@ public class DictionaryAttribute {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	@Column(name = "attribute_id")
 	private Long attributeId;
 	private Integer shortPriority;
 	private Boolean mandatory;
@@ -35,7 +33,6 @@ public class DictionaryAttribute {
 	@ElementCollection(fetch = FetchType.EAGER)
 	private List<Long> attrUomId;
 
-	// Many-to-One relationship with Dictionary
 	@ManyToOne(cascade = CascadeType.PERSIST)
 	@JoinColumn(name = "dictionary_id")
 	private Dictionary dictionary;

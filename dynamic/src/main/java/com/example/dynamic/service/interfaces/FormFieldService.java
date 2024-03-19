@@ -17,7 +17,7 @@ public interface FormFieldService {
 
 	List<FormFieldResponse> getAllDynamicFieldsByForm(String formName);
 
-	FormFieldResponse updateDynamicFieldById(@NonNull Long id, FormFieldRequest updateFieldRequest)
+	FormFieldResponse updateDynamicFieldById(String formName, @NonNull Long id, FormFieldRequest updateFieldRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
 	void removeDynamicFieldById(@NonNull Long id) throws ResourceNotFoundException;

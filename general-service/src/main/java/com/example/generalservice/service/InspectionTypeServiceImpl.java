@@ -68,7 +68,6 @@ public class InspectionTypeServiceImpl implements InspectionTypeService {
 	@Override
 	public InspectionTypeResponse updateInType(@NonNull Long id, InspectionTypeRequest updateInspectionTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateInspectionTypeRequest);
 		String inTypeCode = updateInspectionTypeRequest.getInTypeCode();
 		String inTypeName = updateInspectionTypeRequest.getInTypeName();

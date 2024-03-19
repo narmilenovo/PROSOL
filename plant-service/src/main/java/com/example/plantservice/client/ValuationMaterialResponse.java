@@ -18,7 +18,7 @@ public class ValuationMaterialResponse {
 	private Long id;
 	private String valuationClassCode;
 	private String valuationClassName;
-	private MaterialTypeResponse material;
+	private MaterialTypeResponse materialType;
 	private Boolean valuationClassStatus;
 
 	@JsonAnyGetter

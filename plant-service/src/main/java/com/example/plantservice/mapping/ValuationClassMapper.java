@@ -1,6 +1,7 @@
 package com.example.plantservice.mapping;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import com.example.plantservice.client.ValuationMaterialResponse;
 import com.example.plantservice.dto.request.ValuationClassRequest;
@@ -10,14 +11,14 @@ import com.example.plantservice.entity.ValuationClass;
 @Mapper(componentModel = "spring")
 public interface ValuationClassMapper {
 
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
 	ValuationClass mapToValuationClass(ValuationClassRequest valuationClassRequest);
 
 	ValuationClassResponse mapToValuationClassResponse(ValuationClass valuationClass);
 
-//	@Mapping(target = "material", ignore = true)
+	@Mapping(target = "materialType.id", source = "materialTypeId")
 	ValuationMaterialResponse mapToValuationMaterialResponse(ValuationClass valuationClass);
 }

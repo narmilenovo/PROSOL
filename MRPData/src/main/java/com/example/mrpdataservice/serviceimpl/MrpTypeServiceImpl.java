@@ -73,7 +73,6 @@ public class MrpTypeServiceImpl implements MrpTypeService {
 	@Override
 	public MrpTypeResponse updateMrpType(Long id, MrpTypeRequest mrpTypeRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(mrpTypeRequest);
 		String existName = mrpTypeRequest.getMrpTypeName();
 		String existCode = mrpTypeRequest.getMrpTypeCode();

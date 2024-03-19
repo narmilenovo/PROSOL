@@ -1,35 +1,39 @@
 package com.example.createtemplateservice.mapping;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import com.example.createtemplateservice.client.DictionaryAllResponse;
-import com.example.createtemplateservice.client.DictionaryAttributeAllResponse;
+import com.example.createtemplateservice.client.generalsettings.NmUomResponse;
 import com.example.createtemplateservice.jpa.dto.request.DictionaryRequest;
-import com.example.createtemplateservice.jpa.dto.response.DictionaryAttributeResponse;
 import com.example.createtemplateservice.jpa.dto.response.DictionaryResponse;
 import com.example.createtemplateservice.jpa.entity.Dictionary;
-import com.example.createtemplateservice.jpa.entity.DictionaryAttribute;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { DictionaryAttributeMapper.class })
 public interface DictionaryMapper {
 
-//	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "createdAt", ignore = true)
-//	@Mapping(target = "createdBy", ignore = true)
-//	@Mapping(target = "updateAuditHistories", ignore = true)
-//	@Mapping(target = "attributes", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
+	@Mapping(target = "attributes", source = "attributes")
 	Dictionary mapToDictionary(DictionaryRequest dictionaryRequest);
 
 	DictionaryResponse mapToDictionaryResponse(Dictionary dictionary);
 
-	DictionaryAttributeResponse mapToDictionaryAttributeResponse(DictionaryAttribute dictionaryAttribute);
-
-	@Mapping(target = "nmUoms", ignore = true)
+	@Mapping(target = "nmUoms", source = "nmUoms", qualifiedByName = "mapNmUoms")
 	DictionaryAllResponse mapToDictionaryAll(Dictionary dictionary);
 
-//	@Mapping(target = "attrUoms", ignore = true)
-//	@Mapping(target = "attribute", ignore = true)
-//	@Mapping(target = "values", ignore = true)
-	DictionaryAttributeAllResponse mapToDictionaryAttributeAllResponse(DictionaryAttribute dictionaryAttribute);
+	@Named("mapNmUoms")
+	default List<NmUomResponse> mapNmUoms(List<Long> nmUomIds) {
+		if (nmUomIds == null || nmUomIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		return nmUomIds.stream().map(id -> new NmUomResponse()).toList();
+	}
+
 }

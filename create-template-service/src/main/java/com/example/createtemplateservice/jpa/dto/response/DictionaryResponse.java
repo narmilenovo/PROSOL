@@ -11,21 +11,21 @@ import lombok.Data;
 @Data
 public class DictionaryResponse {
 
-    private Long id;
-    private String noun;
-    private String nounSynonyms;
-    private String nmAbbreviation;
-    private String modifier;
-    private String modifierSynonyms;
-    private String nmDefinition;
-    private Type type;
-    private String similarSearchItems;
-    private List<Long> nmUoms;
-    private List<DictionaryAttributeResponse> attributes;
-    private String image;
+	private Long id;
+	private String noun;
+	private String nounSynonyms;
+	private String nmAbbreviation;
+	private String modifier;
+	private String modifierSynonyms;
+	private String nmDefinition;
+	private Type type;
+	private String similarSearchItems;
+	private List<Long> nmUoms;
+	private String image;
+	private List<DictionaryAttributeResponse> attributes;
 
-    private String createdBy;
-    private Date createdAt;
-    private List<UpdateAuditHistory> updateAuditHistories;
+	private String createdBy;
+	private Date createdAt;
+	private List<UpdateAuditHistory> updateAuditHistories;
 
 }

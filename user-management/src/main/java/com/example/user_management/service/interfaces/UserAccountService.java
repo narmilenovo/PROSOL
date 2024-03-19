@@ -13,7 +13,7 @@ public interface UserAccountService {
 
 	List<UserAccountRequest> findAll();
 
-	void delete(@NonNull Long id);
+	void deleteById(@NonNull Long id);
 
 	UserAccountRequest findByToken(String token) throws ResourceNotFoundException;
 

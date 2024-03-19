@@ -28,6 +28,7 @@ import com.example.createtemplateservice.jpa.entity.DictionaryAttribute;
 import com.example.createtemplateservice.jpa.repository.DictionaryAttributeRepository;
 import com.example.createtemplateservice.jpa.repository.DictionaryRepository;
 import com.example.createtemplateservice.jpa.service.interfaces.DictionaryService;
+import com.example.createtemplateservice.mapping.DictionaryAttributeMapper;
 import com.example.createtemplateservice.mapping.DictionaryMapper;
 import com.example.createtemplateservice.utils.FileUploadUtil;
 import com.example.createtemplateservice.utils.Helpers;
@@ -41,6 +42,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 	private final DictionaryRepository dictionaryRepository;
 	private final DictionaryAttributeRepository dictionaryAttributeRepository;
 	private final DictionaryMapper dictionaryMapper;
+	private final DictionaryAttributeMapper dictionaryAttributeMapper;
 	private final SettingServiceClient generalSettingClient;
 	private final AttributeServiceClient attributeClient;
 	private final ValueServiceClient valueMasterClient;
@@ -206,7 +208,6 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	@Override
 	public void deleteBatchDictionary(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		List<Dictionary> attributeMasters = dictionaryRepository.findAllById(ids);
 
 		// Check for missing IDs
@@ -236,7 +237,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 	private DictionaryResponse mapToDictionaryResponse(Dictionary dictionary) {
 		DictionaryResponse dictionaryResponse = dictionaryMapper.mapToDictionaryResponse(dictionary);
 		List<DictionaryAttributeResponse> attributes = dictionary.getAttributes().stream()
-				.map(dictionaryMapper::mapToDictionaryAttributeResponse).toList();
+				.map(dictionaryAttributeMapper::mapToDictionaryAttributeResponse).toList();
 		dictionaryResponse.setAttributes(attributes);
 		return dictionaryResponse;
 	}
@@ -255,7 +256,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 
 	private DictionaryAttributeAllResponse mapToDictionaryAttributeAllResponse(
 			DictionaryAttribute dictionaryAttribute) {
-		DictionaryAttributeAllResponse dictionaryAttributeAllResponse = dictionaryMapper
+		DictionaryAttributeAllResponse dictionaryAttributeAllResponse = dictionaryAttributeMapper
 				.mapToDictionaryAttributeAllResponse(dictionaryAttribute);
 		AttributeMasterUomResponse attribute = attributeClient
 				.getAttributeMasterById(dictionaryAttribute.getAttributeId());

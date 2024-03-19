@@ -179,7 +179,6 @@ public class ItemCategoryGroupServiceImpl implements ItemCategoryGroupService {
 	}
 
 	private List<ItemCategoryGroup> findAllIcgById(@NonNull List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		Set<Long> idSet = new HashSet<>(ids);
 		List<ItemCategoryGroup> groups = itemCategoryGroupRepository.findAllById(ids);
 

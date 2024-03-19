@@ -72,7 +72,6 @@ public class TransportationGroupServiceImpl implements TransportationGroupServic
 	public TransportationGroupResponse updateTg(@NonNull Long id,
 			TransportationGroupRequest updateTransportationGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateTransportationGroupRequest);
 		String tgCode = updateTransportationGroupRequest.getTgCode();
 		String tgName = updateTransportationGroupRequest.getTgName();

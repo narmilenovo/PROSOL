@@ -73,7 +73,6 @@ public class MaterialStrategicGroupServiceImpl implements MaterialStrategicGroup
 	public MaterialStrategicGroupResponse updateMsg(@NonNull Long id,
 			MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateMaterialStrategicGroupRequest);
 		String msgCode = updateMaterialStrategicGroupRequest.getMsCode();
 		String msgName = updateMaterialStrategicGroupRequest.getMsName();

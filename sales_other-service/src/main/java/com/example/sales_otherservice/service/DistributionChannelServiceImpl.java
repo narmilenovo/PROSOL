@@ -82,7 +82,6 @@ public class DistributionChannelServiceImpl implements DistributionChannelServic
 	public DistributionChannelResponse updateDc(@NonNull Long id,
 			DistributionChannelRequest updateDistributionChannelRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateDistributionChannelRequest);
 		String dcCode = updateDistributionChannelRequest.getDcCode();
 		String dcName = updateDistributionChannelRequest.getDcName();

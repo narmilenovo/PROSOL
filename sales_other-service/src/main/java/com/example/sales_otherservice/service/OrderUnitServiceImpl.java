@@ -71,7 +71,6 @@ public class OrderUnitServiceImpl implements OrderUnitService {
 	@Override
 	public OrderUnitResponse updateOu(@NonNull Long id, OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateOrderUnitRequest);
 		String ouCode = updateOrderUnitRequest.getOuCode();
 		String ouName = updateOrderUnitRequest.getOuName();

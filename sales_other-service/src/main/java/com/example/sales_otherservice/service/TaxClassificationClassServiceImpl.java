@@ -74,7 +74,6 @@ public class TaxClassificationClassServiceImpl implements TaxClassificationClass
 	public TaxClassificationClassResponse updateTcc(@NonNull Long id,
 			TaxClassificationClassRequest updateTaxClassificationClassRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updateTaxClassificationClassRequest);
 		String tccCode = updateTaxClassificationClassRequest.getTccCode();
 		String tccName = updateTaxClassificationClassRequest.getTccName();

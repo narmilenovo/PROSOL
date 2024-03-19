@@ -122,18 +122,18 @@ public class FormFieldServiceImpl implements FormFieldService {
 
 	@Override
 	@Transactional
-	public FormFieldResponse updateDynamicFieldById(@NonNull Long id, FormFieldRequest updateFieldRequest)
-			throws ResourceNotFoundException, ResourceFoundException {
+	public FormFieldResponse updateDynamicFieldById(String formName, @NonNull Long id,
+			FormFieldRequest updateFieldRequest) throws ResourceNotFoundException, ResourceFoundException {
 		FormField existingFormField = getById(id);
 		formFieldMapper.updateFormFieldFromRequest(updateFieldRequest, existingFormField);
 		existingFormField.setId(id);
+		existingFormField.setForm(this.getOrCreateForm(formName));
 		conversionEquals(existingFormField);
 		// Map and set drop-down values
 		List<DropDown> dropDownValues = mapDropDownValues(updateFieldRequest.getDropDowns(), existingFormField);
 		existingFormField.setDropDowns(dropDownValues);
 
 		// Update field by checking
-		String formName = existingFormField.getForm().getFormName();
 		if (checkNotIdFieldInForm(existingFormField.getFieldName(), formName, id)) {
 			throw new ResourceFoundException("Field with name '" + existingFormField.getFieldName()
 					+ "' already exists in form '" + formName + "'.");
@@ -262,30 +262,39 @@ public class FormFieldServiceImpl implements FormFieldService {
 	}
 
 	private List<String> getFormNames(String moduleName) {
-		switch (moduleName) {
-		case "Plant":
-			return Arrays.asList("Plant", "ProfitCenter", "PriceControl", "StorageLocation", "StorageBin",
-					"VarianceKey", "ValuationClass", "Department");
-		case "MrpType":
-			return Arrays.asList("MrpType", "MrpControl", "LotSize", "ProcurementType", "PlanningStrgyGrp",
-					"AvailCheck", "ScheduleMargin");
-		case "General":
-			return Arrays.asList("IndustrySector", "MaterialType", "BaseUOP", "UnitOfIssue", "AlternateUOM",
-					"InspectionType", "InspectionCode", "Division", "SalesUnit");
-		case "SalesOthers":
-			return Arrays.asList("AccAssignment", "DeliveringPlant", "DistributionChannel", "ItemCategoryGroup",
-					"LoadingGroup", "MaterialStrategicGroup", "OrderUnit", "PurchasingGroup", "PurchasingValueKey",
-					"SalesOrganization", "TaxClassificaionClass", "TaxClassificationType", "TransportationGroup");
-		case "Vendor":
-			return Collections.singletonList("Vendor");
-		case "Settings":
-			return Arrays.asList("MainGroupCodes", "SubGroupCodes", "SubSubGroupCodes", "SourceType", "NMUOM",
-					"ReferenceType", "AttributeUOM", "HSN");
-		case "Attribute":
-			return Collections.singletonList("Attribute");
-		case "Value":
-			return Collections.singletonList("Value");
-		default:
+		List<String> plant = Arrays.asList("Plant", "ProfitCenter", "PriceControl", "StorageLocation", "StorageBin",
+				"VarianceKey", "ValuationClass", "Department");
+		List<String> mrpType = Arrays.asList("MrpType", "MrpControl", "LotSize", "ProcurementType", "PlanningStrgyGrp",
+				"AvailCheck", "ScheduleMargin");
+		List<String> general = Arrays.asList("IndustrySector", "MaterialType", "BaseUOP", "UnitOfIssue", "AlternateUOM",
+				"InspectionType", "InspectionCode", "Division", "SalesUnit");
+		List<String> salesOthers = Arrays.asList("AccAssignment", "DeliveringPlant", "DistributionChannel",
+				"ItemCategoryGroup", "LoadingGroup", "MaterialStrategicGroup", "OrderUnit", "PurchasingGroup",
+				"PurchasingValueKey", "SalesOrganization", "TaxClassificaionClass", "TaxClassificationType",
+				"TransportationGroup");
+		List<String> vendor = Collections.singletonList("Vendor");
+		List<String> settings = Arrays.asList("MainGroupCodes", "SubGroupCodes", "SubSubGroupCodes", "SourceType",
+				"NMUOM", "ReferenceType", "AttributeUOM", "HSN");
+		List<String> attribute = Collections.singletonList("Attribute");
+		List<String> value = Collections.singletonList("Value");
+
+		if (plant.contains(moduleName)) {
+			return plant;
+		} else if (mrpType.contains(moduleName)) {
+			return mrpType;
+		} else if (general.contains(moduleName)) {
+			return general;
+		} else if (salesOthers.contains(moduleName)) {
+			return salesOthers;
+		} else if (vendor.contains(moduleName)) {
+			return vendor;
+		} else if (settings.contains(moduleName)) {
+			return settings;
+		} else if (attribute.contains(moduleName)) {
+			return attribute;
+		} else if (value.contains(moduleName)) {
+			return value;
+		} else {
 			return Collections.emptyList();
 		}
 	}

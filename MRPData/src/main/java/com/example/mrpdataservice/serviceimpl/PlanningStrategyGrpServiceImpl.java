@@ -244,7 +244,6 @@ public class PlanningStrategyGrpServiceImpl implements PlanningStrgyGrpService {
 	}
 
 	private List<PlanningStrategyGrp> findAllStrgGrpById(List<Long> ids) throws ResourceNotFoundException {
-		Helpers.validateIds(ids);
 		Set<Long> idSet = new HashSet<>(ids);
 		List<PlanningStrategyGrp> strgGrps = planningStrgyGrpRepo.findAllById(ids);
 		List<PlanningStrategyGrp> foundStrgGrps = strgGrps.stream().filter(entity -> idSet.contains(entity.getId()))

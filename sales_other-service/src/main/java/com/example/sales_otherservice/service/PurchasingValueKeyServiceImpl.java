@@ -73,7 +73,6 @@ public class PurchasingValueKeyServiceImpl implements PurchasingValueKeyService 
 	public PurchasingValueKeyResponse updatePvk(@NonNull Long id,
 			PurchasingValueKeyRequest updatePurchasingValueKeyRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
-		Helpers.validateId(id);
 		Helpers.inputTitleCase(updatePurchasingValueKeyRequest);
 		String pvkCode = updatePurchasingValueKeyRequest.getPvkCode();
 		String pvkName = updatePurchasingValueKeyRequest.getPvkName();

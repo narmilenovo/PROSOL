@@ -64,7 +64,6 @@ public class DepartmentServiceImpl implements DepartmentService {
 	@Override
 	public DepartmentResponse updateDepartment(Long id, DepartmentRequest departmentRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		Helpers.validateId(id);
 		String departmentName = Helpers.capitalize(departmentRequest.getDepartmentName());
 		boolean exists = departmentRepo.existsByDepartmentNameAndIdNot(departmentName, id);
 		// Find properties that have changed
