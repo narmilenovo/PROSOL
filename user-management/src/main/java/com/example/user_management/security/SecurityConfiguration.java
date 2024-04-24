@@ -1,8 +1,5 @@
 package com.example.user_management.security;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -21,17 +18,10 @@ import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
+@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true, prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-	private static final List<String> PERMIT_ALL_URLS = Arrays.asList("/actuator/**", "/v3/api-docs/**",
-			"/swagger-resources/**", "/configuration/ui/**", "/configuration/security/**", "/swagger-ui/**",
-			"/webjars/**", "/swagger-ui.html");
-//	private static final List<String> PERMIT_ALL_URLS = Arrays.asList("/auth/**", "/saveUser", "/saveRole",
-//			"/savePrivilege", "/forgotPassword", "/resetPassword**", "/actuator/**", "/v3/api-docs/**",
-//			"/swagger-resources/**", "/configuration/ui/**", "/configuration/security/**", "/swagger-ui/**",
-//			"/webjars/**", "/swagger-ui.html");
 	private final JwtAuthenticationFilter jwtAuthFilter;
 	private final AuthenticationProvider authenticationProvider;
 	private final LogoutHandler logoutHandler;
@@ -40,8 +30,6 @@ public class SecurityConfiguration {
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable)
-//				.authorizeHttpRequests(req -> req.requestMatchers(PERMIT_ALL_URLS.toArray(new String[0])).permitAll()
-//						.anyRequest().permitAll())
 				.authorizeHttpRequests(req -> req.anyRequest().permitAll())
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
 				/*

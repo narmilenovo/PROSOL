@@ -25,16 +25,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class TaxClassificationType extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String tctCode;
-    private String tctName;
-    private Boolean tctStatus;
-    @ElementCollection
-    @CollectionTable(name = "tax_class_type_fields", joinColumns = @JoinColumn(name = "tax_class_type_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String tctCode;
+	private String tctName;
+	private Boolean tctStatus;
+	@ElementCollection
+	@CollectionTable(name = "tax_class_type_fields", joinColumns = @JoinColumn(name = "tax_class_type_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
 }

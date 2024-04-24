@@ -33,11 +33,9 @@ import com.example.plantservice.service.interfaces.PlantService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 public class PlantController {
 
 	private final PlantService plantService;
@@ -49,6 +47,14 @@ public class PlantController {
 		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/savePlant").toUriString());
 		PlantResponse savedPlant = plantService.savePlant(plantRequest);
 		return ResponseEntity.created(uri).body(savedPlant);
+	}
+
+	@PostMapping("/saveAllPlant")
+	public ResponseEntity<Object> saveAllPlant(@Valid @RequestBody List<PlantRequest> plantRequests)
+			throws ResourceNotFoundException, AlreadyExistsException, IllegalAccessException {
+		URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveAllPlant").toUriString());
+		List<PlantResponse> savedPlants = plantService.saveAllPlant(plantRequests);
+		return ResponseEntity.created(uri).body(savedPlants);
 	}
 
 	@GetMapping("/getPlantById/{plantId}")

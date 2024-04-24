@@ -1,0 +1,20 @@
+package com.example.generalsettings.mapping;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import com.example.generalsettings.entity.MainGroupCodes;
+import com.example.generalsettings.request.MainGroupCodesRequest;
+import com.example.generalsettings.response.MainGroupCodesResponse;
+
+@Mapper(componentModel = "spring")
+public interface MainGroupCodeMap {
+
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "updateAuditHistories", ignore = true)
+	MainGroupCodes mapToMainGroupCodes(MainGroupCodesRequest mainGroupCodesRequest);
+
+	MainGroupCodesResponse mapToMainGroupCodesResponse(MainGroupCodes mainGroupCodes);
+}

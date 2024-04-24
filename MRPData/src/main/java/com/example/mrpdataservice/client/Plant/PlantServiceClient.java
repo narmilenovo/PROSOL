@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.mrpdataservice.exception.ResourceNotFoundException;
 
-@FeignClient(name = "plant-service", url = "http://localhost:8001")
+@FeignClient(name = "plant-service", url = "${clients.plant.url}")
 public interface PlantServiceClient {
 
 	@GetMapping("/getPlantById/{plantId}")

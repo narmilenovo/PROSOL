@@ -13,7 +13,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.EquipmentUnit;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.EquipmentUnitMapper;
+import com.example.generalsettings.mapping.EquipmentUnitMap;
 import com.example.generalsettings.repo.EquipmentUnitRepo;
 import com.example.generalsettings.request.EquipmentUnitRequest;
 import com.example.generalsettings.response.EquipmentUnitResponse;
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class EquipmentUnitServiceImpl implements EquipmentUnitService {
-	private final EquipmentUnitMapper equipmentUnitMapper;
+	private final EquipmentUnitMap equipmentUnitMapper;
 	private final EquipmentUnitRepo equipmentUnitRepo;
 
 	@Override

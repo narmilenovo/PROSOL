@@ -1,5 +1,7 @@
 package com.example.plantservice.mapping;
 
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -17,4 +19,6 @@ public interface PlantMapper {
 	Plant mapToPlant(PlantRequest plantRequest);
 
 	PlantResponse mapToPlantResponse(Plant plant);
+
+	List<PlantResponse> mapToPlantResponseList(List<Plant> plants);
 }

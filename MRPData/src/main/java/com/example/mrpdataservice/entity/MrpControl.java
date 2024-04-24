@@ -24,7 +24,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-
 public class MrpControl extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,5 +39,4 @@ public class MrpControl extends BaseEntity {
 	@Column(name = "field_value")
 	@Convert(converter = ObjectToJsonConverter.class)
 	private Map<String, Object> dynamicFields;
-
 }

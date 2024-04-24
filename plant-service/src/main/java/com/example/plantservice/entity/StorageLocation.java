@@ -25,22 +25,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-
 public class StorageLocation extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String storageLocationCode;
-    private String storageLocationName;
-    private Boolean storageLocationStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String storageLocationCode;
+	private String storageLocationName;
+	private Boolean storageLocationStatus;
 
-    @ManyToOne
-    private Plant plant;
+	@ManyToOne
+	private Plant plant;
 
-    @ElementCollection
-    @CollectionTable(name = "storage_location_fields", joinColumns = @JoinColumn(name = "storage_location_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "storage_location_fields", joinColumns = @JoinColumn(name = "storage_location_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
+
 }

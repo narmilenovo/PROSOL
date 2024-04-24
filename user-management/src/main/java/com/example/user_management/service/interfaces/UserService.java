@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.lang.NonNull;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.user_management.client.UserDepartmentPlantResponse;
 import com.example.user_management.client.UserDepartmentResponse;
@@ -59,6 +60,8 @@ public interface UserService {
 			throws ResourceNotFoundException;
 
 	void updatePassword(@NonNull Long id, String newPassword) throws ResourceNotFoundException;
+
+	UserResponse uploadProfilePic(Long id, MultipartFile file, String action) throws ResourceNotFoundException;
 
 	void deleteUserId(@NonNull Long id) throws ResourceNotFoundException;
 

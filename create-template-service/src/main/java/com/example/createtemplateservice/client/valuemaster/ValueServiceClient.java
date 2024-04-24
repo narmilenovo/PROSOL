@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "value-service", url = "http://localhost:8012")
+@FeignClient(name = "value-service", url = "${clients.value.url}")
 public interface ValueServiceClient {
 
 	@GetMapping("/getValueById/{id}")

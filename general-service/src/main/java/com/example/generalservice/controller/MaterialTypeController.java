@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class MaterialTypeController {
 	}
 
 	@GetMapping("/getMaterialById/{id}")
-	public ResponseEntity<Object> getMaterialById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getMaterialById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		MaterialTypeResponse materialTypeResponse = materialTypeService.getMaterialById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(materialTypeResponse);
 	}
@@ -56,7 +57,7 @@ public class MaterialTypeController {
 	}
 
 	@PutMapping("/updateMaterial/{id}")
-	public ResponseEntity<Object> updateMaterial(@PathVariable Long id,
+	public ResponseEntity<Object> updateMaterial(@PathVariable @NonNull Long id,
 			@Valid @RequestBody MaterialTypeRequest updateMaterialTypeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		MaterialTypeResponse updatedMaterial = materialTypeService.updateMaterial(id, updateMaterialTypeRequest);
@@ -64,7 +65,7 @@ public class MaterialTypeController {
 	}
 
 	@PatchMapping("/updateMaterialStatus/{id}")
-	public ResponseEntity<Object> updateMaterialStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateMaterialStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		MaterialTypeResponse updatedMaterial = materialTypeService.updateMaterialStatus(id);
 		return ResponseEntity.ok(updatedMaterial);
 	}
@@ -77,7 +78,7 @@ public class MaterialTypeController {
 	}
 
 	@DeleteMapping("/deleteMaterial/{id}")
-	public ResponseEntity<Object> deleteMaterial(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteMaterial(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		materialTypeService.deleteMaterialId(id);
 		return ResponseEntity.noContent().build();
 	}

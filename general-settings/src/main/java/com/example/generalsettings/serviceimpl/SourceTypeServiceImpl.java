@@ -13,7 +13,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.SourceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.SourceTypeMapper;
+import com.example.generalsettings.mapping.SourceTypeMap;
 import com.example.generalsettings.repo.SourceTypeRepo;
 import com.example.generalsettings.request.SourceTypeRequest;
 import com.example.generalsettings.response.SourceTypeResponse;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class SourceTypeServiceImpl implements SourceTypeService {
 	private final SourceTypeRepo sourceTypeRepo;
 
-	private final SourceTypeMapper sourceTypeMapper;
+	private final SourceTypeMap sourceTypeMapper;
 
 	@Override
 	public SourceTypeResponse saveSourceType(SourceTypeRequest sourceTypeRequest) throws AlreadyExistsException {

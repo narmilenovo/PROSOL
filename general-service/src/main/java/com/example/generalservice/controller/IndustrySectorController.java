@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class IndustrySectorController {
 	}
 
 	@GetMapping("/getSectorById/{id}")
-	public ResponseEntity<Object> getSectorById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getSectorById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		IndustrySectorResponse sectorResponse = industrySectorService.getSectorById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(sectorResponse);
 	}
@@ -57,7 +58,7 @@ public class IndustrySectorController {
 	}
 
 	@PutMapping("/updateSector/{id}")
-	public ResponseEntity<Object> updateSector(@PathVariable Long id,
+	public ResponseEntity<Object> updateSector(@PathVariable @NonNull Long id,
 			@Valid @RequestBody IndustrySectorRequest updateindustrysectorrequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		IndustrySectorResponse updateSector = industrySectorService.updateSector(id, updateindustrysectorrequest);
@@ -65,25 +66,25 @@ public class IndustrySectorController {
 	}
 
 	@PatchMapping("/updateSectorStatus/{id}")
-	public ResponseEntity<Object> updateSectorStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateSectorStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		IndustrySectorResponse sectorResponse = industrySectorService.updateSectorStatus(id);
 		return ResponseEntity.ok(sectorResponse);
 	}
 
 	@PatchMapping("/updateBatchSectorStatus")
-	public ResponseEntity<Object> updateBatchSectorStatus(@RequestBody List<Long> ids) {
+	public ResponseEntity<Object> updateBatchSectorStatus(@RequestBody @NonNull List<Long> ids) {
 		List<IndustrySectorResponse> sectorResponses = industrySectorService.updateBatchSectorResponseStatus(ids);
 		return ResponseEntity.ok(sectorResponses);
 	}
 
 	@DeleteMapping("/deleteSector/{id}")
-	public ResponseEntity<Object> deleteSector(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteSector(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		industrySectorService.deleteSectorId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchSector")
-	public ResponseEntity<Object> deleteBatchSector(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchSector(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		industrySectorService.deleteBatchSector(ids);
 		return ResponseEntity.noContent().build();
 	}

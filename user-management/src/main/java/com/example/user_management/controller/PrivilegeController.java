@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -84,7 +85,7 @@ public class PrivilegeController {
 			@ApiResponse(responseCode = "404", description = NO_PRIVILEGE_FOUND_WITH_ID_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@GetMapping("/getPrivilegeById/{id}")
-	public ResponseEntity<Object> getPrivilegeById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getPrivilegeById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		PrivilegeResponse foundPrivilege = privilegeService.getPrivilegeById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(foundPrivilege);
 	}
@@ -113,7 +114,7 @@ public class PrivilegeController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
 	@PutMapping("/updatePrivilege/{id}")
-	public ResponseEntity<Object> updatePrivilege(@PathVariable Long id,
+	public ResponseEntity<Object> updatePrivilege(@PathVariable @NonNull Long id,
 			@Valid @RequestBody PrivilegeRequest updatePrivilegeRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		PrivilegeResponse updatePrivilege = privilegeService.updatePrivilege(id, updatePrivilegeRequest);
@@ -121,13 +122,13 @@ public class PrivilegeController {
 	}
 
 	@PatchMapping("/updatePrivilegeStatusById/{id}")
-	public ResponseEntity<Object> updatePrivilegeStatusById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updatePrivilegeStatusById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		PrivilegeResponse response = privilegeService.updateStatusUsingPrivilegeById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
 
 	@PatchMapping("/updateBulkStatusPrivilegeId")
-	public ResponseEntity<Object> updateBulkStatusPrivilegeById(@RequestBody List<Long> ids)
+	public ResponseEntity<Object> updateBulkStatusPrivilegeById(@RequestBody @NonNull List<Long> ids)
 			throws ResourceNotFoundException {
 		List<PrivilegeResponse> responseList = privilegeService.updateBulkStatusPrivilegeById(ids);
 		return ResponseEntity.ok(responseList);
@@ -141,13 +142,13 @@ public class PrivilegeController {
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@DeleteMapping("/deletePrivilege/{id}")
-	public ResponseEntity<String> deletePrivilege(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<String> deletePrivilege(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		privilegeService.deletePrivilege(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchPrivilege")
-	public ResponseEntity<Object> deleteBatchPrivilege(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchPrivilege(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		privilegeService.deleteBatchPrivilege(ids);
 		return ResponseEntity.noContent().build();
 	}

@@ -11,7 +11,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.ReferenceType;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.ReferenceTypeMapper;
+import com.example.generalsettings.mapping.ReferenceTypeMap;
 import com.example.generalsettings.repo.ReferenceTypeRepo;
 import com.example.generalsettings.request.ReferenceTypeRequest;
 import com.example.generalsettings.response.ReferenceTypeResponse;
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class ReferenceTypeImpl implements ReferenceTypeService {
 	private final ReferenceTypeRepo referenceTypeRepo;
 
-	private final ReferenceTypeMapper referenceTypeMapper;
+	private final ReferenceTypeMap referenceTypeMapper;
 
 	@Override
 	public ReferenceTypeResponse saveReferenceType(ReferenceTypeRequest referenceTypeRequest)

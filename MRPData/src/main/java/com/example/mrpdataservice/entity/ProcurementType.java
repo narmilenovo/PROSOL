@@ -38,4 +38,5 @@ public class ProcurementType extends BaseEntity {
 	@Column(name = "field_value")
 	@Convert(converter = ObjectToJsonConverter.class)
 	private Map<String, Object> dynamicFields;
+
 }

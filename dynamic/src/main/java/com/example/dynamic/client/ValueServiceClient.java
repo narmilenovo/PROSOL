@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.dynamic.dto.response.FormFieldResponse;
 
-@FeignClient(name = "value-service", url = "http://localhost:8012")
+@FeignClient(name = "value-service", url = "${clients.value.url}")
 public interface ValueServiceClient {
 	@GetMapping("/fields/{formName}")
 	public List<FormFieldResponse> getValueExistingFields(@PathVariable String formName) throws ClassNotFoundException;

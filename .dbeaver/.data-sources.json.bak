@@ -1,21 +1,23 @@
 {
 	"folders": {},
 	"connections": {
-		"postgres-jdbc-18e3c960e9b-467bd9d46658501d": {
+		"postgres-jdbc-18e5a632f28-51a332f52b09ae32": {
 			"provider": "postgresql",
 			"driver": "postgres-jdbc",
-			"name": "postgres",
+			"name": "PROSOL",
 			"save-password": true,
 			"configuration": {
 				"host": "localhost",
 				"port": "5432",
-				"database": "dynamic",
-				"url": "jdbc:postgresql://localhost:5432/dynamic",
+				"database": "postgres",
+				"url": "jdbc:postgresql://localhost:5432/postgres",
 				"configurationType": "MANUAL",
 				"home": "postgresql-x64-16",
 				"type": "dev",
+				"closeIdleConnection": true,
 				"provider-properties": {
-					"@dbeaver-show-non-default-db@": "true"
+					"@dbeaver-show-non-default-db@": "true",
+					"@dbeaver-chosen-role@": ""
 				},
 				"auth-model": "native"
 			}
@@ -34,7 +36,7 @@
 			"auto-close-transactions": true,
 			"close-transactions-period": 1800,
 			"auto-close-connections": true,
-			"close-connections-period": 3600
+			"close-connections-period": 14400
 		}
 	}
 }

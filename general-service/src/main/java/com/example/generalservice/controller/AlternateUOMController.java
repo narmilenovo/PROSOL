@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class AlternateUOMController {
 	}
 
 	@GetMapping(value = "/getUomById/{id}")
-	public ResponseEntity<Object> getUomById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getUomById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		AlternateUOMResponse uomResponse = alternateUOMService.getUomById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(uomResponse);
 	}
@@ -57,7 +58,7 @@ public class AlternateUOMController {
 	}
 
 	@PutMapping("/updateUom/{id}")
-	public ResponseEntity<Object> updateUom(@PathVariable Long id,
+	public ResponseEntity<Object> updateUom(@PathVariable @NonNull Long id,
 			@Valid @RequestBody AlternateUOMRequest updateAlternateUOMRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		AlternateUOMResponse uomResponse = alternateUOMService.updateUom(id, updateAlternateUOMRequest);
@@ -65,25 +66,25 @@ public class AlternateUOMController {
 	}
 
 	@PatchMapping("/updateUomStatus/{id}")
-	public ResponseEntity<Object> updateUomStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateUomStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		AlternateUOMResponse uomResponse = alternateUOMService.updateUomStatus(id);
 		return ResponseEntity.ok(uomResponse);
 	}
 
 	@PatchMapping("/updateBatchUomStatus")
-	public ResponseEntity<Object> updateBatchUomStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchUomStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<AlternateUOMResponse> uomResponses = alternateUOMService.updateBatchUomStatus(ids);
 		return ResponseEntity.ok(uomResponses);
 	}
 
 	@DeleteMapping("/deleteUom/{id}")
-	public ResponseEntity<Object> deleteUom(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteUom(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		alternateUOMService.deleteUomId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchUom")
-	public ResponseEntity<Object> deleteBatchUom(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchUom(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		alternateUOMService.deleteBatchUom(ids);
 		return ResponseEntity.noContent().build();
 	}

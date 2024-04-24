@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class SalesUnitController {
 	}
 
 	@GetMapping("/getSalesUnitById/{id}")
-	public ResponseEntity<Object> getSalesUnitById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getSalesUnitById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		SalesUnitResponse salesUnitResponse = salesUnitService.getSalesUnitById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(salesUnitResponse);
 	}
@@ -56,7 +57,7 @@ public class SalesUnitController {
 	}
 
 	@PutMapping("/updateSalesUnit/{id}")
-	public ResponseEntity<Object> updateSalesUnit(@PathVariable Long id,
+	public ResponseEntity<Object> updateSalesUnit(@PathVariable @NonNull Long id,
 			@Valid @RequestBody SalesUnitRequest updateSalesUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		SalesUnitResponse updateSalesUnit = salesUnitService.updateSalesUnit(id, updateSalesUnitRequest);
@@ -64,19 +65,19 @@ public class SalesUnitController {
 	}
 
 	@PatchMapping("/updateSalesUnitStatus/{id}")
-	public ResponseEntity<Object> updateSalesUnitStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateSalesUnitStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		SalesUnitResponse updateSalesUnit = salesUnitService.updateSalesUnitStatus(id);
 		return ResponseEntity.ok(updateSalesUnit);
 	}
 
 	@PatchMapping("/updateBatchSalesUnitStatus")
-	public ResponseEntity<Object> updateBatchSalesUnitStatus(@RequestBody List<Long> ids) {
+	public ResponseEntity<Object> updateBatchSalesUnitStatus(@RequestBody @NonNull List<Long> ids) {
 		List<SalesUnitResponse> updateSalesUnits = salesUnitService.updateBatchSalesUnitStatus(ids);
 		return ResponseEntity.ok(updateSalesUnits);
 	}
 
 	@DeleteMapping("/deleteSalesUnit/{id}")
-	public ResponseEntity<Object> deleteSalesUnit(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteSalesUnit(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		salesUnitService.deleteSalesUnitId(id);
 		return ResponseEntity.noContent().build();
 	}

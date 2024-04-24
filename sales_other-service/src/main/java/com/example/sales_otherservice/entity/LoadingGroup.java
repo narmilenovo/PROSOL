@@ -25,17 +25,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class LoadingGroup extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String lgCode;
-    private String lgName;
-    private Boolean lgStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String lgCode;
+	private String lgName;
+	private Boolean lgStatus;
 
-    @ElementCollection
-    @CollectionTable(name = "loading_grp_fields", joinColumns = @JoinColumn(name = "loading_grp_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "loading_grp_fields", joinColumns = @JoinColumn(name = "loading_grp_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
 }

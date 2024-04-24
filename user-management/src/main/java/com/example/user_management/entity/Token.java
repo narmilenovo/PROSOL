@@ -23,23 +23,23 @@ import lombok.NoArgsConstructor;
 @Entity
 public class Token {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	public Long id;
 
-    @Column(unique = true)
-    public String tokenValue;
+	@Column(columnDefinition = "TEXT")
+	public String tokenValue;
 
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    public TokenType tokenType = TokenType.BEARER;
+	@Enumerated(EnumType.STRING)
+	@Builder.Default
+	public TokenType tokenType = TokenType.BEARER;
 
-    private boolean revoked;
+	private boolean revoked;
 
-    private boolean expired;
+	private boolean expired;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    public User user;
+	@ManyToOne
+	@JoinColumn(name = "user_id")
+	public User user;
 
 }

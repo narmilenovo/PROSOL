@@ -197,8 +197,8 @@ public class AuthenticationController {
 	@Operation(summary = SWG_USER_LOGGED_OPERATION, responses = {
 			@ApiResponse(responseCode = "200", description = SWG_USER_LOGGED_MESSAGE, content = @Content(schema = @Schema(implementation = UserResponse.class))),
 			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
-	@PreAuthorize("isAuthenticated()")
 	@GetMapping("/me")
+	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<Object> currentUser() throws ResourceNotFoundException {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
@@ -206,8 +206,8 @@ public class AuthenticationController {
 	}
 
 	// @PreAuthorize("hasRole('Admin')")
-	@PreAuthorize("isAuthenticated()")
 	@GetMapping("/demo")
+	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<Object> currentLogin(Principal principal) {
 		return ResponseEntity.ok(principal);
 	}

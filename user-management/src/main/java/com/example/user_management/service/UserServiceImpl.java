@@ -15,6 +15,7 @@ import java.util.Set;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.user_management.client.UserDepartmentPlantResponse;
 import com.example.user_management.client.UserDepartmentResponse;
@@ -36,6 +37,7 @@ import com.example.user_management.mapping.UserMapper;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
+import com.example.user_management.utils.FileUploadUtil;
 import com.example.user_management.utils.Helpers;
 
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,7 @@ public class UserServiceImpl implements UserService {
 	private final UserMapper userMapper;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final PlantServiceClient plantService;
+	private final FileUploadUtil fileUploadUtil;
 
 	@Override
 	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException {
@@ -60,6 +63,7 @@ public class UserServiceImpl implements UserService {
 		User user = userMapper.mapToUser(userRequest);
 		user.setId(null);
 		user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+		user.setAvatar(null);
 		user.setRoles(setToRoleId(userRequest.getRoles()));
 		user.setDepartmentId(userRequest.getDepartmentId());
 		User savedUser = userRepository.save(user);
@@ -77,6 +81,7 @@ public class UserServiceImpl implements UserService {
 					User user = userMapper.mapToUser(userRequest);
 					user.setId(null);
 					user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+					user.setAvatar(null);
 					user.setStatus(false);
 					user.setDepartmentId(userRequest.getDepartmentId());
 					user.setRoles(setToRoleId(userRequest.getRoles()));
@@ -246,10 +251,10 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserResponse updatePassword(@NonNull Long id, UpdatePasswordRequest updatePasswordRequest)
 			throws ResourceNotFoundException {
-		User user = findUserById(id);
-		if (passwordEncoder.matches(updatePasswordRequest.getCurrentPassword(), user.getPassword())) {
-			user.setPassword(passwordEncoder.encode(updatePasswordRequest.getNewPassword()));
-			User updatedUser = userRepository.save(user);
+		User existingUser = findUserById(id);
+		if (passwordEncoder.matches(updatePasswordRequest.getCurrentPassword(), existingUser.getPassword())) {
+			existingUser.setPassword(passwordEncoder.encode(updatePasswordRequest.getNewPassword()));
+			User updatedUser = userRepository.save(existingUser);
 			return userMapper.mapToUserResponse(updatedUser);
 		}
 		return null;
@@ -257,9 +262,40 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public void updatePassword(@NonNull Long id, String newPassword) throws ResourceNotFoundException {
-		User user = this.findUserById(id);
-		user.setPassword(passwordEncoder.encode(newPassword));
-		userRepository.save(user);
+		User existingUser = this.findUserById(id);
+		existingUser.setPassword(passwordEncoder.encode(newPassword));
+		userRepository.save(existingUser);
+	}
+
+	@Override
+	public UserResponse uploadProfilePic(Long id, MultipartFile file, String action) throws ResourceNotFoundException {
+		User existingUser = findUserById(id);
+		String existingImage = existingUser.getAvatar();
+
+		// Handle file upload logic
+		String newImage = null;
+		if ("u".equalsIgnoreCase(action)) {
+			// Delete existing image if it exists
+			if (existingImage != null) {
+				fileUploadUtil.deleteFile(existingImage, id);
+			}
+			// Store new image
+			newImage = fileUploadUtil.storeFile(file, id);
+			existingUser.setAvatar(newImage);
+		} else if ("d".equalsIgnoreCase(action)) {
+			// Delete existing image if it exists
+			if (existingImage != null) {
+				fileUploadUtil.deleteFile(existingImage, id);
+				existingUser.setAvatar(null);
+			}
+		} else {
+			throw new IllegalArgumentException("Invalid action specified");
+		}
+
+		// Save user entity once with updated avatar
+		userRepository.save(existingUser);
+
+		return userMapper.mapToUserResponse(existingUser);
 	}
 
 	@Override
@@ -276,6 +312,7 @@ public class UserServiceImpl implements UserService {
 	public void deleteUserId(@NonNull Long id) throws ResourceNotFoundException {
 		User user = this.findUserById(id);
 		if (user != null) {
+			fileUploadUtil.deleteDir(user.getAvatar(), id);
 			userRepository.delete(user);
 		}
 	}
@@ -283,7 +320,10 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public void deleteBatch(@NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<User> users = this.findAllUsersById(ids);
-		userRepository.deleteAllInBatch(users);
+		users.forEach(user -> {
+			userRepository.delete(user);
+			fileUploadUtil.deleteDir(user.getAvatar(), user.getId());
+		});
 	}
 
 	public Set<Role> setToRoleId(Long[] roles) {
@@ -380,4 +420,5 @@ public class UserServiceImpl implements UserService {
 		User updatedUser = userRepository.save(user);
 		return userMapper.mapToUserResponse(updatedUser);
 	}
+
 }

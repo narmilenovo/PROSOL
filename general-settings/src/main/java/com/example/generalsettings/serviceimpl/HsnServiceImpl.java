@@ -11,7 +11,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.Hsn;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.HsnMapper;
+import com.example.generalsettings.mapping.HsnMap;
 import com.example.generalsettings.repo.HsnRepo;
 import com.example.generalsettings.request.HsnRequest;
 import com.example.generalsettings.response.HsnResponse;
@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class HsnServiceImpl implements HsnService {
-	private final HsnMapper hsnMapper;
+	private final HsnMap hsnMapper;
 	private final HsnRepo hsnRepo;
 
 	@Override

@@ -24,19 +24,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-
 public class PriceControl extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String priceControlCode;
-    private String priceControlName;
-    private Boolean priceControlStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String priceControlCode;
+	private String priceControlName;
+	private Boolean priceControlStatus;
 
-    @ElementCollection
-    @CollectionTable(name = "price_control_fields", joinColumns = @JoinColumn(name = "price_control_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "price_control_fields", joinColumns = @JoinColumn(name = "price_control_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
+
 }

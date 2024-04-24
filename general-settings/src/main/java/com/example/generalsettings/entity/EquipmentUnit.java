@@ -15,11 +15,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 
-public class EquipmentUnit extends BaseEntity{
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String equipmentUnitCode;
-    private String equipmentUnitName;
-    private Boolean equipmentUnitStatus;
+public class EquipmentUnit extends BaseEntity {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String equipmentUnitCode;
+	private String equipmentUnitName;
+	private Boolean equipmentUnitStatus;
 }

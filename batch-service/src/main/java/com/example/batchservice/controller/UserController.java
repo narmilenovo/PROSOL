@@ -34,7 +34,6 @@ public class UserController {
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
 	public String postMethodName(@RequestPart MultipartFile file) {
 		String tempStorage = createDirectory();
-		;
 		try {
 			String originalFileName = file.getOriginalFilename();
 			String filePath = tempStorage + originalFileName;

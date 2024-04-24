@@ -28,20 +28,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class AttributeMaster extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String attributeName;
-    @Enumerated(EnumType.STRING)
-    private FieldType fieldType;
-    @ElementCollection
-    private List<Long> listUom;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String attributeName;
+	@Enumerated(EnumType.STRING)
+	private FieldType fieldType;
+	@ElementCollection
+	private List<Long> listUom;
 
-    @ElementCollection
-    @CollectionTable(name = "attribute_master_fields", joinColumns = @JoinColumn(name = "attribute_master_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
-
+	@ElementCollection
+	@CollectionTable(name = "attribute_master_fields", joinColumns = @JoinColumn(name = "attribute_master_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
 }

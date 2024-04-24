@@ -25,17 +25,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class MaterialStrategicGroup extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String msCode;
-    private String msName;
-    private Boolean msStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String msCode;
+	private String msName;
+	private Boolean msStatus;
 
-    @ElementCollection
-    @CollectionTable(name = "mat_str_grp_fields", joinColumns = @JoinColumn(name = "mat_str_grp_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "mat_str_grp_fields", joinColumns = @JoinColumn(name = "mat_str_grp_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
+
 }

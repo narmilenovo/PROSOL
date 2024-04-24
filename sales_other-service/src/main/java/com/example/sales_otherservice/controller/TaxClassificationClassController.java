@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class TaxClassificationClassController {
 	}
 
 	@GetMapping("/getTccById/{id}")
-	public ResponseEntity<Object> getTccById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getTccById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		TaxClassificationClassResponse dpById = taxClassificationClassService.getTccById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(dpById);
 	}
@@ -57,7 +58,7 @@ public class TaxClassificationClassController {
 	}
 
 	@PutMapping("/updateTcc/{id}")
-	public ResponseEntity<Object> updateTcc(@PathVariable Long id,
+	public ResponseEntity<Object> updateTcc(@PathVariable @NonNull Long id,
 			@Valid @RequestBody TaxClassificationClassRequest updateTaxClassificationClassRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		TaxClassificationClassResponse updateTcc = taxClassificationClassService.updateTcc(id,
@@ -66,25 +67,25 @@ public class TaxClassificationClassController {
 	}
 
 	@PatchMapping("/updateTccStatus/{id}")
-	public ResponseEntity<Object> updateTccStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateTccStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		TaxClassificationClassResponse tccResponse = taxClassificationClassService.updateTccStatus(id);
 		return ResponseEntity.ok(tccResponse);
 	}
 
 	@PatchMapping("/updateBatchTccStatus")
-	public ResponseEntity<Object> updateBatchTccStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchTccStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<TaxClassificationClassResponse> tccResponses = taxClassificationClassService.updateBatchTccStatus(ids);
 		return ResponseEntity.ok(tccResponses);
 	}
 
 	@DeleteMapping("/deleteTcc/{id}")
-	public ResponseEntity<Object> deleteTcc(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteTcc(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		taxClassificationClassService.deleteTccById(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchTcc")
-	public ResponseEntity<Object> deleteBatchTcc(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchTcc(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		taxClassificationClassService.deleteBatchTcc(ids);
 		return ResponseEntity.noContent().build();
 	}

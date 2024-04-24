@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -90,7 +91,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }) })
 	@GetMapping("/getRoleById/{id}")
-	public ResponseEntity<Object> getRoleById(@PathVariable Long id, @RequestParam Boolean show)
+	public ResponseEntity<Object> getRoleById(@PathVariable @NonNull Long id, @RequestParam Boolean show)
 			throws ResourceNotFoundException {
 		Object role;
 		if (Boolean.TRUE.equals(show)) {
@@ -161,7 +162,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PutMapping("/updateRole/{id}")
-	public ResponseEntity<Object> updateRole(@PathVariable Long id, @Valid @RequestBody RoleRequest updateRoleRequest)
+	public ResponseEntity<Object> updateRole(@PathVariable @NonNull Long id, @Valid @RequestBody RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		RoleResponse role = roleService.updateRole(id, updateRoleRequest);
 		return ResponseEntity.ok(role);
@@ -178,7 +179,7 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
 	@PatchMapping("/updateRoleStatusById/{id}")
-	public ResponseEntity<Object> updateRoleStatusId(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateRoleStatusId(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		RoleResponse response = roleService.updateStatusUsingRoleId(id);
 		return ResponseEntity.ok(response);
 	}
@@ -193,7 +194,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PatchMapping("/updateBulkStatusRoleId")
-	public ResponseEntity<Object> updateBulkStatusRoleId(@RequestBody List<Long> id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBulkStatusRoleId(@RequestBody @NonNull List<Long> id) throws ResourceNotFoundException {
 		List<RoleResponse> responseList = roleService.updateBulkStatusRoleId(id);
 		return ResponseEntity.ok(responseList);
 	}
@@ -208,7 +209,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@DeleteMapping("/deleteRole/{id}")
-	public ResponseEntity<Object> deleteRole(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteRole(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		roleService.deleteRoleId(id);
 		return ResponseEntity.noContent().build();
 	}
@@ -223,7 +224,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@DeleteMapping("/deleteBatchRole")
-	public ResponseEntity<Object> deleteBatchRole(@RequestBody List<Long> id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchRole(@RequestBody @NonNull List<Long> id) throws ResourceNotFoundException {
 		roleService.deleteBatchRole(id);
 		return ResponseEntity.ok().build();
 	}
@@ -238,7 +239,7 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@DeleteMapping("/removePrivilegesFromRole/{id}")
-	public ResponseEntity<Object> removePrivilegesFromRole(@PathVariable Long id,
+	public ResponseEntity<Object> removePrivilegesFromRole(@PathVariable @NonNull Long id,
 			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
 		RoleResponse roleResponse = roleService.removePrivilegesFromRole(id, rolePrivilegeRequest);
 		return ResponseEntity.ok().body(roleResponse);
@@ -255,7 +256,7 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
 	@PutMapping("/addPrivilegesToRole/{id}")
-	public ResponseEntity<Object> addPrivilegesToRole(@PathVariable Long id,
+	public ResponseEntity<Object> addPrivilegesToRole(@PathVariable @NonNull Long id,
 			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
 		RoleResponse roleResponse = roleService.addPrivilegesToRole(id, rolePrivilegeRequest);
 		return ResponseEntity.ok().body(roleResponse);

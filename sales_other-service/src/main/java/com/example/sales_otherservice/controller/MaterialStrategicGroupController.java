@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class MaterialStrategicGroupController {
 	}
 
 	@GetMapping("/getMsgById/{id}")
-	public ResponseEntity<Object> getMsgById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getMsgById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		MaterialStrategicGroupResponse dpById = materialStrategicGroupService.getMsgById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(dpById);
 	}
@@ -57,7 +58,7 @@ public class MaterialStrategicGroupController {
 	}
 
 	@PutMapping("/updateMsg/{id}")
-	public ResponseEntity<Object> updateMsg(@PathVariable Long id,
+	public ResponseEntity<Object> updateMsg(@PathVariable @NonNull Long id,
 			@Valid @RequestBody MaterialStrategicGroupRequest updateMaterialStrategicGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		MaterialStrategicGroupResponse updateMsg = materialStrategicGroupService.updateMsg(id,
@@ -66,25 +67,25 @@ public class MaterialStrategicGroupController {
 	}
 
 	@PatchMapping("/updateMsgStatus/{id}")
-	public ResponseEntity<Object> updateMsgStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateMsgStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		MaterialStrategicGroupResponse msgResponse = materialStrategicGroupService.updateMsgStatus(id);
 		return ResponseEntity.ok(msgResponse);
 	}
 
 	@PatchMapping("/updateBatchMsgStatus")
-	public ResponseEntity<Object> updateBatchMsgStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchMsgStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<MaterialStrategicGroupResponse> msgResponses = materialStrategicGroupService.updateBatchMsgStatus(ids);
 		return ResponseEntity.ok(msgResponses);
 	}
 
 	@DeleteMapping("/deleteMsg/{id}")
-	public ResponseEntity<Object> deleteMsg(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteMsg(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		materialStrategicGroupService.deleteMsgById(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchMsg")
-	public ResponseEntity<Object> deleteBatchMsg(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchMsg(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		materialStrategicGroupService.deleteBatchMsg(ids);
 		return ResponseEntity.noContent().build();
 	}

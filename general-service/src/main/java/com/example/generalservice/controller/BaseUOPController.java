@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class BaseUOPController {
 	}
 
 	@GetMapping("/getUopById/{id}")
-	public ResponseEntity<Object> getUopById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getUopById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		BaseUOPResponse uopResponse = baseUOPService.getUopById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(uopResponse);
 	}
@@ -56,7 +57,7 @@ public class BaseUOPController {
 	}
 
 	@PutMapping("/updateUop/{id}")
-	public ResponseEntity<Object> updateUop(@PathVariable Long id,
+	public ResponseEntity<Object> updateUop(@PathVariable @NonNull Long id,
 			@Valid @RequestBody BaseUOPRequest updateBaseUOPRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		BaseUOPResponse uopResponse = baseUOPService.updateUop(id, updateBaseUOPRequest);
@@ -64,25 +65,25 @@ public class BaseUOPController {
 	}
 
 	@PatchMapping("/updateUopStatus/{id}")
-	public ResponseEntity<Object> updateUopStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateUopStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		BaseUOPResponse uopResponse = baseUOPService.updateUopStatus(id);
 		return ResponseEntity.ok(uopResponse);
 	}
 
 	@PatchMapping("/updateBatchUopStatus")
-	public ResponseEntity<Object> updateBatchUopStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchUopStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<BaseUOPResponse> uopResponses = baseUOPService.updateBatchUopStatus(ids);
 		return ResponseEntity.ok(uopResponses);
 	}
 
 	@DeleteMapping("/deleteUop/{id}")
-	public ResponseEntity<Object> deleteUop(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteUop(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		baseUOPService.deleteUopId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchUop")
-	public ResponseEntity<Object> deleteBatchUop(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchUop(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		baseUOPService.deleteBatchUop(ids);
 		return ResponseEntity.noContent().build();
 	}

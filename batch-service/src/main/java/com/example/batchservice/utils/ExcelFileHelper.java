@@ -1,12 +1,14 @@
 package com.example.batchservice.utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.ss.formula.functions.T;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
 import org.apache.poi.ss.usermodel.DataValidationHelper;
@@ -33,11 +35,11 @@ public class ExcelFileHelper extends AbstractExporter {
 	private DataValidationHelper validationHelper;
 
 	public void exportTemplate(HttpServletResponse response, String sheetName, Class<?> clazz, String contentType,
-			String extension, String prefix) throws IOException {
+			String extension, String prefix, List<String> dynamicFields) throws IOException {
 		super.setResponseHeader(response, contentType, extension, prefix);
 		workbook = new XSSFWorkbook();
 		initializeCellStyles();
-		writeHeaderLine(sheetName, clazz);
+		writeHeaderLine(sheetName, clazz, dynamicFields);
 		workbook.write(response.getOutputStream());
 		workbook.close();
 	}
@@ -59,27 +61,41 @@ public class ExcelFileHelper extends AbstractExporter {
 		return cellStyle;
 	}
 
-	private void writeHeaderLine(String sheetName, Class<?> clazz) {
+	private void writeHeaderLine(String sheetName, Class<?> clazz, List<String> dynamicFields) {
 		if (sheetName != null) {
 			sheet = workbook.getSheet(sheetName);
 		}
 		sheet = workbook.createSheet(sheetName);
 		XSSFRow row = sheet.createRow(0);
 		List<Field> classFields = getCachedFields(clazz);
+		int dynamicFieldStartIndex = classFields.size(); // Assuming static fields have already been written
+
 		for (int i = 0; i < classFields.size(); i++) {
 			Field field = classFields.get(i);
+			if (field.getName().equals("dynamicFields")) {
+				dynamicFieldStartIndex = i; // Update dynamicFieldStartIndex
+				break;
+			}
 			String headerName = Helpers.capitalizeEachWord(field.getName());
 			createCell(row, i, headerName);
 			sheet.autoSizeColumn(i);
-			if (field.getName().equals("plantStatus")) {
+			if (field.getName().contains("Status")) {
 				// If the field is "plantStatus", add Excel validation for TRUE/FALSE dropdown
 				addStatusValidation(sheet, 1, i, i); // Adjust lastCol parameter
 			}
+
+		}
+		// Write dynamic fields obtained from Feign client
+		for (int i = 0; i < dynamicFields.size(); i++) {
+			String dynamicField = dynamicFields.get(i);
+			dynamicField = Helpers.capitalizeEachWord(dynamicField);
+			createCell(row, dynamicFieldStartIndex + i, dynamicField);
+			sheet.autoSizeColumn(dynamicFieldStartIndex + i);
 		}
 	}
 
 	private void addStatusValidation(XSSFSheet sheet, int firstRow, int firstCol, int lastCol) {
-		int lastRow = sheet.getLastRowNum() - 1;
+		int lastRow = 1048576 - 1;
 		if (firstRow <= lastRow && firstCol <= lastCol) {
 			validationHelper = sheet.getDataValidationHelper();
 			DataValidationConstraint constraint = validationHelper
@@ -109,6 +125,11 @@ public class ExcelFileHelper extends AbstractExporter {
 		XSSFCell cell = row.createCell(columnIndex);
 		cell.setCellValue(value);
 		cell.setCellStyle(headerCellStyle);
+	}
+
+	public List<T> readDataFromExcel(InputStream inputStream, Class<T> clazz) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

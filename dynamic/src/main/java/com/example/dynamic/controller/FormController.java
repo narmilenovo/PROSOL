@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.dynamic.dto.request.FormRequest;
 import com.example.dynamic.dto.response.FormResponse;
+import com.example.dynamic.exceptions.ResourceFoundException;
 import com.example.dynamic.exceptions.ResourceNotFoundException;
 import com.example.dynamic.service.interfaces.FormService;
 
@@ -26,7 +27,7 @@ public class FormController {
 	private final FormService formService;
 
 	@PostMapping("/createForm")
-	public ResponseEntity<Object> createForm(@RequestBody FormRequest formRequest) {
+	public ResponseEntity<Object> createForm(@RequestBody FormRequest formRequest) throws ResourceFoundException {
 		FormResponse formResponse = formService.createForm(formRequest);
 		return new ResponseEntity<>(formResponse, HttpStatus.CREATED);
 	}

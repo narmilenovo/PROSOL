@@ -1,5 +1,6 @@
 package com.example.dynamic.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.CascadeType;
@@ -36,7 +37,7 @@ public class FormField extends BaseEntity {
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "field_pattern", joinColumns = @JoinColumn(name = "field_id"))
-	private List<String> pattern;
+	private List<String> pattern = new ArrayList<>();
 
 	private Long min;
 	private Long max;
@@ -50,13 +51,12 @@ public class FormField extends BaseEntity {
 	private String displayRelationFieldName;
 
 	@OneToMany(mappedBy = "formField", cascade = CascadeType.ALL)
-	private List<DropDown> dropDowns;
+	private List<DropDown> dropDowns = new ArrayList<>();
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "field_enums", joinColumns = @JoinColumn(name = "field_id"))
-	private List<String> enums;
+	private List<String> enums = new ArrayList<>();
 
 	@ManyToOne
 	private Form form;
-
 }

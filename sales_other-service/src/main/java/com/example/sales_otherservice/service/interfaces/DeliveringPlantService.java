@@ -24,7 +24,7 @@ public interface DeliveringPlantService {
 
 	List<DeliveringPlantResponse> findAllStatusTrue();
 
-	DeliveringPlantResponse updateDp(Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
+	DeliveringPlantResponse updateDp(@NonNull Long id, DeliveringPlantRequest updateDeliveringPlantRequest)
 			throws ResourceNotFoundException, ResourceFoundException;
 
 	DeliveringPlantResponse updateDpStatus(@NonNull Long id) throws ResourceNotFoundException;

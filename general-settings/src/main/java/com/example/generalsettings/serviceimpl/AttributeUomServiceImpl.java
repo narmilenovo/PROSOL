@@ -11,7 +11,7 @@ import com.example.generalsettings.entity.AttributeUom;
 import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.AttributeUomMapper;
+import com.example.generalsettings.mapping.AttributeUomMap;
 import com.example.generalsettings.repo.AttributeUomRepo;
 import com.example.generalsettings.request.AttributeUomRequest;
 import com.example.generalsettings.response.AttributeUomResponse;
@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AttributeUomServiceImpl implements AttributeUomService {
-	private final AttributeUomMapper attributeUomMapper;
+	private final AttributeUomMap attributeUomMapper;
 	private final AttributeUomRepo attributeUomRepo;
 
 	@Override

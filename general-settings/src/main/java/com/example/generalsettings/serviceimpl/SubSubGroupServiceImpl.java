@@ -15,7 +15,7 @@ import com.example.generalsettings.entity.SubGroupCodes;
 import com.example.generalsettings.entity.SubSubGroup;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.SubSubGroupCodeMapper;
+import com.example.generalsettings.mapping.SubSubGroupCodeMap;
 import com.example.generalsettings.repo.MainGroupCodesRepo;
 import com.example.generalsettings.repo.SubGroupCodesRepo;
 import com.example.generalsettings.repo.SubSubGroupRepo;
@@ -34,7 +34,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 	private final MainGroupCodesRepo mainGroupCodesRepo;
 	private final SubGroupCodesRepo subGroupCodesRepo;
 
-	private final SubSubGroupCodeMapper subSubGroupCodeMapper;
+	private final SubSubGroupCodeMap subSubGroupCodeMapper;
 
 	@Override
 	public SubSubGroupResponse saveSubChildGroup(SubSubGroupRequest subSubGroupRequest)
@@ -49,8 +49,8 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 		subChildGroup.setId(null);
 		MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
 		SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
-		subChildGroup.setMainGroupCodesId(mainGroupCodes);
-		subChildGroup.setSubGroupCodesId(subGroupCodes);
+		subChildGroup.setMainGroupCodes(mainGroupCodes);
+		subChildGroup.setSubGroupCodes(subGroupCodes);
 		SubSubGroup saved = subSubGroupRepo.save(subChildGroup);
 		return subSubGroupCodeMapper.mapToSubChildGroupResponse(saved);
 	}
@@ -98,17 +98,17 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 						subSubGroupRequest.getSubSubGroupStatus()));
 				existSubChildGroup.setSubSubGroupStatus(subSubGroupRequest.getSubSubGroupStatus());
 			}
-			if (!existSubChildGroup.getMainGroupCodesId().getId().equals(subSubGroupRequest.getMainGroupCodesId())) {
-				auditFields.add(new AuditFields(null, "MainGroup Code", existSubChildGroup.getMainGroupCodesId(),
+			if (!existSubChildGroup.getMainGroupCodes().getId().equals(subSubGroupRequest.getMainGroupCodesId())) {
+				auditFields.add(new AuditFields(null, "MainGroup Code", existSubChildGroup.getMainGroupCodes(),
 						subSubGroupRequest.getMainGroupCodesId()));
 				MainGroupCodes mainGroupCodes = this.findMainGroupCodesById(subSubGroupRequest.getMainGroupCodesId());
-				existSubChildGroup.setMainGroupCodesId(mainGroupCodes);
+				existSubChildGroup.setMainGroupCodes(mainGroupCodes);
 			}
-			if (!existSubChildGroup.getSubGroupCodesId().getId().equals(subSubGroupRequest.getSubGroupId())) {
-				auditFields.add(new AuditFields(null, "Sub Group Code", existSubChildGroup.getSubGroupCodesId(),
+			if (!existSubChildGroup.getSubGroupCodes().getId().equals(subSubGroupRequest.getSubGroupId())) {
+				auditFields.add(new AuditFields(null, "Sub Group Code", existSubChildGroup.getSubGroupCodes(),
 						subSubGroupRequest.getSubGroupId()));
 				SubGroupCodes subGroupCodes = this.findSubGroupCodesById(subSubGroupRequest.getSubGroupId());
-				existSubChildGroup.setSubGroupCodesId(subGroupCodes);
+				existSubChildGroup.setSubGroupCodes(subGroupCodes);
 			}
 			existSubChildGroup.updateAuditHistory(auditFields);
 			subSubGroupRepo.save(existSubChildGroup);
@@ -172,7 +172,7 @@ public class SubSubGroupServiceImpl implements SubSubGroupService {
 
 		for (SubSubGroup unit : subChildGroupList) {
 			Map<String, Object> data = new HashMap<>();
-			data.put("Id", unit.getSubGroupCodesId());
+			data.put("Id", unit.getSubGroupCodes());
 			data.put("Name", unit.getSubSubGroupName());
 			data.put("Status", unit.getSubSubGroupStatus());
 			dataList.add(data);

@@ -17,13 +17,11 @@ import org.springframework.web.server.ServerWebExchange;
 import com.example.api_gateway.util.Jwt;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class SecurityContextRepository implements ServerSecurityContextRepository {
 
 	private final AuthenticationManager authenticationManager;

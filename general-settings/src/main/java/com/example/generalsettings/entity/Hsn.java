@@ -8,17 +8,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 
-public class Hsn extends BaseEntity{
+public class Hsn extends BaseEntity {
 	@Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String hsnCode;
-    private String hsnDesc;
-    private Boolean hsnStatus;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String hsnCode;
+	private String hsnDesc;
+	private Boolean hsnStatus;
 }

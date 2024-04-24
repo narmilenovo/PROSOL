@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.env.Environment;
+import org.springframework.lang.NonNull;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,7 @@ public class ResetPasswordListener implements ApplicationListener<OnResetPasswor
 	private final TemplateEngine htmlTemplateEngine;
 
 	@Override
-	public void onApplicationEvent(OnResetPasswordEvent event) {
+	public void onApplicationEvent(@NonNull OnResetPasswordEvent event) {
 		this.sendResetPasswordEmail(event);
 	}
 

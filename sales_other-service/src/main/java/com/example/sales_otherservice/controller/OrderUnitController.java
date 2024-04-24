@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class OrderUnitController {
 	}
 
 	@GetMapping("/getOuById/{id}")
-	public ResponseEntity<Object> getOuById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getOuById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		OrderUnitResponse dpById = orderUnitService.getOuById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(dpById);
 	}
@@ -56,7 +57,7 @@ public class OrderUnitController {
 	}
 
 	@PutMapping("/updateOu/{id}")
-	public ResponseEntity<Object> updateOu(@PathVariable Long id,
+	public ResponseEntity<Object> updateOu(@PathVariable @NonNull Long id,
 			@Valid @RequestBody OrderUnitRequest updateOrderUnitRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		OrderUnitResponse updateOu = orderUnitService.updateOu(id, updateOrderUnitRequest);
@@ -64,25 +65,25 @@ public class OrderUnitController {
 	}
 
 	@PatchMapping("/updateOuStatus/{id}")
-	public ResponseEntity<Object> updateOuStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateOuStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		OrderUnitResponse ouResponse = orderUnitService.updateOuStatus(id);
 		return ResponseEntity.ok(ouResponse);
 	}
 
 	@PatchMapping("/updateBatchOuStatus")
-	public ResponseEntity<Object> updateBatchOuStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchOuStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<OrderUnitResponse> ouResponses = orderUnitService.updateBatchOuStatus(ids);
 		return ResponseEntity.ok(ouResponses);
 	}
 
 	@DeleteMapping("/deleteOu/{id}")
-	public ResponseEntity<Object> deleteOu(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteOu(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		orderUnitService.deleteOuById(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchOu")
-	public ResponseEntity<Object> deleteBatchOu(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchOu(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		orderUnitService.deleteBatchOu(ids);
 		return ResponseEntity.noContent().build();
 	}

@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DropDownRequest {
-    private String value;
+	private String optionValue;
 
-    @JsonIgnore
-    private FormFieldRequest formField;
+	@JsonIgnore
+	private FormFieldRequest formField;
 }

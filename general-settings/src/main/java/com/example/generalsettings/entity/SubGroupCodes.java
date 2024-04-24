@@ -4,7 +4,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,16 +15,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-
 public class SubGroupCodes extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String subGroupCode;
-    private String subGroupName;
-    private Boolean subGroupStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String subGroupCode;
+	private String subGroupName;
+	private Boolean subGroupStatus;
 
-    @ManyToOne
-    @JoinColumn(name = "MainGroupCodes_id")
-    private MainGroupCodes mainGroupCodesId;
+	@ManyToOne
+	private MainGroupCodes mainGroupCodes;
 }

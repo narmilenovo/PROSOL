@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class AccAssignmentController {
 	}
 
 	@GetMapping("/getAccById/{id}")
-	public ResponseEntity<Object> getAccById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getAccById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		AccAssignmentResponse accById = accAssignmentService.getAccById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(accById);
 	}
@@ -56,7 +57,7 @@ public class AccAssignmentController {
 	}
 
 	@PutMapping("/updateAcc/{id}")
-	public ResponseEntity<Object> updateAcc(@PathVariable Long id,
+	public ResponseEntity<Object> updateAcc(@PathVariable @NonNull Long id,
 			@Valid @RequestBody AccAssignmentRequest updateAccAssignmentRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		AccAssignmentResponse unitOfIssueResponse = accAssignmentService.updateAcc(id, updateAccAssignmentRequest);
@@ -64,25 +65,25 @@ public class AccAssignmentController {
 	}
 
 	@PatchMapping("/updateAccStatus/{id}")
-	public ResponseEntity<Object> updateAccStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateAccStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		AccAssignmentResponse accResponse = accAssignmentService.updateAccStatus(id);
 		return ResponseEntity.ok(accResponse);
 	}
 
 	@PatchMapping("/updateBatchAccStatus")
-	public ResponseEntity<Object> updateBatchAccStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchAccStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<AccAssignmentResponse> accResponses = accAssignmentService.updateBatchAccStatus(ids);
 		return ResponseEntity.ok(accResponses);
 	}
 
 	@DeleteMapping("/deleteAcc/{id}")
-	public ResponseEntity<Object> deleteAcc(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteAcc(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		accAssignmentService.deleteAccId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchAcc")
-	public ResponseEntity<Object> deleteBatchAcc(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchAcc(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		accAssignmentService.deleteBatchAcc(ids);
 		return ResponseEntity.noContent().build();
 	}

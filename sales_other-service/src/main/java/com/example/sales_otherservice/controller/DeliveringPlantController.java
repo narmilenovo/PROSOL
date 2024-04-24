@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class DeliveringPlantController {
 	}
 
 	@GetMapping("/getDpById/{id}")
-	public ResponseEntity<Object> getDpById(@PathVariable Long id, @RequestParam Boolean plant)
+	public ResponseEntity<Object> getDpById(@PathVariable @NonNull Long id, @RequestParam Boolean plant)
 			throws ResourceNotFoundException {
 		Object dpById;
 		if (Boolean.TRUE.equals(plant)) {
@@ -76,25 +77,25 @@ public class DeliveringPlantController {
 	}
 
 	@PatchMapping("/updateDpStatus/{id}")
-	public ResponseEntity<Object> updateDpStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateDpStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		DeliveringPlantResponse dpResponse = deliveringPlantService.updateDpStatus(id);
 		return ResponseEntity.ok(dpResponse);
 	}
 
 	@PatchMapping("/updateBatchDpStatus")
-	public ResponseEntity<Object> updateBatchDpStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchDpStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<DeliveringPlantResponse> dpResponses = deliveringPlantService.updateBatchDpStatus(ids);
 		return ResponseEntity.ok(dpResponses);
 	}
 
 	@DeleteMapping("/deleteDp/{id}")
-	public ResponseEntity<Object> deleteDp(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteDp(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		deliveringPlantService.deleteDpId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchDp")
-	public ResponseEntity<Object> deleteBatchDp(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchDp(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		deliveringPlantService.deleteBatchDp(ids);
 		return ResponseEntity.noContent().build();
 	}

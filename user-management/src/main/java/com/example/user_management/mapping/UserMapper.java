@@ -29,6 +29,7 @@ public interface UserMapper {
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "createdAt", ignore = true)
 	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "avatar", ignore = true)
 	@Mapping(target = "updateAuditHistories", ignore = true)
 	@Mapping(target = "roles", source = "roles", qualifiedByName = "mapToRoles")
 	User mapToUser(UserRequest userRequest);
@@ -62,6 +63,7 @@ public interface UserMapper {
 	UserDepartmentPlantResponse mapToUserDepartmentPlantResponse(User user);
 
 	@Mapping(target = "password", ignore = true)
+	@Mapping(target = "roles", source = "roles")
 	User mapUserResponseToUser(UserResponse userResponse);
 
 	@Mapping(target = "id", ignore = true)

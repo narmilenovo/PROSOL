@@ -19,7 +19,7 @@ public class DropDown {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private String value;
+	private String optionValue;
 
 	@ManyToOne
 	private FormField formField;

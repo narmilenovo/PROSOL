@@ -25,17 +25,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ItemCategoryGroup extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String icgCode;
-    private String icgName;
-    private Boolean icgStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String icgCode;
+	private String icgName;
+	private Boolean icgStatus;
 
-    @ElementCollection
-    @CollectionTable(name = "item_grp_fields", joinColumns = @JoinColumn(name = "item_grp_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "item_grp_fields", joinColumns = @JoinColumn(name = "item_grp_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
+
 }

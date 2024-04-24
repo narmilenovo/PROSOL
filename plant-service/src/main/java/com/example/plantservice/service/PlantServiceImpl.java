@@ -26,6 +26,7 @@ import com.example.plantservice.util.ExcelFileHelper;
 import com.example.plantservice.util.Helpers;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -49,6 +50,25 @@ public class PlantServiceImpl implements PlantService {
 		validateDynamicFields(plant);
 		plantRepo.save(plant);
 		return plantMapper.mapToPlantResponse(plant);
+	}
+
+	@Override
+	public List<PlantResponse> saveAllPlant(@Valid List<PlantRequest> plantRequests)
+			throws AlreadyExistsException, ResourceNotFoundException {
+		List<Plant> plants = new ArrayList<>();
+		for (PlantRequest plantRequest : plantRequests) {
+			Helpers.inputTitleCase(plantRequest);
+			String plantCode = plantRequest.getPlantCode();
+			String plantName = plantRequest.getPlantName();
+			if (plantRepo.existsByPlantCodeAndPlantName(plantCode, plantName)) {
+				throw new AlreadyExistsException("Plant with this name already exists");
+			}
+			Plant plant = plantMapper.mapToPlant(plantRequest);
+			validateDynamicFields(plant);
+			plants.add(plant);
+		}
+		plantRepo.saveAll(plants);
+		return plantMapper.mapToPlantResponseList(plants);
 	}
 
 	@Override

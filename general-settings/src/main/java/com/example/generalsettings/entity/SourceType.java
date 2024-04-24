@@ -10,16 +10,15 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 @EqualsAndHashCode(callSuper = true)
-
-public class SourceType extends BaseEntity{
-	 @Id
-	    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	    private Long id;
-	    private String sourceTypeCode;
-	    private String sourceTypeName;
-	    private Boolean sourceTypeStatus;
+public class SourceType extends BaseEntity {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String sourceTypeCode;
+	private String sourceTypeName;
+	private Boolean sourceTypeStatus;
 }

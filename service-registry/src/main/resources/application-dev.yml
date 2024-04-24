@@ -1,0 +1,56 @@
+# Server configuration
+server:
+  port: 8761
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
+  application:
+    name: eureka-server # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/usermanagement
+    password: imu123
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        "[format_sql]": true
+    show-sql: true
+
+  output:
+    ansi:
+      enabled: always
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: 15.206.229.221
+    prefer-ip-address: false
+
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+# Zipkin configuration
+management:
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+
+  # Actuator configuration
+  endpoints:
+    web:
+      exposure:
+        include: "*"

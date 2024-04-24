@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.dynamic.dto.response.FormFieldResponse;
 
-@FeignClient(name = "setting-service", url = "http://localhost:8006")
+@FeignClient(name = "setting-service", url = "${clients.setting.url}")
 public interface SettingServiceClient {
 
 	@GetMapping("/fields/{formName}")

@@ -33,6 +33,7 @@ import com.example.dynamic.entity.FormField;
 import com.example.dynamic.exceptions.ResourceFoundException;
 import com.example.dynamic.exceptions.ResourceNotFoundException;
 import com.example.dynamic.mapping.FormFieldMapper;
+import com.example.dynamic.repository.DropDownRepository;
 import com.example.dynamic.repository.FormFieldRepository;
 import com.example.dynamic.repository.FormRepository;
 import com.example.dynamic.service.interfaces.FormFieldService;
@@ -44,6 +45,7 @@ import lombok.RequiredArgsConstructor;
 public class FormFieldServiceImpl implements FormFieldService {
 
 	private final FormFieldRepository fieldRepository;
+	private final DropDownRepository dropDownRepository;
 	private final FormRepository formRepository;
 	private final FormFieldMapper formFieldMapper;
 
@@ -63,6 +65,7 @@ public class FormFieldServiceImpl implements FormFieldService {
 	public static final String CHECKBOX_TYPE = "radioButton";
 	public static final String DROPDOWN_TYPE = "dropDown";
 	public static final String FILE_TYPE = "fileUpload";
+	public static final String RELATIONAL = "relational";
 	private static final Map<Class<?>[], String> REACT_TYPES;
 
 	static {
@@ -84,6 +87,9 @@ public class FormFieldServiceImpl implements FormFieldService {
 			}
 			if (dataType.equalsIgnoreCase(FILE_TYPE)) {
 				return FILE_TYPE;
+			}
+			if (dataType.equalsIgnoreCase(RELATIONAL)) {
+				return RELATIONAL;
 			}
 		}
 		return OBJECT_TYPE;
@@ -108,6 +114,17 @@ public class FormFieldServiceImpl implements FormFieldService {
 		return formFieldMapper.mapToFieldResponse(savedFormField);
 	}
 
+	private List<DropDown> mapDropDownValues(List<DropDownRequest> dropDownRequests, FormField formField) {
+		if (dropDownRequests != null) {
+			return dropDownRequests.stream().map(dropDownRequest -> {
+				DropDown dropDownValue = formFieldMapper.mapToDropDown(dropDownRequest);
+				dropDownValue.setFormField(formField);
+				return dropDownValue;
+			}).toList();
+		}
+		return Collections.emptyList();
+	}
+
 	@Override
 	public FormFieldResponse getDynamicFieldById(@NonNull Long id) throws ResourceNotFoundException {
 		FormField formField = this.getById(id);
@@ -125,14 +142,24 @@ public class FormFieldServiceImpl implements FormFieldService {
 	public FormFieldResponse updateDynamicFieldById(String formName, @NonNull Long id,
 			FormFieldRequest updateFieldRequest) throws ResourceNotFoundException, ResourceFoundException {
 		FormField existingFormField = getById(id);
-		formFieldMapper.updateFormFieldFromRequest(updateFieldRequest, existingFormField);
 		existingFormField.setId(id);
 		existingFormField.setForm(this.getOrCreateForm(formName));
+		// Update the field properties
+		existingFormField.setFieldName(updateFieldRequest.getFieldName());
+		existingFormField.setDataType(updateFieldRequest.getDataType());
+		existingFormField.setIdentity(updateFieldRequest.getIdentity());
+		existingFormField.setPattern(updateFieldRequest.getPattern());
+		existingFormField.setMin(updateFieldRequest.getMin());
+		existingFormField.setMax(updateFieldRequest.getMax());
+		existingFormField.setIsRequired(updateFieldRequest.getIsRequired());
+		existingFormField.setIsExtraField(updateFieldRequest.getIsExtraField());
+		existingFormField.setIsReadable(updateFieldRequest.getIsReadable());
+		existingFormField.setIsWritable(updateFieldRequest.getIsWritable());
+		existingFormField.setIsUnique(updateFieldRequest.getIsUnique());
+		existingFormField.setDisplayRelationFieldName(updateFieldRequest.getDisplayRelationFieldName());
 		conversionEquals(existingFormField);
 		// Map and set drop-down values
-		List<DropDown> dropDownValues = mapDropDownValues(updateFieldRequest.getDropDowns(), existingFormField);
-		existingFormField.setDropDowns(dropDownValues);
-
+		updateDropDowns(existingFormField, updateFieldRequest.getDropDowns());
 		// Update field by checking
 		if (checkNotIdFieldInForm(existingFormField.getFieldName(), formName, id)) {
 			throw new ResourceFoundException("Field with name '" + existingFormField.getFieldName()
@@ -142,15 +169,17 @@ public class FormFieldServiceImpl implements FormFieldService {
 		return formFieldMapper.mapToFieldResponse(updatedFormField);
 	}
 
-	private List<DropDown> mapDropDownValues(List<DropDownRequest> dropDownRequests, FormField formField) {
-		if (dropDownRequests != null) {
-			return dropDownRequests.stream().map(dropDownRequest -> {
-				DropDown dropDownValue = formFieldMapper.mapToDropDown(dropDownRequest);
-				dropDownValue.setFormField(formField);
-				return dropDownValue;
-			}).toList();
-		}
-		return Collections.emptyList();
+	private void updateDropDowns(FormField existingFormField, List<DropDownRequest> dropDownRequests) {
+		List<DropDown> newDropDowns = formFieldMapper.mapDropDownValues(dropDownRequests);
+		this.deleteOldDropDowns(existingFormField);
+		// Set new drop-downs
+		newDropDowns.forEach(dropDown -> dropDown.setFormField(existingFormField));
+		existingFormField.setDropDowns(newDropDowns);
+	}
+
+	private void deleteOldDropDowns(FormField formField) {
+		dropDownRepository.deleteByFormField(formField);
+
 	}
 
 	private Form getOrCreateForm(String formName) {
@@ -171,7 +200,7 @@ public class FormFieldServiceImpl implements FormFieldService {
 		}
 	}
 
-	private void conversionEquals(FormField formField) {
+	public void conversionEquals(FormField formField) {
 		String dataType = setFieldConversion(formField.getDataType());
 		formField.setDataType(dataType);
 		if (TEXT_FIELD_TYPE.equalsIgnoreCase(dataType) || TEXT_AREA_TYPE.equalsIgnoreCase(dataType)
@@ -180,8 +209,10 @@ public class FormFieldServiceImpl implements FormFieldService {
 			formField.setEnums(null);
 		} else if (DROPDOWN_TYPE.equalsIgnoreCase(dataType)) {
 			formField.setEnums(null);
+			formField.setDropDowns(new ArrayList<>());
 		} else if (CHECKBOX_TYPE.equalsIgnoreCase(dataType)) {
 			formField.setDropDowns(null);
+			formField.setEnums(new ArrayList<>());
 		} else {
 			if (formField.getEnums() == null) {
 				formField.setEnums(new ArrayList<>());
@@ -302,6 +333,11 @@ public class FormFieldServiceImpl implements FormFieldService {
 	@Override
 	public List<String> getAllFieldNamesOfForm(String formName) throws ClassNotFoundException {
 		return getDynamicFieldsAndExistingFields(formName, null).stream().map(FormFieldResponse::getFieldName).toList();
+	}
+
+	@Override
+	public List<String> getDynamicFieldsListInForm(String formName) throws ClassNotFoundException {
+		return getDynamicFieldsAndExistingFields(formName, true).stream().map(FormFieldResponse::getFieldName).toList();
 	}
 
 	@Override

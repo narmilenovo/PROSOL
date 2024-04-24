@@ -1,5 +1,0 @@
-
-E	java:S1061"+Replace this use of System.out by a logger.(òžÓºûÿÿÿÿ
-h
-java:S6204:"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹
-@	java:S106<"+Replace this use of System.out by a logger.(´žÀø

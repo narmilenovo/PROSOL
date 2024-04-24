@@ -31,6 +31,12 @@ public class MappingDynamicController {
 		List<String> field = fieldService.getAllFieldNamesOfForm(formName);
 		return ResponseEntity.ok(field);
 	}
+	
+	@GetMapping("/getDynamicFieldsListInForm/{formName}")
+	public ResponseEntity<Object> getDynamicFieldsListInForm(@PathVariable String formName) throws ClassNotFoundException {
+		List<String> field = fieldService.getDynamicFieldsListInForm(formName);
+		return ResponseEntity.ok(field);
+	}
 
 	@GetMapping("/getListOfFieldNameValues")
 	public ResponseEntity<Object> getListOfFieldNameValues(@RequestParam String displayName,

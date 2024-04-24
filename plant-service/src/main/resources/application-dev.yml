@@ -1,0 +1,92 @@
+# Server configuration
+server:
+  port: 8001
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+clients:
+  dynamic:
+    url: http://15.206.229.221:8014
+  general:
+    url: http://15.206.229.221:8002
+
+# Spring configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m # The server will wait up to one minute for active requests to complete
+  application:
+    name: plant-service # The server application name
+
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/plant
+    password: imu123
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          "[batch_size]": 1000
+        "[order_inserts]": true
+        # generate_statistics: true
+        "[format_sql]": true
+    show-sql: true
+
+  output:
+    ansi:
+      enabled: always
+
+# Eureka Server configuration
+eureka:
+  instance:
+    hostname: 15.206.229.221
+    prefer-ip-address: false
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:8761/eureka/
+
+# Actuator endpoints configuration
+management:
+  endpoints:
+    web:
+      base-path: /rest/actuator
+      exposure:
+        include: "*"
+
+  # Zipkin configuration
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+
+# OpenApi Swagger configuration
+springdoc:
+  service:
+    title: Plant-Service doc
+    version: 1.0.1
+  api-docs:
+    groups:
+      enabled: true
+  swagger-ui:
+    display-request-duration: true
+    operationsSorter: method
+    tags-sorter: method
+    try-it-out-enabled: true
+    deep-linking: true
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    display-operation-id: false
+    filter: false
+    show-extensions: false
+  cache:
+    disabled: false
+  show-actuator: false
+  writer-with-default-pretty-printer: true

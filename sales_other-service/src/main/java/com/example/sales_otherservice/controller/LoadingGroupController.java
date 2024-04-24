@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class LoadingGroupController {
 	}
 
 	@GetMapping("/getLgById/{id}")
-	public ResponseEntity<Object> getLgById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getLgById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		LoadingGroupResponse dpById = loadingGroupService.getLgById(id);
 		return ResponseEntity.status(HttpStatus.FOUND).body(dpById);
 	}
@@ -56,7 +57,7 @@ public class LoadingGroupController {
 	}
 
 	@PutMapping("/updateLg/{id}")
-	public ResponseEntity<Object> updateLg(@PathVariable Long id,
+	public ResponseEntity<Object> updateLg(@PathVariable @NonNull Long id,
 			@Valid @RequestBody LoadingGroupRequest updateLoadingGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		LoadingGroupResponse updateLg = loadingGroupService.updateLg(id, updateLoadingGroupRequest);
@@ -64,25 +65,25 @@ public class LoadingGroupController {
 	}
 
 	@PatchMapping("/updateLgStatus/{id}")
-	public ResponseEntity<Object> updateLgStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateLgStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		LoadingGroupResponse lgResponse = loadingGroupService.updateLgStatus(id);
 		return ResponseEntity.ok(lgResponse);
 	}
 
 	@PatchMapping("/updateBatchLgStatus")
-	public ResponseEntity<Object> updateBatchLgStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchLgStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<LoadingGroupResponse> lgResponses = loadingGroupService.updateBatchLgStatus(ids);
 		return ResponseEntity.ok(lgResponses);
 	}
 
 	@DeleteMapping("/deleteLg/{id}")
-	public ResponseEntity<Object> deleteLg(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteLg(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		loadingGroupService.deleteLgById(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchLg")
-	public ResponseEntity<Object> deleteBatchLg(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchLg(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		loadingGroupService.deleteBatchLg(ids);
 		return ResponseEntity.noContent().build();
 	}

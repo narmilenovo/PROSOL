@@ -42,5 +42,4 @@ public class Dictionary extends BaseEntity {
 	@OneToMany(mappedBy = "dictionary", cascade = { CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH,
 			CascadeType.DETACH })
 	private List<DictionaryAttribute> attributes;
-
 }

@@ -25,20 +25,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ValueMaster extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String value;
-    private String abbreviation;
-    private Long abbreviationUnit;
-    private String equivalent;
-    private Long equivalentUnit;
-    private String likelyWords;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String value;
+	private String abbreviation;
+	private Long abbreviationUnit;
+	private String equivalent;
+	private Long equivalentUnit;
+	private String likelyWords;
 
-    @ElementCollection
-    @CollectionTable(name = "value_master_fields", joinColumns = @JoinColumn(name = "value_master_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
+	@ElementCollection
+	@CollectionTable(name = "value_master_fields", joinColumns = @JoinColumn(name = "value_master_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
 }

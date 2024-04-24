@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +40,7 @@ public class DivisionController {
 	}
 
 	@GetMapping("/getDivisionById/{id}")
-	public ResponseEntity<Object> getDivisionById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getDivisionById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		DivisionResponse divisionResponse = divisionService.getDivisionById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(divisionResponse);
 	}
@@ -57,7 +58,7 @@ public class DivisionController {
 	}
 
 	@PutMapping("/updateDivision/{id}")
-	public ResponseEntity<Object> updateDivision(@PathVariable Long id,
+	public ResponseEntity<Object> updateDivision(@PathVariable @NonNull Long id,
 			@Valid @RequestBody DivisionRequest updateDivisionRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		DivisionResponse divisionResponse = divisionService.updateDivision(id, updateDivisionRequest);
@@ -65,25 +66,25 @@ public class DivisionController {
 	}
 
 	@PatchMapping("/updateDivisionStatus/{id}")
-	public ResponseEntity<Object> updateDivisionStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateDivisionStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		DivisionResponse divisionResponse = divisionService.updateDivisionStatus(id);
 		return ResponseEntity.ok(divisionResponse);
 	}
 
 	@PatchMapping("/updateBatchDivisionStatus")
-	public ResponseEntity<Object> updateBatchUomStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchUomStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<DivisionResponse> divisionResponse = divisionService.updateBatchDivisionStatus(ids);
 		return ResponseEntity.ok(divisionResponse);
 	}
 
 	@DeleteMapping("/deleteDivision/{id}")
-	public ResponseEntity<Object> deleteDivision(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteDivision(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		divisionService.deleteDivisionId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchDivision")
-	public ResponseEntity<Object> deleteBatchDivision(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchDivision(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		divisionService.deleteBatchDivision(ids);
 		return ResponseEntity.noContent().build();
 	}

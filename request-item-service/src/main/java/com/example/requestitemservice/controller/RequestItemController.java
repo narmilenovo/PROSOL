@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,7 +49,7 @@ public class RequestItemController {
 	}
 
 	@GetMapping("/getRequestById/{id}")
-	public ResponseEntity<Object> getRequestItemById(@PathVariable("id") Long id,
+	public ResponseEntity<Object> getRequestItemById(@PathVariable("id") @NonNull Long id,
 			@RequestParam(required = false) @Pattern(regexp = "full") String show) {
 		Object requestItem;
 		if (show == null || !show.equalsIgnoreCase("full")) {
@@ -76,7 +77,7 @@ public class RequestItemController {
 	}
 
 	@PutMapping(value = "/updateRequest/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Object> update(@PathVariable("id") Long id,
+	public ResponseEntity<Object> update(@PathVariable("id") @NonNull Long id,
 			@Parameter(name = "updatedItem", required = true, schema = @Schema(implementation = RequestItemRequest.class), description = "source") @RequestPart String source,
 			@RequestParam(value = "file", required = true) MultipartFile file) throws JsonProcessingException {
 		RequestItemRequest updatedItem = this.convert(source);
@@ -85,7 +86,7 @@ public class RequestItemController {
 	}
 
 	@DeleteMapping("/deleteRequest/{id}")
-	public ResponseEntity<Object> delete(@PathVariable("id") Long id) {
+	public ResponseEntity<Object> delete(@PathVariable("id") @NonNull Long id) {
 		try {
 			requestItemService.delete(id);
 			return new ResponseEntity<>(HttpStatus.OK);
@@ -95,7 +96,7 @@ public class RequestItemController {
 	}
 
 	@DeleteMapping("/deleteBatchRequest")
-	public ResponseEntity<Object> deleteBatchRequest(@RequestBody List<Long> ids) {
+	public ResponseEntity<Object> deleteBatchRequest(@RequestBody @NonNull List<Long> ids) {
 		requestItemService.deleteBatchRequest(ids);
 		return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
 	}

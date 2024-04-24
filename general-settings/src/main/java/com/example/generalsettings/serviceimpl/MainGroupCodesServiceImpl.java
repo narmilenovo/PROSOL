@@ -13,7 +13,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.MainGroupCodes;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.MainGroupCodeMapper;
+import com.example.generalsettings.mapping.MainGroupCodeMap;
 import com.example.generalsettings.repo.MainGroupCodesRepo;
 import com.example.generalsettings.request.MainGroupCodesRequest;
 import com.example.generalsettings.response.MainGroupCodesResponse;
@@ -28,7 +28,7 @@ public class MainGroupCodesServiceImpl implements MainGroupCodesService {
 
 	private final MainGroupCodesRepo mainGroupCodesRepo;
 
-	private final MainGroupCodeMapper mainGroupCodeMapper;
+	private final MainGroupCodeMap mainGroupCodeMapper;
 
 	@Override
 	public MainGroupCodesResponse saveMainGroupCodes(MainGroupCodesRequest mainGroupCodesRequest)

@@ -24,20 +24,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @EqualsAndHashCode(callSuper = true)
-
 public class UnitOfIssue extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String uoiCode;
-    private String uoiName;
-    private Boolean uoiStatus;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private String uoiCode;
+	private String uoiName;
+	private Boolean uoiStatus;
 
-    @ElementCollection
-    @CollectionTable(name = "unit_issue_fields", joinColumns = @JoinColumn(name = "unit_issue_id"))
-    @MapKeyColumn(name = "field_name")
-    @Column(name = "field_value")
-    @Convert(converter = ObjectToJsonConverter.class)
-    private Map<String, Object> dynamicFields;
-
+	@ElementCollection
+	@CollectionTable(name = "unit_issue_fields", joinColumns = @JoinColumn(name = "unit_issue_id"))
+	@MapKeyColumn(name = "field_name")
+	@Column(name = "field_value")
+	@Convert(converter = ObjectToJsonConverter.class)
+	private Map<String, Object> dynamicFields;
 }

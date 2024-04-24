@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class UnitOfIssueController {
 	}
 
 	@GetMapping("/getUOIById/{id}")
-	public ResponseEntity<Object> getUOIById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getUOIById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		UnitOfIssueResponse unitOfIssueResponse = unitOfIssueService.getUOIById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(unitOfIssueResponse);
 	}
@@ -56,7 +57,7 @@ public class UnitOfIssueController {
 	}
 
 	@PutMapping("/updateUOI/{id}")
-	public ResponseEntity<Object> updateUOI(@PathVariable Long id,
+	public ResponseEntity<Object> updateUOI(@PathVariable @NonNull Long id,
 			@Valid @RequestBody UnitOfIssueRequest updateUnitOfIssueRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		UnitOfIssueResponse unitOfIssueResponse = unitOfIssueService.updateUOI(id, updateUnitOfIssueRequest);
@@ -64,25 +65,25 @@ public class UnitOfIssueController {
 	}
 
 	@PatchMapping("/updateUOIStatus/{id}")
-	public ResponseEntity<Object> updateUOIStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateUOIStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		UnitOfIssueResponse unitOfIssueResponse = unitOfIssueService.updateUOIStatus(id);
 		return ResponseEntity.ok(unitOfIssueResponse);
 	}
 
 	@PatchMapping("/updateBatchUOIStatus")
-	public ResponseEntity<Object> updateBatchUOIStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchUOIStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<UnitOfIssueResponse> unitOfIssueResponses = unitOfIssueService.updateBatchUOIStatus(ids);
 		return ResponseEntity.ok(unitOfIssueResponses);
 	}
 
 	@DeleteMapping("/deleteUOI/{id}")
-	public ResponseEntity<Object> deleteUOI(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteUOI(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		unitOfIssueService.deleteUOIId(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchUOI")
-	public ResponseEntity<Object> deleteBatchUOI(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchUOI(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		unitOfIssueService.deleteBatchUOI(ids);
 		return ResponseEntity.noContent().build();
 	}

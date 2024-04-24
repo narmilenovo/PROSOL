@@ -1,5 +1,6 @@
 package com.example.dynamic.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.CascadeType;
@@ -30,5 +31,5 @@ public class Form extends BaseEntity {
 	private String formDescription;
 
 	@OneToMany(mappedBy = "form", cascade = CascadeType.ALL)
-	private List<FormField> formFields;
+	private List<FormField> formFields = new ArrayList<>();
 }

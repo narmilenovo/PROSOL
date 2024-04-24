@@ -15,14 +15,14 @@ import lombok.NoArgsConstructor;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RequestItem extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private Long plantId;
-    private Long storageLocationId;
-    private Long materialTypeId;
-    private Long industrySectorId;
-    private Long materialGroupId;
-    private String source;
-    private String attachment;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private Long plantId;
+	private Long storageLocationId;
+	private Long materialTypeId;
+	private Long industrySectorId;
+	private Long materialGroupId;
+	private String source;
+	private String attachment;
 }

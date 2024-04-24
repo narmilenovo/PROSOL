@@ -10,17 +10,18 @@ import lombok.Data;
 
 @Data
 public class UserResponse {
-    private Long id;
-    private String email;
-    private String firstName;
-    private String lastName;
-    private String phone;
-    private String business;
-    private Long departmentId;
-    private List<Long> plantId;
-    private Boolean status;
-    private Set<RoleResponse> roles;
-    private String createdBy;
-    private Date createdAt;
-    private List<UpdateAuditHistory> updateAuditHistories;
+	private Long id;
+	private String email;
+	private String firstName;
+	private String lastName;
+	private String phone;
+	private String avatar;
+	private String business;
+	private Long departmentId;
+	private List<Long> plantId;
+	private Boolean status;
+	private Set<RoleResponse> roles;
+	private String createdBy;
+	private Date createdAt;
+	private List<UpdateAuditHistory> updateAuditHistories;
 }

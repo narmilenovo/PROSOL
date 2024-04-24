@@ -1,0 +1,20 @@
+# Spring configuration
+spring:
+  # Db Configuration
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/testdb
+    password: imu123
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        '[format_sql]': true
+        '[show_sql]': true
+
+  output:
+    ansi:
+      enabled: always

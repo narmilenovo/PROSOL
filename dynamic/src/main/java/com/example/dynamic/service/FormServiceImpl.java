@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.example.dynamic.dto.request.FormRequest;
 import com.example.dynamic.dto.response.FormResponse;
 import com.example.dynamic.entity.Form;
+import com.example.dynamic.exceptions.ResourceFoundException;
 import com.example.dynamic.exceptions.ResourceNotFoundException;
 import com.example.dynamic.mapping.FormMapper;
 import com.example.dynamic.repository.FormRepository;
@@ -24,8 +25,11 @@ public class FormServiceImpl implements FormService {
 	private final FormMapper formMapper;
 
 	@Override
-	public FormResponse createForm(FormRequest formRequest) {
+	public FormResponse createForm(FormRequest formRequest) throws ResourceFoundException {
 		Form form = formMapper.mapToForm(formRequest);
+		if (formRepository.existsByFormName(form.getFormName())) {
+			throw new ResourceFoundException("Form with :" + form.getFormName() + " is already present !!");
+		}
 		Form savedForm = formRepository.save(form);
 		return formMapper.mapToFormResponse(savedForm);
 	}

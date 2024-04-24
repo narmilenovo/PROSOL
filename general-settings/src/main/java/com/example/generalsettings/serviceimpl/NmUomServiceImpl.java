@@ -13,7 +13,7 @@ import com.example.generalsettings.entity.AuditFields;
 import com.example.generalsettings.entity.NmUom;
 import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
-import com.example.generalsettings.mapping.NmUomMapper;
+import com.example.generalsettings.mapping.NmUomMap;
 import com.example.generalsettings.repo.NmUomRepo;
 import com.example.generalsettings.request.NmUomRequest;
 import com.example.generalsettings.response.NmUomResponse;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class NmUomServiceImpl implements NmUomService {
 	private final NmUomRepo nmUomRepo;
 
-	private final NmUomMapper nmUomMapper;
+	private final NmUomMap nmUomMapper;
 
 	@Override
 	public NmUomResponse saveNmUom(NmUomRequest nmUomRequest) throws AlreadyExistsException {

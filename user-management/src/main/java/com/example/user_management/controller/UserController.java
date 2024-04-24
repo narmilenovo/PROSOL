@@ -39,12 +39,18 @@ import static com.example.user_management.utils.Constants.SWG_USER_UPDATE_STATUS
 import static com.example.user_management.utils.Constants.TOKEN_EXPIRED_MESSAGE;
 import static com.example.user_management.utils.Constants.UNAUTHORIZED_MESSAGE;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,12 +60,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.example.user_management.client.plant.DepartmentResponse;
-import com.example.user_management.client.plant.PlantResponse;
-import com.example.user_management.client.plant.PlantServiceClient;
 import com.example.user_management.dto.request.ForgotPasswordRequest;
 import com.example.user_management.dto.request.ResetPasswordRequest;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
@@ -71,11 +76,13 @@ import com.example.user_management.dto.response.BadRequestResponse;
 import com.example.user_management.dto.response.InvalidDataResponse;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.events.OnResetPasswordEvent;
+import com.example.user_management.exceptions.FileStorageException;
 import com.example.user_management.exceptions.PasswordNotMatchException;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.service.interfaces.UserAccountService;
 import com.example.user_management.service.interfaces.UserService;
+import com.example.user_management.utils.FileUploadUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -84,7 +91,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 @Tag(name = SWG_USER_TAG_NAME, description = SWG_USER_TAG_DESCRIPTION)
@@ -96,7 +105,10 @@ public class UserController {
 	private final UserService userService;
 	private final UserAccountService userAccountService;
 	private final ApplicationEventPublisher eventPublisher;
-	private final PlantServiceClient plantServiceClient;
+	private final FileUploadUtil fileUploadUtil;
+
+	@Value("${eureka.instance.hostname}")
+	private String hostName;
 
 	@Operation(summary = SWG_AUTH_REGISTER_OPERATION, responses = {
 			@ApiResponse(responseCode = "201", description = SWG_AUTH_REGISTER_MESSAGE, content = {
@@ -132,7 +144,7 @@ public class UserController {
 			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
 	@GetMapping("/getUserById/{id}")
-	public ResponseEntity<Object> getUserById(@PathVariable Long id,
+	public ResponseEntity<Object> getUserById(@PathVariable @NonNull Long id,
 			@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show) throws ResourceNotFoundException {
 		if (show == null) {
 			return ResponseEntity.ok(userService.getUserById(id, show));
@@ -189,7 +201,7 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PutMapping("/updateById/{id}")
-	public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
+	public ResponseEntity<UserResponse> updateUser(@PathVariable @NonNull Long id,
 			@Valid @RequestBody UpdateUserRequest updateUserRequest) throws ResourceNotFoundException {
 		UserResponse user = userService.updateUser(id, updateUserRequest);
 		return ResponseEntity.ok(user);
@@ -205,7 +217,7 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PatchMapping("/updateStatusById/{id}")
-	public ResponseEntity<Object> updateUserStatusId(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateUserStatusId(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		UserResponse user = userService.updateStatusUsingId(id);
 		return ResponseEntity.ok(user);
 	}
@@ -220,7 +232,7 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PatchMapping("/updateBulkStatusUsingId")
-	public ResponseEntity<Object> updateBulkStatusUsingId(@RequestBody List<Long> ids)
+	public ResponseEntity<Object> updateBulkStatusUsingId(@RequestBody @NonNull List<Long> ids)
 			throws ResourceNotFoundException {
 		List<UserResponse> users = userService.updateBulkStatusUsingId(ids);
 		return ResponseEntity.ok(users);
@@ -238,7 +250,7 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PutMapping("/{id}/changePassword")
-	public ResponseEntity<Object> updatePassword(@PathVariable Long id,
+	public ResponseEntity<Object> updatePassword(@PathVariable @NonNull Long id,
 			@Valid @RequestBody UpdatePasswordRequest updatePasswordRequest)
 			throws ResourceNotFoundException, PasswordNotMatchException {
 		UserResponse user = userService.updatePassword(id, updatePasswordRequest);
@@ -248,6 +260,40 @@ public class UserController {
 		}
 
 		return ResponseEntity.ok(user);
+	}
+
+	@PostMapping(value = "/{id}/picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Object> uploadProfilePic(@PathVariable Long id,
+			@RequestPart(name = "file", required = false) MultipartFile file,
+			@RequestParam("action") @Pattern(regexp = "[ud]", message = "The valid value can be \"u\" or \"d\"") @Size(max = 1, message = "This field length can't be greater than 1") @NotBlank(message = "This field is required") String action)
+			throws ResourceNotFoundException {
+		UserResponse users = userService.uploadProfilePic(id, file, action);
+		return ResponseEntity.ok(users);
+
+	}
+
+	@GetMapping("/downloadFile/{id}/{fileName:.+}")
+	public ResponseEntity<Resource> downloadFile(@PathVariable Long id, @PathVariable String fileName,
+			HttpServletRequest request) {
+		// Load file as Resource
+		Resource resource = fileUploadUtil.loadFileAsResource(fileName, id);
+
+		// Try to determine file's content type
+		String contentType = null;
+		try {
+			contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+		} catch (IOException ex) {
+			throw new FileStorageException("Could not determine file type.");
+		}
+
+		// Fallback to the default content type if type could not be determined
+		if (contentType == null) {
+			contentType = "application/octet-stream";
+		}
+
+		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+				.body(resource);
 	}
 
 	@Operation(summary = SWG_RES_PWD_FORGOT_OPERATION, responses = {
@@ -266,8 +312,9 @@ public class UserController {
 	}
 
 	private String applicationUrl(HttpServletRequest request) {
-//		return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
-		return "http://localhost:3000";
+		// return "http://" + request.getServerName() + ":" + request.getServerPort() +
+		// request.getContextPath();
+		return "http://" + hostName + ":3000";
 	}
 
 	@Operation(summary = SWG_RES_PWD_RESET_OPERATION, responses = {
@@ -302,7 +349,7 @@ public class UserController {
 			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))),
 			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = @Content(schema = @Schema(implementation = BadRequestResponse.class))) })
 	@DeleteMapping("/deleteBatchUser")
-	public ResponseEntity<Object> deleteBatch(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatch(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		userService.deleteBatch(ids);
 		return ResponseEntity.ok().build();
 	}
@@ -347,15 +394,4 @@ public class UserController {
 			return ResponseEntity.notFound().build();
 		}
 	}
-
-	@GetMapping("/getDepartmentById/{id}")
-	public DepartmentResponse demo(@RequestParam Long id) {
-		return plantServiceClient.getDepartmentById(id);
-	}
-
-	@GetMapping("/getPlantById/{plantId}")
-	PlantResponse getPlantById(@PathVariable Long plantId) {
-		return plantServiceClient.getPlantById(plantId);
-	}
-
 }

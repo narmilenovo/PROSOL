@@ -7,12 +7,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 @Schema(name = "ForgotPasswordParam", description = "Parameters required to request a reset link")
 @Exists.List({
 		@Exists(property = "email", repository = "UserRepository", message = "This email doesn't exists in the db!") })
-@Accessors(chain = true)
+//@Accessors(chain = true)
 @Setter
 @Getter
 public class ForgotPasswordRequest {

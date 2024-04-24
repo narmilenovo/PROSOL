@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.createtemplateservice.client.AttributeUomResponse;
 
-@FeignClient(name = "setting-service", url = "http://localhost:8006")
+@FeignClient(name = "setting-service", url = "${clients.setting.url}")
 public interface SettingServiceClient {
 
 	@GetMapping("/getNmUomById/{id}")

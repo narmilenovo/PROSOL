@@ -17,7 +17,8 @@ public class SubGroupCodesResponse {
 	private String subGroupCode;
 	private String subGroupName;
 	private Boolean subGroupStatus;
-	private MainGroupCodesResponse mainGroupCodesId;
+
+	private MainGroupCodesResponse mainGroupCodes;
 
 	private String createdBy;
 	private Date createdAt;

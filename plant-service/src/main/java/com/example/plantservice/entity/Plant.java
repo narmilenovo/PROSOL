@@ -1,5 +1,6 @@
 package com.example.plantservice.entity;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.example.plantservice.config.ObjectToJsonConverter;
@@ -41,5 +42,5 @@ public class Plant extends BaseEntity {
 	@MapKeyColumn(name = "field_name")
 	@Column(name = "field_value")
 	@Convert(converter = ObjectToJsonConverter.class)
-	private Map<String, Object> dynamicFields;
+	private Map<String, Object> dynamicFields = new HashMap<>();
 }

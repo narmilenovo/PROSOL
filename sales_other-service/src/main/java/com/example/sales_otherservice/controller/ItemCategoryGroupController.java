@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +39,7 @@ public class ItemCategoryGroupController {
 	}
 
 	@GetMapping("/getIcgById/{id}")
-	public ResponseEntity<Object> getIcgById(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> getIcgById(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		ItemCategoryGroupResponse dpById = itemCategoryGroupService.getIcgById(id);
 		return ResponseEntity.status(HttpStatus.OK).body(dpById);
 	}
@@ -56,7 +57,7 @@ public class ItemCategoryGroupController {
 	}
 
 	@PutMapping("/updateIcg/{id}")
-	public ResponseEntity<Object> updateIcg(@PathVariable Long id,
+	public ResponseEntity<Object> updateIcg(@PathVariable @NonNull Long id,
 			@Valid @RequestBody ItemCategoryGroupRequest updateItemCategoryGroupRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		ItemCategoryGroupResponse updateIcg = itemCategoryGroupService.updateIcg(id, updateItemCategoryGroupRequest);
@@ -64,25 +65,25 @@ public class ItemCategoryGroupController {
 	}
 
 	@PatchMapping("/updateIcgStatus/{id}")
-	public ResponseEntity<Object> updateIcgStatus(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateIcgStatus(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		ItemCategoryGroupResponse icgResponse = itemCategoryGroupService.updateIcgStatus(id);
 		return ResponseEntity.ok(icgResponse);
 	}
 
 	@PatchMapping("/updateBatchIcgStatus")
-	public ResponseEntity<Object> updateBatchIcgStatus(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBatchIcgStatus(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		List<ItemCategoryGroupResponse> icgResponses = itemCategoryGroupService.updateBatchIcgStatus(ids);
 		return ResponseEntity.ok(icgResponses);
 	}
 
 	@DeleteMapping("/deleteIcg/{id}")
-	public ResponseEntity<Object> deleteIcg(@PathVariable Long id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteIcg(@PathVariable @NonNull Long id) throws ResourceNotFoundException {
 		itemCategoryGroupService.deleteIcgById(id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/deleteBatchIcg")
-	public ResponseEntity<Object> deleteBatchIcg(@RequestBody List<Long> ids) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchIcg(@RequestBody @NonNull List<Long> ids) throws ResourceNotFoundException {
 		itemCategoryGroupService.deleteBatchIcg(ids);
 		return ResponseEntity.noContent().build();
 	}

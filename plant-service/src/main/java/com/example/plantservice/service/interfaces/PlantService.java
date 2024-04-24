@@ -21,6 +21,9 @@ public interface PlantService {
 	PlantResponse savePlant(@Valid PlantRequest plantRequest)
 			throws ResourceNotFoundException, AlreadyExistsException, IllegalAccessException;
 
+	List<PlantResponse> saveAllPlant(@Valid List<PlantRequest> plantRequests)
+			throws AlreadyExistsException, ResourceNotFoundException;
+
 	PlantResponse getPlantById(Long plantId) throws ResourceNotFoundException;
 
 	PlantResponse getPlantByName(String name) throws ResourceNotFoundException;

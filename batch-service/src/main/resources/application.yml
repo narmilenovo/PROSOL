@@ -19,7 +19,7 @@ spring:
   # Db Configuration
   datasource:
     username: postgres
-    url: jdbc:postgresql://localhost:5432/batchService
+    url: jdbc:postgresql://localhost:5432/batchservice
     password: imu123
 
   jpa:

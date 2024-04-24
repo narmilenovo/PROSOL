@@ -1,5 +1,7 @@
 package com.example.dynamic.mapping;
 
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -23,16 +25,9 @@ public interface FormFieldMapper {
 	FormField mapToFormField(FormFieldRequest formFieldRequest);
 
 	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "createdAt", ignore = true)
-	@Mapping(target = "createdBy", ignore = true)
-	@Mapping(target = "updatedAt", ignore = true)
-	@Mapping(target = "updatedBy", ignore = true)
-	@Mapping(target = "dropDowns", source = "dropDowns")
-	@Mapping(target = "form", source = "form")
-	void updateFormFieldFromRequest(FormFieldRequest request, @MappingTarget FormField field);
-
-	@Mapping(target = "id", ignore = true)
 	DropDown mapToDropDown(DropDownRequest dropDownRequest);
+	
+	List<DropDown> mapDropDownValues(List<DropDownRequest> dropDownRequests);
 
 	FormFieldResponse mapToFieldResponse(FormField formField);
 }

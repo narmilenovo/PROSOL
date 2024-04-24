@@ -28,7 +28,9 @@ public interface FormFieldService {
 			throws ClassNotFoundException;
 
 	List<String> getAllFieldNamesOfForm(String formName) throws ClassNotFoundException;
+	List<String> getDynamicFieldsListInForm(String formName) throws ClassNotFoundException;
 
 	List<Object> getListOfFieldNameValues(String displayName, String formName);
+
 
 }

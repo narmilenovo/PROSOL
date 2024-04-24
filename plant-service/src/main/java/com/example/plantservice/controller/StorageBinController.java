@@ -29,7 +29,6 @@ import com.example.plantservice.entity.StorageBin;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
-import com.example.plantservice.service.interfaces.PlantService;
 import com.example.plantservice.service.interfaces.StorageBinService;
 import com.example.plantservice.service.interfaces.StorageLocationService;
 
@@ -43,14 +42,13 @@ public class StorageBinController {
 
 	private final StorageBinService storageBinService;
 	private final GeneratePdfReport generatePdfReport;
-	private final PlantService plantService;
 	private final StorageLocationService storageLocationService;
 
 	@PostMapping("/saveStorageBin")
 	public ResponseEntity<Object> saveStorageBin(@Valid @RequestBody StorageBinRequest storageBinRequest)
 			throws ResourceNotFoundException, AlreadyExistsException {
-		URI uri = URI.create(
-				ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveStorageBin").toUriString());
+		URI uri = URI
+				.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/saveStorageBin").toUriString());
 		StorageBinResponse savedStorageBin = storageBinService.saveStorageBin(storageBinRequest);
 		return ResponseEntity.created(uri).body(savedStorageBin);
 	}
@@ -82,14 +80,12 @@ public class StorageBinController {
 	@PutMapping("/updateStorageBin/{id}")
 	public ResponseEntity<Object> updateStorageLocation(@PathVariable Long id,
 			@RequestBody StorageBinRequest storageBinRequest) throws ResourceNotFoundException, AlreadyExistsException {
-		StorageBinResponse updateStorageBin = storageBinService.updateStorageBin(id,
-				storageBinRequest);
+		StorageBinResponse updateStorageBin = storageBinService.updateStorageBin(id, storageBinRequest);
 		return ResponseEntity.ok().body(updateStorageBin);
 	}
 
 	@PatchMapping("/updateStorageBinStatusById/{id}")
-	public ResponseEntity<Object> updateStorageBinStatusId(@PathVariable Long id)
-			throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateStorageBinStatusId(@PathVariable Long id) throws ResourceNotFoundException {
 		StorageBinResponse response = storageBinService.updateStatusUsingStorageBinId(id);
 		return ResponseEntity.ok(response);
 	}
@@ -108,8 +104,7 @@ public class StorageBinController {
 	}
 
 	@DeleteMapping("/deleteBatchStorageBin")
-	public ResponseEntity<Object> deleteBatchStorageBin(@RequestBody List<Long> ids)
-			throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchStorageBin(@RequestBody List<Long> ids) throws ResourceNotFoundException {
 		storageBinService.deleteBatchStorageBin(ids);
 		return ResponseEntity.noContent().build();
 	}

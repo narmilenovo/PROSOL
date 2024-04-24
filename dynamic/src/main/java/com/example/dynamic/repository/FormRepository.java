@@ -12,4 +12,6 @@ public interface FormRepository extends JpaRepository<Form, Long> {
 
 	Optional<Form> findByFormName(String formName);
 
+	boolean existsByFormName(String formName);
+
 }

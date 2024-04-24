@@ -24,7 +24,6 @@ import com.example.generalsettings.exception.AlreadyExistsException;
 import com.example.generalsettings.exception.ResourceNotFoundException;
 import com.example.generalsettings.request.SubGroupCodesRequest;
 import com.example.generalsettings.response.SubGroupCodesResponse;
-import com.example.generalsettings.service.MainGroupCodesService;
 import com.example.generalsettings.service.SubGroupService;
 
 import jakarta.validation.Valid;
@@ -36,7 +35,6 @@ public class SubGroupController {
 	private final SubGroupService subGroupService;
 
 	private final GeneratePdfReport generatePdfReport;
-	private final MainGroupCodesService mainGroupCodesService;
 
 	@PostMapping("/saveSubGroupCodes")
 	public ResponseEntity<Object> saveSubGroupCodes(@Valid @RequestBody SubGroupCodesRequest subGroupCodesRequest)

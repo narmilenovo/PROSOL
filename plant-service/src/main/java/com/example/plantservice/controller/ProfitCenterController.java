@@ -28,7 +28,6 @@ import com.example.plantservice.entity.ProfitCenter;
 import com.example.plantservice.exception.AlreadyExistsException;
 import com.example.plantservice.exception.ExcelFileException;
 import com.example.plantservice.exception.ResourceNotFoundException;
-import com.example.plantservice.service.interfaces.PlantService;
 import com.example.plantservice.service.interfaces.ProfitCenterService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,7 +40,6 @@ public class ProfitCenterController {
 
 	private final ProfitCenterService profitCenterService;
 	private final GeneratePdfReport generatePdfReport;
-	private final PlantService plantService;
 
 	@PostMapping("/saveProfitCenter")
 	public ResponseEntity<Object> saveProfitCenter(@Valid @RequestBody ProfitCenterRequest profitCenterRequest)
