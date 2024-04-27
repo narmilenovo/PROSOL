@@ -1,6 +1,6 @@
 package com.example.user_management.entity;
 
-import java.util.Set;
+import java.util.List;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -32,9 +32,9 @@ public class Role extends BaseEntity {
 	private Boolean status;
 
 	@ManyToMany(fetch = FetchType.EAGER, mappedBy = "roles")
-	private Set<User> users;
+	private List<User> users;
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(name = "roles_privileges", joinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "privilege_id", referencedColumnName = "id"))
-	private Set<Privilege> privileges;
+	private List<Privilege> privileges;
 }

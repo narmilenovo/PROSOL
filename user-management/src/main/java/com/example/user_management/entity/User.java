@@ -1,7 +1,6 @@
 package com.example.user_management.entity;
 
 import java.util.List;
-import java.util.Set;
 
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -43,5 +42,5 @@ public class User extends BaseEntity {
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(name = "users_roles", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = {
 			@JoinColumn(name = "role_id") })
-	private Set<Role> roles;
+	private List<Role> roles;
 }

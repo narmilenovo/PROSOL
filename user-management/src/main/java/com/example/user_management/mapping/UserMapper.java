@@ -3,7 +3,6 @@ package com.example.user_management.mapping;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.mapstruct.Mapper;
@@ -17,13 +16,14 @@ import com.example.user_management.client.plant.PlantResponse;
 import com.example.user_management.dto.request.TokenRequest;
 import com.example.user_management.dto.request.UserAccountRequest;
 import com.example.user_management.dto.request.UserRequest;
+import com.example.user_management.dto.response.RoleUserResponse;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.entity.Role;
 import com.example.user_management.entity.Token;
 import com.example.user_management.entity.User;
 import com.example.user_management.entity.UserAccount;
 
-@Mapper(componentModel = "spring", uses = { RoleMapper.class })
+@Mapper(componentModel = "spring", uses = { RoleMapper.class, PrivilegeMapper.class })
 public interface UserMapper {
 
 	@Mapping(target = "id", ignore = true)
@@ -35,11 +35,11 @@ public interface UserMapper {
 	User mapToUser(UserRequest userRequest);
 
 	@Named("mapToRoles")
-	default Set<Role> mapToRoles(Long[] roles) {
+	default List<Role> mapToRoles(Long[] roles) {
 		if (roles == null || roles.length == 0) {
-			return Collections.emptySet();
+			return Collections.emptyList();
 		}
-		return Arrays.stream(roles).map(roleId -> new Role()).collect(Collectors.toSet());
+		return Arrays.stream(roles).map(roleId -> new Role()).collect(Collectors.toList());
 	}
 
 	UserResponse mapToUserResponse(User user);
@@ -75,5 +75,8 @@ public interface UserMapper {
 	UserAccount mapToUserAccount(UserAccountRequest userAccountRequest);
 
 	UserAccountRequest mapToUserAccountRequest(UserAccount userAccount);
+
+	@Mapping(target = "fullName", expression = "java(user.getFirstName() + \" \" + user.getLastName())")
+	RoleUserResponse mapToRoleUserResponse(User user);
 
 }

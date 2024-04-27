@@ -67,6 +67,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.user_management.dto.request.ForgotPasswordRequest;
 import com.example.user_management.dto.request.ResetPasswordRequest;
+import com.example.user_management.dto.request.RoleUserRequest;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserAccountRequest;
@@ -74,6 +75,7 @@ import com.example.user_management.dto.request.UserRequest;
 import com.example.user_management.dto.request.UserRoleRequest;
 import com.example.user_management.dto.response.BadRequestResponse;
 import com.example.user_management.dto.response.InvalidDataResponse;
+import com.example.user_management.dto.response.RoleUserResponse;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.events.OnResetPasswordEvent;
 import com.example.user_management.exceptions.FileStorageException;
@@ -177,8 +179,8 @@ public class UserController {
 	}
 
 	@GetMapping(value = "/getAllUsersByPlantId")
-	public ResponseEntity<Object> getAllUsers(@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show,
-			@RequestBody List<Long> plantIds) {
+	public ResponseEntity<Object> getAllUsersByPlantId(
+			@Pattern(regexp = "p|d|pd") @RequestParam(required = false) String show, @RequestBody List<Long> plantIds) {
 		if (show == null) {
 			return ResponseEntity.ok(userService.getAllUsersByPlantId(show, plantIds));
 		}
@@ -188,6 +190,12 @@ public class UserController {
 		case "pd" -> userService.getAllUserDepartmentPlantsByPlantId(show, plantIds);
 		default -> userService.getAllUsersByPlantId(show, plantIds);
 		};
+		return ResponseEntity.ok(users);
+	}
+
+	@GetMapping("/getAllUsersByRoleId/{id}")
+	public ResponseEntity<Object> getAllUsersByRoleId(@PathVariable Long id) {
+		List<RoleUserResponse> users = userService.getAllUsersByRoleId(id);
 		return ResponseEntity.ok(users);
 	}
 
@@ -354,26 +362,6 @@ public class UserController {
 		return ResponseEntity.ok().build();
 	}
 
-	@Operation(summary = SWG_REMOVE_ROLE_USER_OPERATION, responses = {
-			@ApiResponse(responseCode = "200", description = SWG_USER_REMOVE_ROLE_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = UserResponse.class)) }),
-			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@DeleteMapping("/removeRolesFromUser/{id}")
-	public ResponseEntity<Object> removeRolesFromUser(@PathVariable Long id,
-			@Valid @RequestBody UserRoleRequest userRoleRequest) {
-		try {
-			UserResponse userResponse = userService.removeRolesFromUser(id, userRoleRequest);
-			return ResponseEntity.ok().body(userResponse);
-		} catch (ResourceNotFoundException ex) {
-			return ResponseEntity.notFound().build();
-		}
-	}
-
 	@Operation(summary = SWG_ASSIGN_ROLE_USER_OPERATION, responses = {
 			@ApiResponse(responseCode = "200", description = SWG_USER_ASSIGN_ROLE_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = UserResponse.class)) }),
@@ -384,14 +372,42 @@ public class UserController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
-	@PutMapping("/addRolesToUser/{id}")
-	public ResponseEntity<Object> addRolesToUser(@PathVariable Long id,
-			@Valid @RequestBody UserRoleRequest userRoleRequest) {
-		try {
-			UserResponse userResponse = userService.addRolesToUser(id, userRoleRequest);
-			return ResponseEntity.ok().body(userResponse);
-		} catch (ResourceNotFoundException ex) {
-			return ResponseEntity.notFound().build();
-		}
+	@PatchMapping("/assignRolesToUser/{userId}")
+	public ResponseEntity<Object> assignRolesToUser(@PathVariable Long userId,
+			@Valid @RequestBody UserRoleRequest userRoleRequest) throws ResourceNotFoundException {
+		UserResponse userResponse = userService.assignRolesToUser(userId, userRoleRequest);
+		return ResponseEntity.ok().body(userResponse);
 	}
+
+	@PatchMapping("/assignUsersToRole/{roleId}")
+	public ResponseEntity<Object> assignUserToRole(@PathVariable Long roleId,
+			@Valid @RequestBody RoleUserRequest roleUserRequest) throws ResourceNotFoundException {
+		UserResponse userResponse = userService.assignUsersToRole(roleId, roleUserRequest.getUsers());
+		return ResponseEntity.ok().body(userResponse);
+	}
+
+	@Operation(summary = SWG_REMOVE_ROLE_USER_OPERATION, responses = {
+			@ApiResponse(responseCode = "200", description = SWG_USER_REMOVE_ROLE_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = UserResponse.class)) }),
+			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
+	@DeleteMapping("/unassignRolesFromUser/{userId}")
+	public ResponseEntity<Object> unassignRolesFromUser(@PathVariable Long userId,
+			@Valid @RequestBody UserRoleRequest userRoleRequest) throws ResourceNotFoundException {
+		userService.unassignRolesFromUser(userId, userRoleRequest);
+		return ResponseEntity.noContent().build();
+
+	}
+
+	@DeleteMapping("/unassignUsersFromRole/{roleId}")
+	public ResponseEntity<Object> unassignUsersFromRole(@PathVariable Long roleId,
+			@Valid @RequestBody RoleUserRequest roleUserRequest) throws ResourceNotFoundException {
+		userService.unassignUsersFromRole(roleId, roleUserRequest.getUsers());
+		return ResponseEntity.noContent().build();
+	}
+
 }

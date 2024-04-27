@@ -7,10 +7,8 @@ import static com.example.user_management.utils.Constants.USER_FOUND_WITH_EMAIL_
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,6 +25,7 @@ import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
 import com.example.user_management.dto.request.UserRoleRequest;
+import com.example.user_management.dto.response.RoleUserResponse;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Role;
@@ -164,6 +163,12 @@ public class UserServiceImpl implements UserService {
 	public List<UserDepartmentPlantResponse> getAllUserDepartmentPlantsByPlantId(String show, List<Long> plantIds) {
 		return userRepository.findByPlantId(plantIds).stream().sorted(Comparator.comparing(User::getId))
 				.map(this::mapToUserDepartmentPlantResponse).toList();
+	}
+
+	@Override
+	public List<RoleUserResponse> getAllUsersByRoleId(Long id) {
+		return userRepository.findByRoles_Id(id).stream().sorted(Comparator.comparing(User::getId))
+				.map(userMapper::mapToRoleUserResponse).toList();
 	}
 
 	@Override
@@ -326,27 +331,27 @@ public class UserServiceImpl implements UserService {
 		});
 	}
 
-	public Set<Role> setToRoleId(Long[] roles) {
-		Set<Role> userRoles = new HashSet<>();
+	public List<Role> setToRoleId(Long[] roles) {
+		List<Role> userRoles = new ArrayList<>();
 		for (Long roleId : roles) {
 			if (roleId != null) {
-				Optional<Role> fetchedPrivilege = roleRepository.findById(roleId);
-				fetchedPrivilege.ifPresent(userRoles::add);
+				Optional<Role> fetchedRole = roleRepository.findById(roleId);
+				fetchedRole.ifPresent(userRoles::add);
 			}
 		}
 		return userRoles;
 	}
 
 	@Override
-	public UserResponse addRolesToUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+	public UserResponse assignRolesToUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
 			throws ResourceNotFoundException {
-		return modifyRole(id, userRoleRequest, "add");
+		return modifyRole(userId, userRoleRequest, "add");
 	}
 
 	@Override
-	public UserResponse removeRolesFromUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+	public UserResponse unassignRolesFromUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
 			throws ResourceNotFoundException {
-		return modifyRole(id, userRoleRequest, "remove");
+		return modifyRole(userId, userRoleRequest, "remove");
 	}
 
 	private UserDepartmentResponse mapToUserDepartmentResponse(User user) {
@@ -403,7 +408,7 @@ public class UserServiceImpl implements UserService {
 	private UserResponse modifyRole(@NonNull Long userId, UserRoleRequest userRoleRequest, String operation)
 			throws ResourceNotFoundException {
 		User user = this.findUserById(userId);
-		Set<Role> existingRoles = user.getRoles();
+		List<Role> existingRoles = user.getRoles();
 		for (Long roleId : userRoleRequest.getRoles()) {
 			if (roleId != null) {
 				Optional<Role> role = roleRepository.findById(roleId);
@@ -419,6 +424,37 @@ public class UserServiceImpl implements UserService {
 		user.setRoles(existingRoles);
 		User updatedUser = userRepository.save(user);
 		return userMapper.mapToUserResponse(updatedUser);
+	}
+
+	@Override
+	public UserResponse assignUsersToRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
+		return modifyUser(roleId, userIds, true);
+	}
+
+	@Override
+	public UserResponse unassignUsersFromRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
+		return modifyUser(roleId, userIds, false);
+
+	}
+
+	private UserResponse modifyUser(Long roleId, Long[] userIds, boolean assign) throws ResourceNotFoundException {
+		Role role = roleRepository.findById(roleId)
+				.orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
+
+		for (Long userId : userIds) {
+			User user = this.findUserById(userId);
+
+			if (assign && !user.getRoles().contains(role)) {
+				user.getRoles().add(role);
+			} else if (!assign && user.getRoles().contains(role)) {
+				user.getRoles().remove(role);
+			}
+
+			userRepository.save(user);
+		}
+
+		// Assuming returning response for the first user
+		return userMapper.mapToUserResponse(findUserById(userIds[0]));
 	}
 
 }

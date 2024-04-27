@@ -18,4 +18,7 @@ public interface PrivilegeMapper {
 	Privilege mapToPrivilege(PrivilegeRequest privilegeRequest);
 
 	PrivilegeResponse mapToPrivilegeResponse(Privilege privilege);
+
+	@Mapping(target = "roles", ignore = true)
+	Privilege mapRoleResponseToRole(PrivilegeResponse privilegeResponse);
 }

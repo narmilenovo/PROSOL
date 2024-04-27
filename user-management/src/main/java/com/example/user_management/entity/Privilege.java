@@ -1,6 +1,6 @@
 package com.example.user_management.entity;
 
-import java.util.Set;
+import java.util.List;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -28,5 +28,5 @@ public class Privilege extends BaseEntity {
 	private Boolean status;
 
 	@ManyToMany(mappedBy = "privileges")
-	private Set<Role> roles;
+	private List<Role> roles;
 }

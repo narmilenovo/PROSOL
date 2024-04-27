@@ -1,7 +1,6 @@
 package com.example.user_management.service.interfaces;
 
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.lang.NonNull;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +12,7 @@ import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
 import com.example.user_management.dto.request.UserRoleRequest;
+import com.example.user_management.dto.response.RoleUserResponse;
 import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.entity.Role;
 import com.example.user_management.exceptions.ResourceFoundException;
@@ -50,6 +50,8 @@ public interface UserService {
 
 	List<UserPlantResponse> getAllUserPlantsByPlantId(String show, List<Long> plantIds);
 
+	List<RoleUserResponse> getAllUsersByRoleId(Long id);
+
 	UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException;
 
 	UserResponse updateStatusUsingId(@NonNull Long id) throws ResourceNotFoundException;
@@ -67,11 +69,16 @@ public interface UserService {
 
 	void deleteBatch(@NonNull List<Long> id) throws ResourceNotFoundException;
 
-	Set<Role> setToRoleId(Long[] roles);
+	List<Role> setToRoleId(Long[] roles);
 
-	UserResponse addRolesToUser(@NonNull Long id, UserRoleRequest userRoleRequest) throws ResourceNotFoundException;
-
-	UserResponse removeRolesFromUser(@NonNull Long id, UserRoleRequest userRoleRequest)
+	UserResponse assignRolesToUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
 			throws ResourceNotFoundException;
+
+	UserResponse unassignRolesFromUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
+			throws ResourceNotFoundException;
+
+	UserResponse assignUsersToRole(Long roleId, Long[] userIds) throws ResourceNotFoundException;
+
+	UserResponse unassignUsersFromRole(Long roleId, Long[] userIds) throws ResourceNotFoundException;
 
 }

@@ -1,7 +1,6 @@
 package com.example.user_management.service.interfaces;
 
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.lang.NonNull;
 
@@ -43,12 +42,16 @@ public interface RoleService {
 
 	void deleteBatchRole(@NonNull List<Long> id) throws ResourceNotFoundException;
 
-	Set<Privilege> setToPrivilegeId(Long[] privileges);
+	List<Privilege> setToPrivilegeId(Long[] privileges);
 
-	RoleResponse removePrivilegesFromRole(@NonNull Long id, RolePrivilegeRequest rolePrivilegeRequest)
+	RoleResponse unassignPrivilegesFromRole(@NonNull Long id, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException;
 
-	RoleResponse addPrivilegesToRole(@NonNull Long id, RolePrivilegeRequest updateRolePrivilegeRequest)
+	RoleResponse assignPrivilegesToRole(@NonNull Long id, RolePrivilegeRequest updateRolePrivilegeRequest)
 			throws ResourceNotFoundException;
+
+	void unassignUsersFromRole(Long roleId, Long[] users) throws ResourceNotFoundException;
+
+	void assignUsersToRole(Long roleId, Long[] users) throws ResourceNotFoundException;
 
 }

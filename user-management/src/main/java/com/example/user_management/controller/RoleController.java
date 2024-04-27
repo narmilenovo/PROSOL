@@ -162,7 +162,8 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PutMapping("/updateRole/{id}")
-	public ResponseEntity<Object> updateRole(@PathVariable @NonNull Long id, @Valid @RequestBody RoleRequest updateRoleRequest)
+	public ResponseEntity<Object> updateRole(@PathVariable @NonNull Long id,
+			@Valid @RequestBody RoleRequest updateRoleRequest)
 			throws ResourceNotFoundException, ResourceFoundException {
 		RoleResponse role = roleService.updateRole(id, updateRoleRequest);
 		return ResponseEntity.ok(role);
@@ -194,7 +195,8 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@PatchMapping("/updateBulkStatusRoleId")
-	public ResponseEntity<Object> updateBulkStatusRoleId(@RequestBody @NonNull List<Long> id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> updateBulkStatusRoleId(@RequestBody @NonNull List<Long> id)
+			throws ResourceNotFoundException {
 		List<RoleResponse> responseList = roleService.updateBulkStatusRoleId(id);
 		return ResponseEntity.ok(responseList);
 	}
@@ -224,25 +226,10 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 	@DeleteMapping("/deleteBatchRole")
-	public ResponseEntity<Object> deleteBatchRole(@RequestBody @NonNull List<Long> id) throws ResourceNotFoundException {
+	public ResponseEntity<Object> deleteBatchRole(@RequestBody @NonNull List<Long> id)
+			throws ResourceNotFoundException {
 		roleService.deleteBatchRole(id);
 		return ResponseEntity.ok().build();
-	}
-
-	@Operation(summary = SWG_REMOVE_PRIVILEGES_ROLE_OPERATION, responses = {
-			@ApiResponse(responseCode = "200", description = SWG_ROLE_REMOVE_PRIVILEGES_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = RoleResponse.class)) }),
-			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
-			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
-					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@DeleteMapping("/removePrivilegesFromRole/{id}")
-	public ResponseEntity<Object> removePrivilegesFromRole(@PathVariable @NonNull Long id,
-			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
-		RoleResponse roleResponse = roleService.removePrivilegesFromRole(id, rolePrivilegeRequest);
-		return ResponseEntity.ok().body(roleResponse);
 	}
 
 	@Operation(summary = SWG_ASSIGN_PRIVILEGES_ROLE_OPERATION, responses = {
@@ -255,10 +242,27 @@ public class RoleController {
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
 
-	@PutMapping("/addPrivilegesToRole/{id}")
-	public ResponseEntity<Object> addPrivilegesToRole(@PathVariable @NonNull Long id,
+	@PatchMapping("/assignPrivilegesToRole/{roleId}")
+	public ResponseEntity<Object> assignPrivilegesToRole(@PathVariable @NonNull Long roleId,
 			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
-		RoleResponse roleResponse = roleService.addPrivilegesToRole(id, rolePrivilegeRequest);
+		RoleResponse roleResponse = roleService.assignPrivilegesToRole(roleId, rolePrivilegeRequest);
 		return ResponseEntity.ok().body(roleResponse);
 	}
+
+	@Operation(summary = SWG_REMOVE_PRIVILEGES_ROLE_OPERATION, responses = {
+			@ApiResponse(responseCode = "200", description = SWG_ROLE_REMOVE_PRIVILEGES_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = RoleResponse.class)) }),
+			@ApiResponse(responseCode = "401", description = UNAUTHORIZED_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "403", description = FORBIDDEN_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
+			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
+					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
+	@DeleteMapping("/unassignPrivilegesFromRole/{id}")
+	public ResponseEntity<Object> unassignPrivilegesFromRole(@PathVariable @NonNull Long id,
+			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
+		roleService.unassignPrivilegesFromRole(id, rolePrivilegeRequest);
+		return ResponseEntity.noContent().build();
+	}
+
 }

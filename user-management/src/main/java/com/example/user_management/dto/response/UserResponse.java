@@ -2,7 +2,6 @@ package com.example.user_management.dto.response;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
 import com.example.user_management.entity.UpdateAuditHistory;
 
@@ -20,7 +19,7 @@ public class UserResponse {
 	private Long departmentId;
 	private List<Long> plantId;
 	private Boolean status;
-	private Set<RoleResponse> roles;
+	private List<RoleResponse> roles;
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

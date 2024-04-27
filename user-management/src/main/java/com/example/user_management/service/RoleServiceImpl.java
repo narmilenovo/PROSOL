@@ -26,11 +26,13 @@ import com.example.user_management.dto.response.RoleResponse;
 import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Privilege;
 import com.example.user_management.entity.Role;
+import com.example.user_management.entity.User;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.mapping.RoleMapper;
 import com.example.user_management.repository.PrivilegeRepository;
 import com.example.user_management.repository.RoleRepository;
+import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.RoleService;
 import com.example.user_management.utils.Helpers;
 
@@ -41,6 +43,7 @@ import lombok.RequiredArgsConstructor;
 public class RoleServiceImpl implements RoleService {
 	private final RoleRepository roleRepository;
 	private final PrivilegeRepository privilegeRepository;
+	private final UserRepository userRepository;
 	private final RoleMapper roleMapper;
 	private final PlantServiceClient plantServiceClient;
 
@@ -191,10 +194,10 @@ public class RoleServiceImpl implements RoleService {
 
 	}
 
-	public Set<Privilege> setToPrivilegeId(Long[] privileges) {
+	public List<Privilege> setToPrivilegeId(Long[] privileges) {
 		Set<Long> privilegeIds = new HashSet<>(Arrays.asList(privileges));
 		List<Privilege> fetchedPrivileges = privilegeRepository.findAllById(privilegeIds);
-		return new HashSet<>(fetchedPrivileges);
+		return new ArrayList<>(fetchedPrivileges);
 	}
 
 	private RolePlantResponse mapToRolePlantResponse(Role role) {
@@ -230,14 +233,14 @@ public class RoleServiceImpl implements RoleService {
 	}
 
 	@Override
-	public RoleResponse removePrivilegesFromRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
+	public RoleResponse unassignPrivilegesFromRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException {
 		return modifyPrivileges(roleId, rolePrivilegeRequest, "remove");
 	}
 
 	@Override
 
-	public RoleResponse addPrivilegesToRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
+	public RoleResponse assignPrivilegesToRole(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest)
 			throws ResourceNotFoundException {
 		return modifyPrivileges(roleId, rolePrivilegeRequest, "add");
 	}
@@ -245,7 +248,7 @@ public class RoleServiceImpl implements RoleService {
 	private RoleResponse modifyPrivileges(@NonNull Long roleId, RolePrivilegeRequest rolePrivilegeRequest,
 			String operation) throws ResourceNotFoundException {
 		Role role = this.findRoleById(roleId);
-		Set<Privilege> existingPrivileges = role.getPrivileges();
+		List<Privilege> existingPrivileges = role.getPrivileges();
 		for (Long privilegeId : rolePrivilegeRequest.getPrivileges()) {
 			if (privilegeId != null) {
 				Optional<Privilege> privilege = privilegeRepository.findById(privilegeId);
@@ -261,6 +264,29 @@ public class RoleServiceImpl implements RoleService {
 		role.setPrivileges(existingPrivileges);
 		Role updatedRole = roleRepository.save(role);
 		return roleMapper.mapToRoleResponse(updatedRole);
+	}
+
+	@Override
+	public void unassignUsersFromRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
+		Role role = this.findRoleById(roleId);
+		for (Long userId : userIds) {
+			User user = userRepository.findById(userId)
+					.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+			user.getRoles().remove(role);
+			userRepository.save(user);
+		}
+	}
+
+	@Override
+	public void assignUsersToRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
+		Role role = this.findRoleById(roleId);
+
+		for (Long userId : userIds) {
+			User user = userRepository.findById(userId)
+					.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+			user.getRoles().add(role);
+			userRepository.save(user);
+		}
 	}
 
 }
