@@ -1,0 +1,14 @@
+
+p
+java:S1172Ì".Remove this unused method parameter "request".(Û»¶ˆùÿÿÿÿJ$68cde41a-c0f1-4ac7-a1ac-58993f77996b
+}	java:S125Î"<This block of commented-out lines of code should be removed.(ïÂû¿ýÿÿÿÿJ$5905d14e-62b6-4f35-b95f-f6a3ac86ea01
+ª
+java:S1128	"gRemove this unused import 'com.example.user_management.utils.Constants.SWG_ASSIGN_ROLE_USER_OPERATION'.(øåˆ¤8é‡ÊÍû1J$61cba01c-76b0-491a-b978-cfd7857cd87b
+„
+java:S1128"gRemove this unused import 'com.example.user_management.utils.Constants.SWG_REMOVE_ROLE_USER_OPERATION'.(¨½–£8ªÌÊÍû1
+­
+java:S1128"eRemove this unused import 'com.example.user_management.utils.Constants.SWG_USER_ASSIGN_ROLE_MESSAGE'.(š¬éÀþÿÿÿÿ8é‡ÊÍû1J$90db96eb-ddf5-439a-9d4f-f656f38bc831
+‡
+java:S1128"eRemove this unused import 'com.example.user_management.utils.Constants.SWG_USER_REMOVE_ROLE_MESSAGE'.(ÿúªúÿÿÿÿ8­ÌÊÍû1
+q
+java:S1128K"TRemove this unused import 'com.example.user_management.dto.request.UserRoleRequest'.(–µÀ 8®ÌÊÍû1

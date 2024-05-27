@@ -25,5 +25,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	@Query("SELECT u FROM User u WHERE :plantId MEMBER OF u.plantId")
 	List<User> findByPlantId(@Param("plantId") List<Long> plantIds);
 
-	List<User> findByRoles_Id(Long id);
+	List<User> findByAssignees_Role_Id(Long roleId);
+
+	List<User> findByPlantIdInAndAssignees_Role_SubRole_Name(List<Long> plantIds, String roleName);
+
+	@Query("SELECT u FROM User u WHERE : id IS NULL OR u.id = :id")
+	Optional<User> searchById(Long id);
+
 }

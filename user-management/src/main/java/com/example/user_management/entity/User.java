@@ -2,14 +2,14 @@ package com.example.user_management.entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -35,12 +35,13 @@ public class User extends BaseEntity {
 	private String phone;
 	private String business;
 	private Long departmentId;
+
 	@ElementCollection(fetch = FetchType.EAGER)
 	private List<Long> plantId;
 	private Boolean status;
 
+	@JsonManagedReference
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "users_roles", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = {
-			@JoinColumn(name = "role_id") })
-	private List<Role> roles;
+	private List<Assignee> assignees;
+
 }

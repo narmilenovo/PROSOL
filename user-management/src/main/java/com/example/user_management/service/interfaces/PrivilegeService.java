@@ -12,6 +12,8 @@ import com.example.user_management.exceptions.ResourceNotFoundException;
 public interface PrivilegeService {
 	PrivilegeResponse savePrivilege(PrivilegeRequest privilegeRequest) throws ResourceFoundException;
 
+	List<PrivilegeResponse> saveAllPrivileges(List<PrivilegeRequest> privilegeRequests) throws ResourceFoundException;
+
 	PrivilegeResponse getPrivilegeById(@NonNull Long id) throws ResourceNotFoundException;
 
 	List<PrivilegeResponse> getAllPrivileges();

@@ -9,17 +9,22 @@ import java.util.Map;
 import java.util.Random;
 
 import com.example.user_management.exceptions.DateTimeException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helpers {
+
+	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	private Helpers() {
 
 	}
 
-	public static String capitalize(String str) {
-		char[] chars = str.toCharArray();
-		chars[0] = Character.toUpperCase(chars[0]);
-		return String.valueOf(chars);
+	public static String firstLetterCaps(String str) {
+		if (str == null || str.isEmpty()) {
+			return str;
+		}
+		return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
 	}
 
 	public static void inputTitleCase(Object object, List<String> fieldsToSkipCapitalization) {
@@ -29,7 +34,7 @@ public class Helpers {
 				field.setAccessible(true);
 				Object value = field.get(object);
 				if (value instanceof String string && !fieldsToSkipCapitalization.contains(field.getName())) {
-					String firstCaps = capitalize(string);
+					String firstCaps = firstLetterCaps(string);
 					field.set(object, firstCaps);
 				}
 			}
@@ -46,7 +51,7 @@ public class Helpers {
 				field.setAccessible(true);
 				Object value = field.get(object);
 				if (value instanceof String string) {
-					String firstCaps = capitalize(string);
+					String firstCaps = firstLetterCaps(string);
 					field.set(object, firstCaps);
 				}
 			}
@@ -138,6 +143,10 @@ public class Helpers {
 			throw new DateTimeException("*Exception in getCurrentDateTime **" + e);
 		}
 		return strSysDate;
+	}
+
+	public static String convertJsonToString(Object object) throws JsonProcessingException {
+		return objectMapper.writeValueAsString(object);
 	}
 
 }

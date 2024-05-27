@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.user_management.client.UserDepartmentPlantResponse;
@@ -21,23 +22,29 @@ import com.example.user_management.client.UserPlantResponse;
 import com.example.user_management.client.plant.DepartmentResponse;
 import com.example.user_management.client.plant.PlantResponse;
 import com.example.user_management.client.plant.PlantServiceClient;
+import com.example.user_management.dto.request.AssigneeRequest;
 import com.example.user_management.dto.request.UpdatePasswordRequest;
 import com.example.user_management.dto.request.UpdateUserRequest;
 import com.example.user_management.dto.request.UserRequest;
 import com.example.user_management.dto.request.UserRoleRequest;
 import com.example.user_management.dto.response.RoleUserResponse;
+import com.example.user_management.dto.response.UpdateAssigneeResponse;
 import com.example.user_management.dto.response.UserResponse;
+import com.example.user_management.entity.Assignee;
 import com.example.user_management.entity.AuditFields;
 import com.example.user_management.entity.Role;
 import com.example.user_management.entity.User;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
+import com.example.user_management.mapping.AssigneeMapper;
 import com.example.user_management.mapping.UserMapper;
+import com.example.user_management.repository.AssigneeRepository;
 import com.example.user_management.repository.RoleRepository;
 import com.example.user_management.repository.UserRepository;
 import com.example.user_management.service.interfaces.UserService;
 import com.example.user_management.utils.FileUploadUtil;
 import com.example.user_management.utils.Helpers;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,12 +53,15 @@ import lombok.RequiredArgsConstructor;
 public class UserServiceImpl implements UserService {
 	private final UserRepository userRepository;
 	private final RoleRepository roleRepository;
+	private final AssigneeRepository assigneeRepository;
 	private final UserMapper userMapper;
+	private final AssigneeMapper assigneeMapper;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final PlantServiceClient plantService;
 	private final FileUploadUtil fileUploadUtil;
 
 	@Override
+	@Transactional
 	public UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException {
 		List<String> fieldsToSkipCapitalization = Arrays.asList("email", "password", "confirmPassword", "phone");
 		Helpers.inputTitleCase(userRequest, fieldsToSkipCapitalization);
@@ -63,14 +73,14 @@ public class UserServiceImpl implements UserService {
 		user.setId(null);
 		user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 		user.setAvatar(null);
-		user.setRoles(setToRoleId(userRequest.getRoles()));
 		user.setDepartmentId(userRequest.getDepartmentId());
+		user.setAssignees(setAssigneesToRequests(userRequest.getAssignees()));
 		User savedUser = userRepository.save(user);
 		return userMapper.mapToUserResponse(savedUser);
-
 	}
 
 	@Override
+	@Transactional
 	public List<UserResponse> saveAllUser(List<UserRequest> userRequests) {
 		List<User> userList = userRequests.stream()
 				.filter(userRequest -> !userRepository.existsByEmail(userRequest.getEmail())).map(userRequest -> {
@@ -83,8 +93,8 @@ public class UserServiceImpl implements UserService {
 					user.setAvatar(null);
 					user.setStatus(false);
 					user.setDepartmentId(userRequest.getDepartmentId());
-					user.setRoles(setToRoleId(userRequest.getRoles()));
-					return user;
+                    user.setAssignees(setAssigneesToRequests(userRequest.getAssignees()));
+                    return user;
 				}).toList();
 
 		List<User> savedList = userRepository.saveAll(userList);
@@ -167,13 +177,19 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<RoleUserResponse> getAllUsersByRoleId(Long id) {
-		return userRepository.findByRoles_Id(id).stream().sorted(Comparator.comparing(User::getId))
+		return userRepository.findByAssignees_Role_Id(id).stream().sorted(Comparator.comparing(User::getId))
 				.map(userMapper::mapToRoleUserResponse).toList();
 	}
 
+	public List<RoleUserResponse> getAllUsersByPlantIdsAndSubRole(List<Long> plantIds, String subRole) {
+		return userRepository.findByPlantIdInAndAssignees_Role_SubRole_Name(plantIds, subRole).stream()
+				.sorted(Comparator.comparing(User::getId)).map(userMapper::mapToRoleUserResponse).toList();
+	}
+
 	@Override
+	@Transactional
 	public UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest)
-			throws ResourceNotFoundException {
+			throws ResourceNotFoundException, JsonProcessingException {
 		User existingUser = this.findUserById(id);
 		List<String> fieldsToSkipCapitalization = Arrays.asList("phone");
 		Helpers.inputTitleCase(updateUserRequest, fieldsToSkipCapitalization);
@@ -206,17 +222,32 @@ public class UserServiceImpl implements UserService {
 					updateUserRequest.getDepartmentId()));
 			existingUser.setDepartmentId(updateUserRequest.getDepartmentId());
 		}
+
 		if (!existingUser.getPlantId().equals(updateUserRequest.getPlantId())) {
-			auditFields.add(new AuditFields(null, "Plant", existingUser.getPlantId(), updateUserRequest.getPlantId()));
+			auditFields.add(new AuditFields(null, "Plant", existingUser.getPlantId().toString(),
+					updateUserRequest.getPlantId().toString()));
 			existingUser.setPlantId(updateUserRequest.getPlantId());
 		}
 		if (!existingUser.getStatus().equals(updateUserRequest.getStatus())) {
 			auditFields.add(new AuditFields(null, "Status", existingUser.getStatus(), updateUserRequest.getStatus()));
 			existingUser.setStatus(updateUserRequest.getStatus());
 		}
-		if (!existingUser.getRoles().equals(setToRoleId(updateUserRequest.getRoles()))) {
-			auditFields.add(new AuditFields(null, "Roles", existingUser.getRoles(), updateUserRequest.getRoles()));
-			existingUser.setRoles(setToRoleId(updateUserRequest.getRoles()));
+
+		List<Assignee> existingAssignees = existingUser.getAssignees();
+		List<UpdateAssigneeResponse> existingAssigneeNames = existingAssignees.stream()
+				.map(assigneeMapper::assigneeToUpdateAssigneeResponse).toList();
+		String existingJson = Helpers.convertJsonToString(existingAssigneeNames);
+
+		List<Assignee> requestingAssignees = this.setAssigneesToRequests(updateUserRequest.getAssignees());
+		List<UpdateAssigneeResponse> requestingAssigneeNames = requestingAssignees.stream()
+				.map(assigneeMapper::assigneeToUpdateAssigneeResponse).toList();
+		String requestingJson = Helpers.convertJsonToString(requestingAssigneeNames);
+
+		if (!existingAssigneeNames.equals(requestingAssigneeNames)) {
+			auditFields.add(new AuditFields(null, "Role Of User", existingJson, requestingJson));
+
+			assigneeRepository.deleteAll(existingAssignees);
+			existingUser.setAssignees(requestingAssignees);
 		}
 		existingUser.updateAuditHistory(auditFields);
 
@@ -316,11 +347,11 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public void deleteUserId(@NonNull Long id) throws ResourceNotFoundException {
 		User user = this.findUserById(id);
-		if (user != null) {
-			fileUploadUtil.deleteDir(user.getAvatar(), id);
-			userRepository.delete(user);
-		}
-	}
+        if (user.getAvatar() != null) {
+            fileUploadUtil.deleteDir(user.getAvatar(), id);
+        }
+        userRepository.delete(user);
+    }
 
 	@Override
 	public void deleteBatch(@NonNull List<Long> ids) throws ResourceNotFoundException {
@@ -342,16 +373,29 @@ public class UserServiceImpl implements UserService {
 		return userRoles;
 	}
 
-	@Override
-	public UserResponse assignRolesToUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
-			throws ResourceNotFoundException {
-		return modifyRole(userId, userRoleRequest, "add");
+	private Assignee createAssignee(AssigneeRequest assigneeRequest) {
+		Assignee assignee = new Assignee();
+		assignee.setRole(roleRepository.findById(assigneeRequest.getRole()).orElse(null));
+		assignee.setSubUser(userRepository.searchById(assigneeRequest.getSubUser()).orElse(null));
+		return assignee;
 	}
 
-	@Override
-	public UserResponse unassignRolesFromUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
-			throws ResourceNotFoundException {
-		return modifyRole(userId, userRoleRequest, "remove");
+	private List<Assignee> setAssigneesToRequests(List<AssigneeRequest> assigneeRequests) {
+		List<Assignee> userAssignees = new ArrayList<>();
+		for (AssigneeRequest assigneeRequest : assigneeRequests) {
+			Assignee existingAssignee = assigneeRepository.findByRole_IdAndSubUser_Id(assigneeRequest.getRole(),
+					assigneeRequest.getSubUser());
+
+			if (existingAssignee == null) {
+				Assignee assignee = createAssignee(assigneeRequest);
+				assigneeRepository.save(assignee);
+				userAssignees.add(assignee);
+			} else {
+				userAssignees.add(existingAssignee);
+
+			}
+		}
+		return userAssignees;
 	}
 
 	private UserDepartmentResponse mapToUserDepartmentResponse(User user) {
@@ -387,11 +431,15 @@ public class UserServiceImpl implements UserService {
 	}
 
 	private User findUserById(@NonNull Long id) throws ResourceNotFoundException {
-		Optional<User> user = userRepository.findById(id);
+		Optional<User> user = this.optionalUser(id);
 		if (user.isEmpty()) {
 			throw new ResourceNotFoundException(NO_USER_FOUND_WITH_ID_MESSAGE);
 		}
 		return user.get();
+	}
+
+	private Optional<User> optionalUser(Long id) {
+		return userRepository.findById(id);
 	}
 
 	private List<User> findAllUsersById(@NonNull List<Long> ids) throws ResourceNotFoundException {
@@ -405,56 +453,22 @@ public class UserServiceImpl implements UserService {
 		return users;
 	}
 
-	private UserResponse modifyRole(@NonNull Long userId, UserRoleRequest userRoleRequest, String operation)
-			throws ResourceNotFoundException {
-		User user = this.findUserById(userId);
-		List<Role> existingRoles = user.getRoles();
-		for (Long roleId : userRoleRequest.getRoles()) {
-			if (roleId != null) {
-				Optional<Role> role = roleRepository.findById(roleId);
-				role.ifPresent(p -> {
-					if (operation.equals("remove")) {
-						existingRoles.remove(p);
-					} else {
-						existingRoles.add(p);
-					}
-				});
-			}
-		}
-		user.setRoles(existingRoles);
-		User updatedUser = userRepository.save(user);
-		return userMapper.mapToUserResponse(updatedUser);
-	}
-
-	@Override
-	public UserResponse assignUsersToRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
-		return modifyUser(roleId, userIds, true);
-	}
 
 	@Override
 	public UserResponse unassignUsersFromRole(Long roleId, Long[] userIds) throws ResourceNotFoundException {
-		return modifyUser(roleId, userIds, false);
-
-	}
-
-	private UserResponse modifyUser(Long roleId, Long[] userIds, boolean assign) throws ResourceNotFoundException {
 		Role role = roleRepository.findById(roleId)
 				.orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
 		for (Long userId : userIds) {
 			User user = this.findUserById(userId);
-
-			if (assign && !user.getRoles().contains(role)) {
-				user.getRoles().add(role);
-			} else if (!assign && user.getRoles().contains(role)) {
-				user.getRoles().remove(role);
+			Assignee assignee = assigneeRepository.findByRole(role);
+			if (user.getAssignees().contains(assignee)) {
+				user.getAssignees().remove(assignee);
 			}
-
 			userRepository.save(user);
 		}
-
-		// Assuming returning response for the first user
 		return userMapper.mapToUserResponse(findUserById(userIds[0]));
+
 	}
 
 }

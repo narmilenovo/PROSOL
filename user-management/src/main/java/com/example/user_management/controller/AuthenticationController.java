@@ -53,7 +53,7 @@ import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.entity.User;
 import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.mapping.UserMapper;
-import com.example.user_management.security.CustomUserDetails;
+import com.example.user_management.security.MyUserPrincipal;
 import com.example.user_management.service.JwtService;
 import com.example.user_management.service.LogoutService;
 import com.example.user_management.service.interfaces.AuthenticationService;
@@ -105,7 +105,7 @@ public class AuthenticationController {
 			return ResponseEntity.badRequest().body(result);
 		}
 		User user = userMapper.mapUserResponseToUser(userResponse);
-		UserDetails userDetails = new CustomUserDetails(user);
+		UserDetails userDetails = new MyUserPrincipal(user);
 		var jwtToken = jwtService.generateToken(userDetails);
 		var refreshToken = jwtService.generateRefreshToken(userDetails);
 		Date expirationDate = jwtService.extractExpiration(jwtToken);
@@ -133,7 +133,7 @@ public class AuthenticationController {
 		if (userEmail != null) {
 			UserResponse userResponse = userService.findByEmail(userEmail);
 			User user = userMapper.mapUserResponseToUser(userResponse);
-			UserDetails userDetails = new CustomUserDetails(user);
+			UserDetails userDetails = new MyUserPrincipal(user);
 			if (user == null) {
 				result.put(MESSAGE_KEY, TOKEN_NOT_FOUND_MESSAGE);
 				return ResponseEntity.badRequest().body(result);

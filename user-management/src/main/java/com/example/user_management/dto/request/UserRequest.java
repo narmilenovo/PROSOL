@@ -51,5 +51,8 @@ public class UserRequest {
 	@Schema(description = "Indicates if the user will be enabled or not")
 	private Boolean status = true;
 
-	private Long[] roles;
+//	private Long[] assignees;
+
+	private List<AssigneeRequest> assignees;
+
 }

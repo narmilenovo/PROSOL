@@ -19,7 +19,8 @@ public class UserResponse {
 	private Long departmentId;
 	private List<Long> plantId;
 	private Boolean status;
-	private List<RoleResponse> roles;
+	private List<AssigneeResponse> assignees;
+
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

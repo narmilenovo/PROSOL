@@ -2,6 +2,8 @@ package com.example.user_management.entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -27,6 +29,7 @@ public class Privilege extends BaseEntity {
 	// @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
 	private Boolean status;
 
+	@JsonBackReference
 	@ManyToMany(mappedBy = "privileges")
 	private List<Role> roles;
 }

@@ -21,7 +21,9 @@ public class RolePlantResponse {
 	private String description;
 	private PlantResponse plant;
 	private Boolean status;
-	private Set<PrivilegeResponse> privileges;
+	private List<PrivilegeResponse> privileges;
+	private String subRole;
+
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

@@ -26,7 +26,7 @@ import com.example.user_management.exceptions.ResourceNotFoundException;
 import com.example.user_management.mapping.UserMapper;
 import com.example.user_management.repository.TokenRepository;
 import com.example.user_management.repository.UserRepository;
-import com.example.user_management.security.CustomUserDetails;
+import com.example.user_management.security.MyUserPrincipal;
 import com.example.user_management.service.interfaces.AuthenticationService;
 import com.example.user_management.service.interfaces.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +52,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 		UserResponse userResponse = userService.findByEmail(loginRequest.getEmail());
 		User user = userMapper.mapUserResponseToUser(userResponse);
-		UserDetails userDetails = new CustomUserDetails(user);
+		UserDetails userDetails = new MyUserPrincipal(user);
 		var jwtToken = jwtService.generateToken(userDetails);
 		var refreshToken = jwtService.generateRefreshToken(userDetails);
 		revokeAllUserTokens(userResponse);
@@ -74,7 +74,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (userEmail != null) {
 			UserResponse userResponse = userService.findByEmail(userEmail);
 			User user = userMapper.mapUserResponseToUser(userResponse);
-			UserDetails userDetails = new CustomUserDetails(user);
+			UserDetails userDetails = new MyUserPrincipal(user);
 			if (jwtService.isTokenValid(refreshToken, userDetails)) {
 				var accessToken = jwtService.generateToken(userDetails);
 				revokeAllUserTokens(userResponse);

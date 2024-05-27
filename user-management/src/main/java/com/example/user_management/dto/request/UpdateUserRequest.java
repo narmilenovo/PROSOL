@@ -31,5 +31,5 @@ public class UpdateUserRequest {
 
 	private Boolean status = true;
 
-	private Long[] roles;
+	private List<AssigneeRequest> assignees;
 }

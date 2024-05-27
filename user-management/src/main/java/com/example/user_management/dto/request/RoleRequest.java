@@ -25,4 +25,6 @@ public class RoleRequest {
 
 	@Schema(description = "Set Privileges to Role")
 	private Long[] privileges;
+
+	private Long subRole;
 }

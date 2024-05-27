@@ -40,7 +40,7 @@ public class ExistsValidator implements ConstraintValidator<Exists, Object> {
 
 			final Object propertyObj = BeanUtils.getProperty(value, propertyName);
 
-			String finalPropertyName = Helpers.capitalize(propertyName);
+			String finalPropertyName = Helpers.firstLetterCaps(propertyName);
 			String methodName = "findBy" + finalPropertyName;
 
 			result = type.getMethod(methodName, String.class).invoke(instance, propertyObj.toString());

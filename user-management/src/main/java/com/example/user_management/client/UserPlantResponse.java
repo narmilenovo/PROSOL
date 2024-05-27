@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.example.user_management.client.plant.PlantResponse;
+import com.example.user_management.dto.response.AssigneeResponse;
 import com.example.user_management.dto.response.RoleResponse;
 import com.example.user_management.entity.UpdateAuditHistory;
 
@@ -17,11 +18,13 @@ public class UserPlantResponse {
 	private String firstName;
 	private String lastName;
 	private String phone;
+	private String avatar;
 	private String business;
 	private Long departmentId;
 	private List<PlantResponse> plants;
 	private Boolean status;
-	private Set<RoleResponse> roles;
+	private List<AssigneeResponse> assignees;
+
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

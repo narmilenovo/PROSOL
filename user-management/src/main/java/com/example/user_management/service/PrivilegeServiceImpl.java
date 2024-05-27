@@ -47,6 +47,17 @@ public class PrivilegeServiceImpl implements PrivilegeService {
 	}
 
 	@Override
+	public List<PrivilegeResponse> saveAllPrivileges(List<PrivilegeRequest> privilegeRequests)
+			throws ResourceFoundException {
+		List<PrivilegeResponse> privilegeResponses = new ArrayList<>();
+		for (PrivilegeRequest request : privilegeRequests) {
+			PrivilegeResponse response = this.savePrivilege(request);
+			privilegeResponses.add(response);
+		}
+		return privilegeResponses;
+	}
+
+	@Override
 	public PrivilegeResponse getPrivilegeById(@NonNull Long id) throws ResourceNotFoundException {
 		Privilege privilege = this.findPrivilegeById(id);
 		return privilegeMapper.mapToPrivilegeResponse(privilege);

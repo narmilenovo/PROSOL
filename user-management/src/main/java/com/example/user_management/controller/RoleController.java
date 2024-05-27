@@ -258,10 +258,10 @@ public class RoleController {
 					@Content(schema = @Schema(implementation = BadRequestResponse.class)) }),
 			@ApiResponse(responseCode = "422", description = INVALID_DATA_MESSAGE, content = {
 					@Content(schema = @Schema(implementation = InvalidDataResponse.class)) }) })
-	@DeleteMapping("/unassignPrivilegesFromRole/{id}")
-	public ResponseEntity<Object> unassignPrivilegesFromRole(@PathVariable @NonNull Long id,
+	@DeleteMapping("/unassignPrivilegesFromRole/{roleId}")
+	public ResponseEntity<Object> unassignPrivilegesFromRole(@PathVariable @NonNull Long roleId,
 			@Valid @RequestBody RolePrivilegeRequest rolePrivilegeRequest) throws ResourceNotFoundException {
-		roleService.unassignPrivilegesFromRole(id, rolePrivilegeRequest);
+		roleService.unassignPrivilegesFromRole(roleId, rolePrivilegeRequest);
 		return ResponseEntity.noContent().build();
 	}
 

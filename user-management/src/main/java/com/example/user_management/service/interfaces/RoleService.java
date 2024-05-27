@@ -50,8 +50,4 @@ public interface RoleService {
 	RoleResponse assignPrivilegesToRole(@NonNull Long id, RolePrivilegeRequest updateRolePrivilegeRequest)
 			throws ResourceNotFoundException;
 
-	void unassignUsersFromRole(Long roleId, Long[] users) throws ResourceNotFoundException;
-
-	void assignUsersToRole(Long roleId, Long[] users) throws ResourceNotFoundException;
-
 }

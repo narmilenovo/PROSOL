@@ -17,6 +17,7 @@ import com.example.user_management.dto.response.UserResponse;
 import com.example.user_management.entity.Role;
 import com.example.user_management.exceptions.ResourceFoundException;
 import com.example.user_management.exceptions.ResourceNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface UserService {
 	UserResponse saveUser(UserRequest userRequest) throws ResourceFoundException, ResourceNotFoundException;
@@ -52,7 +53,10 @@ public interface UserService {
 
 	List<RoleUserResponse> getAllUsersByRoleId(Long id);
 
-	UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest) throws ResourceNotFoundException;
+	List<RoleUserResponse> getAllUsersByPlantIdsAndSubRole(List<Long> plantIds, String subRole);
+
+	UserResponse updateUser(@NonNull Long id, UpdateUserRequest updateUserRequest)
+			throws ResourceNotFoundException, JsonProcessingException;
 
 	UserResponse updateStatusUsingId(@NonNull Long id) throws ResourceNotFoundException;
 
@@ -70,14 +74,6 @@ public interface UserService {
 	void deleteBatch(@NonNull List<Long> id) throws ResourceNotFoundException;
 
 	List<Role> setToRoleId(Long[] roles);
-
-	UserResponse assignRolesToUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
-			throws ResourceNotFoundException;
-
-	UserResponse unassignRolesFromUser(@NonNull Long userId, UserRoleRequest userRoleRequest)
-			throws ResourceNotFoundException;
-
-	UserResponse assignUsersToRole(Long roleId, Long[] userIds) throws ResourceNotFoundException;
 
 	UserResponse unassignUsersFromRole(Long roleId, Long[] userIds) throws ResourceNotFoundException;
 

@@ -8,7 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import com.example.user_management.security.CustomUserDetails;
+import com.example.user_management.security.MyUserPrincipal;
 
 @Component
 public class SpringSecurityAuditorAware implements AuditorAware<String> {
@@ -23,8 +23,8 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
 
 		Object principal = authentication.getPrincipal();
 
-		if (principal instanceof CustomUserDetails customuserdetails) {
-			return Optional.ofNullable(customuserdetails.getUsername());
+		if (principal instanceof MyUserPrincipal myUserPrincipal) {
+			return Optional.ofNullable(myUserPrincipal.getUsername());
 		} else {
 			// Handle the case where the principal is not a CustomUserDetails
 			return Optional.empty();

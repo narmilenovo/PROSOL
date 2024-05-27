@@ -15,6 +15,8 @@ public class RoleResponse {
 	private Long plantId;
 	private Boolean status;
 	private List<PrivilegeResponse> privileges;
+	private String subRole;
+
 	private String createdBy;
 	private Date createdAt;
 	private List<UpdateAuditHistory> updateAuditHistories;

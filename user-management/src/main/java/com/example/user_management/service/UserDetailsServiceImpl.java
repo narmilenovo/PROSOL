@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.user_management.entity.User;
 import com.example.user_management.repository.UserRepository;
-import com.example.user_management.security.CustomUserDetails;
+import com.example.user_management.security.MyUserPrincipal;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +29,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 		if (Boolean.FALSE.equals(user.getStatus())) {
 			throw new BadCredentialsException("User is Not Enabled");
 		}
-		return new CustomUserDetails(user);
+		return new MyUserPrincipal(user);
 	}
 }

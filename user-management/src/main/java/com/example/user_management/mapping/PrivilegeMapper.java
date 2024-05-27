@@ -6,8 +6,9 @@ import org.mapstruct.Mapping;
 import com.example.user_management.dto.request.PrivilegeRequest;
 import com.example.user_management.dto.response.PrivilegeResponse;
 import com.example.user_management.entity.Privilege;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
+@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE,componentModel = "spring")
 public interface PrivilegeMapper {
 
 	@Mapping(target = "id", ignore = true)
@@ -20,5 +21,5 @@ public interface PrivilegeMapper {
 	PrivilegeResponse mapToPrivilegeResponse(Privilege privilege);
 
 	@Mapping(target = "roles", ignore = true)
-	Privilege mapRoleResponseToRole(PrivilegeResponse privilegeResponse);
+	Privilege mapPrivilegeResponseToRole(PrivilegeResponse privilegeResponse);
 }

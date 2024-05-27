@@ -3,7 +3,6 @@ package com.example.user_management.mapping;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -14,22 +13,30 @@ import com.example.user_management.dto.request.RoleRequest;
 import com.example.user_management.dto.response.RoleResponse;
 import com.example.user_management.entity.Privilege;
 import com.example.user_management.entity.Role;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring", uses = { UserMapper.class, PrivilegeMapper.class })
+@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE,componentModel = "spring", uses = PrivilegeMapper.class)
 public interface RoleMapper {
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "createdAt", ignore = true)
 	@Mapping(target = "createdBy", ignore = true)
 	@Mapping(target = "updateAuditHistories", ignore = true)
-	@Mapping(target = "users", ignore = true)
+	@Mapping(target = "assignee", ignore = true)
 	@Mapping(target = "privileges", source = "privileges", qualifiedByName = "mapToPrivileges")
+	@Mapping(target = "subRole.id", source = "subRole")
 	Role mapToRole(RoleRequest roleRequest);
 
+	@Mapping(target = "subRole", source = "subRole.name")
 	RoleResponse mapToRoleResponse(Role role);
 
 	@Mapping(target = "plant.id", source = "plantId")
 	RolePlantResponse mapToRolePlantResponse(Role role);
+
+	@Mapping(target = "assignee", ignore = true)
+	@Mapping(target = "privileges", source = "privileges")
+	@Mapping(target = "subRole.name", source = "subRole")
+	Role mapRoleResponseToRole(RoleResponse roleResponse);
 
 	@Named("mapToPrivileges")
 	default List<Privilege> mapToPrivileges(Long[] privileges) {
@@ -40,10 +47,6 @@ public interface RoleMapper {
 			Privilege privilege = new Privilege();
 			privilege.setId(privilegeId);
 			return privilege;
-		}).collect(Collectors.toList());
+		}).toList();
 	}
-
-	@Mapping(target = "users", ignore = true)
-	@Mapping(target = "privileges", source = "privileges")
-	Role mapRoleResponseToRole(RoleResponse roleResponse);
 }
